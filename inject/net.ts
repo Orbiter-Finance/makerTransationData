@@ -2,7 +2,7 @@ import path from 'path';
 import fs from "fs";
 import { Socket, connect, createServer, Server } from "net";
 function joinPath(file:string) {
-  return path.join('../../runtime/', file);
+  return path.join(__dirname, '../../','runtime/', file);
 }
 export class NetUtil {
 
@@ -10,7 +10,7 @@ export class NetUtil {
     const pipeFile =
       process.platform === "win32"
         ? "\\\\.\\pipe\\mypip"
-        : `./runtime/${name}.sock`;
+        : joinPath(`${name}.sock`);
     const client = connect(pipeFile);
     // client.on("connect", () => {
     //   console.info("[Client] MsgNotify Client Connect Success");
@@ -27,7 +27,7 @@ export class NetUtil {
     const pipeFile =
       process.platform === "win32"
         ? "\\\\.\\pipe\\mypip"
-        : `./runtime/${name}.sock`;
+        :  joinPath(`${name}.sock`);
     try {
       fs.unlinkSync(pipeFile);
     } catch (error) {}

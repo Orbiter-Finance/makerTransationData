@@ -5,14 +5,13 @@ services:
     restart: always
     command: npm run start
     environment:
-      DB_HOST: "127.0.0.1"
-      DB_NAME: "orbiter"
+      DB_HOST: "192.168.1.8"
+      DB_NAME: "orbiter-new"
       DB_USER: "root"
       DB_PASS: "123456"
       NODE_ENV: prod
     volumes:
-      - './src/config/chains.json:/www/maker-datasource/src/config/chains.json'
-      - './src/config/testnet.json:/www/maker-datasource/src/config/testnet.json'
-      - './node_modules:/www/maker-datasource/node_modules'
-      - './runtime:/www/maker-datasource/runtime'
-      - './cache:/www/maker-datasource/cache'
+      - './src/config/chains.json:/home/makerTransationData/dist/src/config/chains.json'
+      - './src/config/testnet.json:/home/makerTransationData/dist/src/config/testnet.json'
+      - './runtime:/home/makerTransationData/runtime'
+      - './cache:/home/makerTransationData/cache'

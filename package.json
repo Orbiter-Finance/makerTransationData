@@ -6,16 +6,15 @@
   "scripts": {
     "seqauto": "sequelize-auto -o ./src/models -d orbiter-new -h localhost -u root -p 3306 -x 123456 -e mysql -l ts",
     "dev": "ts-node ./index.ts",
-    "bin": "ts-node ./src/bin/index.ts",
-    "pushServer": "ts-node ./src/bin/pushServer.ts",
-    "inject": "ts-node ./src/bin/inject.ts",
+    "pushServer": "ts-node ./inject/server.ts",
+    "inject": "ts-node ./inject/client.ts",
     "start": "node ./dist/index.js",
     "build": "npm run clean && tsc && ncp package.json dist/package.json",
     "clean": "rimraf coverage output dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "inject": "./dist/bin/index.js"
+    "inject": "./dist/inject/client.js"
   },
   "author": "",
   "license": "ISC",

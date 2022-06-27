@@ -9,7 +9,7 @@ import { initModels, transactionAttributes } from "./src/models/init-models";
 import { IMarket } from "./src/types";
 import { padStart } from "lodash";
 import { getAmountFlag, getAmountToSend } from "./src/utils/oldUtils";
-import { NetUtil } from "./src/bin/net";
+import { NetUtil } from "./inject/net";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import {
   ITransaction,
@@ -318,15 +318,15 @@ async function startMatch(ctx: Context) {
     isLock = false;
   let timer = setInterval(async () => {
     try {
-      if (isLock) 
-        return;
-      isLock = true;
-      await matchSourceData(ctx, page, 500);
-      page++;
+      if (!isLock) {
+        isLock = true;
+        await matchSourceData(ctx, page, 500);
+        page++;
+        isLock = false;
+      }
     } catch (error) {
-      ctx.logger.error("startMatch error:", error);
-    } finally {
       isLock = false;
+      ctx.logger.error("startMatch error:", error);
     }
   }, 5000);
 }

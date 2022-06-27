@@ -2,6 +2,7 @@ version: '3.8'
 services:
   makertrx-data-server:
     build: .
+    restart: always
     command: npm run start
     environment:
       DB_HOST: "127.0.0.1"
@@ -10,6 +11,8 @@ services:
       DB_PASS: "123456"
       NODE_ENV: prod
     volumes:
+      - './src/config/chains.json:/www/maker-datasource/src/config/chains.json'
+      - './src/config/testnet.json:/www/maker-datasource/src/config/testnet.json'
+      - './node_modules:/www/maker-datasource/node_modules'
       - './runtime:/www/maker-datasource/runtime'
       - './cache:/www/maker-datasource/cache'
-    restart: always

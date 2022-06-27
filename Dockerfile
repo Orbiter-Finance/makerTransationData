@@ -1,7 +1,7 @@
-FROM node:current
-RUN mkdir -p /www/maker-datasource
-WORKDIR /maker-datasource
+FROM node:16.15
+RUN mkdir -p /home/makerTransationData
+WORKDIR /home/makerTransationData
 COPY ./ .
-RUN npm i
-RUN npm run build
+RUN yarn config set ignore-engines true
+RUN yarn install --network-timeout 600000 && yarn run build
 CMD ["node","./dist/index.js"]

@@ -341,10 +341,8 @@ export async function matchSourceData(ctx: Context, pageIndex:number = 1,pageSiz
     }
   );
   const trxIds = result.map((row:any) => row['id']);
-  console.log(pageIndex, "页，当前匹配到数据：",'pageSize', pageSize, 'page', pageIndex, 'res length:', result.length, trxIds);
   if (result.length <= 0 || !result) {
-    pageIndex = 0;
-    throw new Error("已经匹配到最后一页！");
+    throw new Error("match last");
   }
   const trxs = await ctx.models.transaction.findAll({
     raw: true,
@@ -355,7 +353,7 @@ export async function matchSourceData(ctx: Context, pageIndex:number = 1,pageSiz
     },
   });
   for (const tx of trxs) {
-    console.log('handle match:', tx.id)
+    console.log('process match:', tx.id)
     const isMakerSend =
       ctx.makerConfigs.findIndex((row) => equals(row.sender, tx.from)) !== -1;
     const isUserSend =

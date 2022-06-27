@@ -18,6 +18,7 @@ import {
 import { IChainConfig } from "orbiter-chaincore/src/types";
 import mainChainConfigs from "./src/config/chains.json";
 import testChainConfigs from "./src/config/testnet.json";
+import { matchSourceData } from "./src/service";
 export function TransactionID(
   fromAddress: string,
   fromChainId: number | string,
@@ -312,7 +313,21 @@ async function processSubTx(ctx: Context, tx: ITransaction) {
     throw error;
   }
 }
-
+async function startMatch(ctx: Context) {
+  let page = 1,
+    isLock = false;
+  let timer = setInterval(async () => {
+    try {
+      isLock = true;
+      await matchSourceData(ctx, page, 500);
+      page++;
+    } catch (error) {
+      ctx.logger.error("startMatch error:", error);
+    } finally {
+      isLock = false;
+    }
+  }, 5000);
+}
 async function bootstrap() {
   const ctx = new Context();
   try {
@@ -333,6 +348,7 @@ async function bootstrap() {
   } catch (error: any) {
     ctx.logger.error("startSub error:", error);
   }
+  startMatch(ctx);
 }
 
 bootstrap();

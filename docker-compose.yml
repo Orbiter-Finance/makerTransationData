@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  makertrx-data-server:
+    build: .
+    command: npm run start
+    environment:
+      DB_HOST: "127.0.0.1"
+      DB_NAME: "orbiter"
+      DB_USER: "root"
+      DB_PASS: "123456"
+      NODE_ENV: prod
+    volumes:
+      - './runtime:/www/maker-datasource/runtime'
+      - './cache:/www/maker-datasource/cache'
+    restart: always

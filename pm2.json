@@ -1,0 +1,11 @@
+{
+  "apps": [
+    {
+      "name": "makerTransactionData",
+      "instances": "max",
+      "exec_mode": "cluster",
+      "script": "index.js",
+      "cwd": "./dist"
+    }
+  ]
+}

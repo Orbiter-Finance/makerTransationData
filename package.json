@@ -1,0 +1,48 @@
+{
+  "name": "maker-datasource",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "seqauto": "sequelize-auto -o ./src/models -d orbiter-new -h localhost -u root -p 3306 -x 123456 -e mysql -l ts",
+    "dev": "ts-node ./index.ts",
+    "bin": "ts-node ./src/bin/index.ts",
+    "pushServer": "ts-node ./src/bin/pushServer.ts",
+    "inject": "ts-node ./src/bin/inject.ts",
+    "start": "node ./dist/index.js",
+    "build": "npm run clean && tsc && ncp package.json dist/package.json",
+    "clean": "rimraf coverage output dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "inject": "./dist/bin/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/figlet": "^1.5.4",
+    "@types/fs-extra": "^9.0.13",
+    "@types/inquirer": "^8.2.1",
+    "@types/lodash": "^4.14.182",
+    "@types/node": "^18.0.0",
+    "@types/sequelize": "^4.28.13"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "dotenv": "^16.0.1",
+    "figlet": "^1.5.2",
+    "fs-extra": "^10.1.0",
+    "inquirer": "^8.2.4",
+    "lodash": "^4.17.21",
+    "mysql2": "^2.3.3",
+    "ncp": "^2.0.0",
+    "orbiter-chaincore": "^0.0.2",
+    "orbiter-chaincore-test": "^0.1.0",
+    "rimraf": "^3.0.2",
+    "sequelize": "^6.21.0",
+    "sequelize-auto": "^0.8.8",
+    "sequelize-typescript": "^2.1.3",
+    "ts-node": "^10.8.1",
+    "typescript": "^4.7.4"
+  }
+}

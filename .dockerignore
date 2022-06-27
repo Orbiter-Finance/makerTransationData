@@ -1,0 +1,7 @@
+node_modules
+logs/*
+cache/*
+runtime/*
+dist/*
+.git
+.vscode

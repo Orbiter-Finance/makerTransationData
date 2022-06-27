@@ -318,6 +318,8 @@ async function startMatch(ctx: Context) {
     isLock = false;
   let timer = setInterval(async () => {
     try {
+      if (isLock) 
+        return;
       isLock = true;
       await matchSourceData(ctx, page, 500);
       page++;

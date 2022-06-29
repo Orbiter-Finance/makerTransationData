@@ -331,7 +331,7 @@ export async function loopOptimisticHistory(
 }
 export async function matchSourceData(ctx: Context, pageIndex:number = 1,pageSize:number = 500) {
   const [result] = await ctx.sequelize.query(
-    "select t1.id,t1.hash from `transaction` as t1 left join maker_transaction as mt on t1.id = mt.inId where mt.id is null limit " +
+    "select t1.id,t1.hash from `transaction` as t1 left join maker_transaction as mt on t1.id = mt.inId where mt.id is null order by t1.id desc  limit " +
       pageSize +
       " offset " +
       pageSize * (pageIndex - 1) +

@@ -9,7 +9,7 @@ import { initModels, transactionAttributes } from "./src/models/init-models";
 import { IMarket } from "./src/types";
 import { padStart } from "lodash";
 import { getAmountFlag, getAmountToSend } from "./src/utils/oldUtils";
-import { NetUtil } from "./inject/net";
+// import { NetUtil } from "./inject/net";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import {
   ITransaction,
@@ -19,6 +19,7 @@ import { IChainConfig } from "orbiter-chaincore/src/types";
 import mainChainConfigs from "./src/config/chains.json";
 import testChainConfigs from "./src/config/testnet.json";
 import { matchSourceData } from "./src/service";
+import net from "net";
 export function TransactionID(
   fromAddress: string,
   fromChainId: number | string,
@@ -36,6 +37,38 @@ export interface Config {
     };
   };
   chains: Array<IChainConfig>;
+}
+function subscribeInject(ctx: Context) {
+  const client = new net.Socket();
+  console.log("open conn");
+  client.connect(8001, "127.0.0.1", function () {
+    console.log("Successfully connected to the server\n");
+    client.write(
+      JSON.stringify({
+        op: "subscribe",
+        data: "",
+      })
+    );
+  });
+  client.on("data", (str: string) => {
+    const body = JSON.parse(str);
+    console.log(body, "==body");
+    if (body && body.op === "inject") {
+      const chain = Chain.configs.find((row) =>
+        equals(row.internalId, body.data.key)
+      );
+      if (!chain) {
+        return ctx.logger.error(
+          `Inject Key Not Find Chain Config ${body.data.key}`
+        );
+      }
+      chain.api.key = body.data.value;
+      console.log(chain, "==");
+    }
+  });
+  client.on("end", function () {
+    console.log("Send Data end");
+  });
 }
 export class Context {
   public models;
@@ -62,28 +95,6 @@ export class Context {
       this.config.chains = <any>testChainConfigs;
     }
     this.logger = LoggerService.createLogger();
-    try {
-      const client = NetUtil.createClient();
-      client.on("error", (error) => {
-        this.logger.error(error);
-      });
-      client.on("data", (req: string) => {
-        const body = JSON.parse(req);
-        if (body.op === "inject") {
-          const chain = Chain.configs.find((row) =>
-            equals(row.internalId, body.data.key)
-          );
-          if (!chain) {
-            return this.logger.error(
-              `Inject Key Not Find Chain Config ${body.data.key}`
-            );
-          }
-          chain.api.key = body.data.value;
-        }
-      });
-    } catch (error) {
-      this.logger.error(`NetUtil Client Inject Service Error`, error);
-    }
     this.sequelize = new Sequelize(
       DB_NAME || "orbiter",
       String(DB_USER),
@@ -333,6 +344,7 @@ async function startMatch(ctx: Context) {
 async function bootstrap() {
   const ctx = new Context();
   try {
+    subscribeInject(ctx);
     ctx.makerConfigs = await convertMarketListToFile(
       makerList,
       ctx.config.L1L2Mapping

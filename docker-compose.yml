@@ -1,17 +1,20 @@
 version: '3.8'
 services:
-  makertrx-data-server:
+  data-server:
     build: .
+    container_name: maker-data-server
     restart: always
-    command: npm run start
+    command: pm2 start pm2.json
     environment:
       DB_HOST: "192.168.1.8"
       DB_NAME: "orbiter-new"
       DB_USER: "root"
       DB_PASS: "123456"
+      INSTANCES: 4
       NODE_ENV: prod
+    ports:
+      - '8001:8001'
     volumes:
       - './src/config/chains.json:/home/makerTransationData/dist/src/config/chains.json'
       - './src/config/testnet.json:/home/makerTransationData/dist/src/config/testnet.json'
       - './runtime:/home/makerTransationData/runtime'
-      - './cache:/home/makerTransationData/cache'

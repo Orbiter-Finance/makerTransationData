@@ -5,3 +5,4 @@ runtime/*
 dist/*
 .git
 .vscode
+.env

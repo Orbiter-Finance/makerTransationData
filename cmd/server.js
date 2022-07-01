@@ -33,7 +33,7 @@ const server = net.createServer(function (socket) {
 server.listen(8001, function () {
   console.log("Start Server Success");
   setInterval(() => {
-    if (subscribes.length > 0) {
+    if (subscribes.length > 0 && Object.keys(pushData).length>0) {
       subscribes.forEach((client) => {
         console.debug('Send Inject Config To:', client.name)
         client.write(JSON.stringify({ op: "inject", data: pushData }));

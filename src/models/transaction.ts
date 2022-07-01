@@ -7,7 +7,7 @@ export interface transactionAttributes {
   hash: string;
   nonce: string;
   blockHash?: string;
-  blockNumber: number;
+  blockNumber?: number;
   transactionIndex?: number;
   from: string;
   to: string;
@@ -19,8 +19,8 @@ export interface transactionAttributes {
   status: number;
   tokenAddress: string;
   timestamp: Date;
-  fee: string;
-  feeToken: string;
+  fee?: string;
+  feeToken?: string;
   chainId: number;
   source?: string;
   memo?: string;
@@ -31,7 +31,7 @@ export interface transactionAttributes {
 
 export type transactionPk = "id";
 export type transactionId = transaction[transactionPk];
-export type transactionOptionalAttributes = "id" | "blockHash" | "transactionIndex" | "gasPrice" | "gas" | "input" | "timestamp" | "source" | "memo" | "extra" | "createdAt" | "updatedAt";
+export type transactionOptionalAttributes = "id" | "blockHash" | "blockNumber" | "transactionIndex" | "gasPrice" | "gas" | "input" | "timestamp" | "fee" | "feeToken" | "source" | "memo" | "extra" | "createdAt" | "updatedAt";
 export type transactionCreationAttributes = Optional<transactionAttributes, transactionOptionalAttributes>;
 
 export class transaction extends Model<transactionAttributes, transactionCreationAttributes> implements transactionAttributes {
@@ -39,7 +39,7 @@ export class transaction extends Model<transactionAttributes, transactionCreatio
   hash!: string;
   nonce!: string;
   blockHash?: string;
-  blockNumber!: number;
+  blockNumber?: number;
   transactionIndex?: number;
   from!: string;
   to!: string;
@@ -51,8 +51,8 @@ export class transaction extends Model<transactionAttributes, transactionCreatio
   status!: number;
   tokenAddress!: string;
   timestamp!: Date;
-  fee!: string;
-  feeToken!: string;
+  fee?: string;
+  feeToken?: string;
   chainId!: number;
   source?: string;
   memo?: string;
@@ -97,7 +97,7 @@ export class transaction extends Model<transactionAttributes, transactionCreatio
     },
     blockNumber: {
       type: DataTypes.BIGINT,
-      allowNull: false,
+      allowNull: true,
       comment: "blockNumber"
     },
     transactionIndex: {
@@ -158,12 +158,12 @@ export class transaction extends Model<transactionAttributes, transactionCreatio
     },
     fee: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       comment: "fee"
     },
     feeToken: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       comment: "feeToken"
     },
     chainId: {

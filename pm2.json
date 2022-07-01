@@ -1,11 +1,23 @@
 {
   "apps": [
     {
-      "name": "makerTransactionData",
-      "instances": "max",
+      "name": "inject_server",
+      "exec_mode": "fork",
+      "script": "server.js",
+      "cwd": "./cmd/",
+      "env": {
+        "NODE_ENV": "prod"
+      }
+    },
+    {
+      "name": "makerTpransationData",
+      "instances": 4,
       "exec_mode": "cluster",
       "script": "index.js",
-      "cwd": "./dist"
+      "cwd": "./dist/",
+      "env": {
+        "NODE_ENV": "prod"
+      }
     }
   ]
 }

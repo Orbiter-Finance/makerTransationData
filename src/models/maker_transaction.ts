@@ -68,7 +68,7 @@ export class maker_transaction extends Model<maker_transactionAttributes, maker_
         model: 'transaction',
         key: 'id'
       },
-      unique: "maker_transaction_ibfk_1"
+      unique: "maker_transaction_ibfk_2"
     },
     outId: {
       type: DataTypes.BIGINT,
@@ -78,7 +78,7 @@ export class maker_transaction extends Model<maker_transactionAttributes, maker_
         model: 'transaction',
         key: 'id'
       },
-      unique: "maker_transaction_ibfk_2"
+      unique: "maker_transaction_ibfk_1"
     },
     fromChain: {
       type: DataTypes.INTEGER,
@@ -127,19 +127,19 @@ export class maker_transaction extends Model<maker_transactionAttributes, maker_
         ]
       },
       {
-        name: "outId",
-        unique: true,
-        using: "BTREE",
-        fields: [
-          { name: "outId" },
-        ]
-      },
-      {
-        name: "inId",
+        name: "maker_transaction_ibfk_1",
         unique: true,
         using: "BTREE",
         fields: [
           { name: "inId" },
+        ]
+      },
+      {
+        name: "maker_transaction_ibfk_2",
+        unique: true,
+        using: "BTREE",
+        fields: [
+          { name: "outId" },
         ]
       },
     ]

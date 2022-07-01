@@ -1,24 +1,27 @@
 import "dotenv/config";
-import { Chain, getChainByChainId } from "orbiter-chaincore/src/utils/chains";
-import { LoggerService } from "orbiter-chaincore/src/utils/logger";
-import { ScanChainMain } from "orbiter-chaincore";
-import { convertMarketListToFile, groupWatchAddressByChain } from "./src/utils";
+import { ScanChainMain, chains, pubSub } from "orbiter-chaincore";
+import logger from "orbiter-chaincore/src/utils/logger";
+import {
+  convertMarketListToFile,
+  groupWatchAddressByChain,
+  sleep,
+} from "./src/utils";
 import { makerList } from "./maker";
 import { Sequelize } from "sequelize";
 import { initModels, transactionAttributes } from "./src/models/init-models";
 import { IMarket } from "./src/types";
 import { padStart } from "lodash";
 import { getAmountFlag, getAmountToSend } from "./src/utils/oldUtils";
-// import { NetUtil } from "./inject/net";
 import { equals } from "orbiter-chaincore/src/utils/core";
-import {
-  ITransaction,
-  TransactionStatus,
-} from "orbiter-chaincore/src/types/transaction";
+import { ITransaction } from "orbiter-chaincore/src/types/transaction";
 import { IChainConfig } from "orbiter-chaincore/src/types";
 import mainChainConfigs from "./src/config/chains.json";
 import testChainConfigs from "./src/config/testnet.json";
-import { matchSourceData } from "./src/service";
+import {
+  matchSourceData,
+  matchSourceDataByTx,
+  bulkCreateTransaction,
+} from "./src/service";
 import net from "net";
 export function TransactionID(
   fromAddress: string,
@@ -40,7 +43,6 @@ export interface Config {
 }
 function subscribeInject(ctx: Context) {
   const client = new net.Socket();
-  console.log("open conn");
   client.connect(8001, "127.0.0.1", function () {
     console.log("Successfully connected to the server\n");
     client.write(
@@ -51,23 +53,31 @@ function subscribeInject(ctx: Context) {
     );
   });
   client.on("data", (str: string) => {
-    const body = JSON.parse(str);
-    console.log(body, "==body");
+    let body: any = {};
+    try {
+      body = JSON.parse(str);
+    } catch (err) {}
     if (body && body.op === "inject") {
-      const chain = Chain.configs.find((row) =>
-        equals(row.internalId, body.data.key)
-      );
+      const chain = chains
+        .getAllChains()
+        .find((row) => equals(row.internalId, body.data.key));
       if (!chain) {
         return ctx.logger.error(
           `Inject Key Not Find Chain Config ${body.data.key}`
         );
       }
       chain.api.key = body.data.value;
-      console.log(chain, "==");
     }
   });
-  client.on("end", function () {
+  client.on("end", () => {
     console.log("Send Data end");
+  });
+  client.on("error", (error) => {
+    if ((Date.now() / 1000) * 10 === 0) {
+      console.error("sub error:", error);
+    }
+    sleep(1000 * 10);
+    subscribeInject(ctx);
   });
 }
 export class Context {
@@ -78,7 +88,10 @@ export class Context {
   public config: Config = {
     chains: [],
     L1L2Mapping: {
-      "4": {},
+      "4": {
+        "0x80c67432656d59144ceff962e8faf8926599bcf8":
+          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
+      },
       "44": {
         "0x8a3214f28946a797088944396c476f014f88dd37":
           "0x033b88fc03a2ccb1433d6c70b73250d0513c6ee17a7ab61c5af0fbe16bd17a6e",
@@ -89,12 +102,14 @@ export class Context {
     const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, NODE_ENV } = <any>(
       process.env
     );
+    this.logger = logger;
     if (NODE_ENV === "prod") {
+      this.logger.info("Start APP Read Chain Config:[Mainnet]");
       this.config.chains = <any>mainChainConfigs;
     } else {
+      this.logger.info("Starp APP Read Chain Config:[Testnet]");
       this.config.chains = <any>testChainConfigs;
     }
-    this.logger = LoggerService.createLogger();
     this.sequelize = new Sequelize(
       DB_NAME || "orbiter",
       String(DB_USER),
@@ -116,7 +131,12 @@ export async function processUserSendMakerTx(
 ) {
   // user send to Maker
   const fromChainId = Number(trx.chainId);
-  const trxid = TransactionID(trx.from, trx.chainId, trx.nonce, trx.symbol);
+  const trxid = TransactionID(
+    String(trx.from),
+    trx.chainId,
+    trx.nonce,
+    trx.symbol
+  );
   let toChainId = getAmountFlag(fromChainId, String(trx.value));
   if ([9, 99].includes(fromChainId) && trx.extra) {
     toChainId = ((<any>trx.extra).memo % 9000) + "";
@@ -187,6 +207,7 @@ export async function processMakerSendUserTx(
   let makerAddress = trx.from;
   const models = ctx.models;
   let userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
+
   let userSendTx;
   if ([4, 44].includes(trx.chainId)) {
     userSendTx = await models.transaction.findOne({
@@ -200,7 +221,6 @@ export async function processMakerSendUserTx(
         status: 1,
         symbol: trx.symbol,
       },
-      order: [["id", "desc"]],
       include: [
         {
           attributes: ["id"],
@@ -226,19 +246,18 @@ export async function processMakerSendUserTx(
       attributes: ["id", "from", "chainId", "symbol", "nonce"],
       raw: true,
       where,
-      order: [["id", "desc"]],
     });
   }
   const replySender = trx.from;
   const replyAccount = trx.to;
   if (userSendTx?.id) {
     const trxId = TransactionID(
-      userSendTx.from,
+      String(userSendTx.from),
       userSendTx.chainId,
       userSendTx.nonce,
       userSendTx.symbol
     );
-    await models.maker_transaction.upsert({
+    return await models.maker_transaction.upsert({
       transcationId: trxId,
       inId: userSendTx.id,
       outId: trx.id,
@@ -249,79 +268,13 @@ export async function processMakerSendUserTx(
       replyAccount,
     });
   } else {
-    await ctx.models.maker_transaction.upsert({
+    return await ctx.models.maker_transaction.upsert({
       outId: trx.id,
       toChain: Number(trx.chainId),
       toAmount: String(trx.value),
       replySender,
       replyAccount,
     });
-  }
-}
-async function processSubTx(ctx: Context, tx: ITransaction) {
-  // ctx.logger.info(`processSubTx:${tx.hash}`);
-  const chainConfig = getChainByChainId(tx.chainId);
-  if (!chainConfig) {
-    throw new Error(`chainId ${tx.chainId} not found`);
-  }
-  // ctx.logger.info(
-  //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
-  // );
-  const models = ctx.models;
-  let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
-  if (["9", "99"].includes(chainConfig.internalId) && tx.extra) {
-    memo = ((<any>tx.extra).memo % 9000) + "";
-  }
-  //   const dbTran = await ctx.sequelize.transaction();
-  const txData: any = {
-    hash: tx.hash,
-    nonce: String(tx.nonce),
-    blockHash: tx.blockHash,
-    blockNumber: tx.blockNumber,
-    transactionIndex: tx.transactionIndex,
-    from: tx.from,
-    to: tx.to,
-    value: tx.value.toString(),
-    symbol: tx.symbol,
-    gasPrice: tx.gasPrice,
-    gas: tx.gas,
-    input: tx.input != "0x" ? tx.input : null,
-    status: tx.status,
-    tokenAddress: tx.tokenAddress || "",
-    timestamp: new Date(tx.timestamp * 1000),
-    fee: tx.fee.toString(),
-    feeToken: tx.feeToken,
-    chainId: Number(chainConfig.internalId),
-    source: tx.source,
-    extra: tx.extra,
-    memo,
-  };
-  if (
-    [3, 33, 8, 88, 12, 512].includes(Number(txData.chainId)) &&
-    txData.status === TransactionStatus.PENDING
-  ) {
-    txData.status = TransactionStatus.COMPLETE;
-  }
-  try {
-    const [trx] = await models.transaction.upsert(txData);
-    const isMakerSend =
-      ctx.makerConfigs.findIndex((row) => equals(row.sender, tx.from)) !== -1;
-    const isUserSend =
-      ctx.makerConfigs.findIndex((row) => equals(row.recipient, tx.to)) !== -1;
-    if (trx.id && isMakerSend) {
-      txData.id = trx.id;
-      await processMakerSendUserTx(ctx, txData);
-    } else if (trx.id && isUserSend) {
-      txData.id = trx.id;
-      await processUserSendMakerTx(ctx, txData);
-    } else {
-      ctx.logger.error(
-        `This transaction is not matched to the merchant address: ${tx.hash}`
-      );
-    }
-  } catch (error: any) {
-    ctx.logger.error("processSubTx error:", error);
-    throw error;
   }
 }
 async function startMatch(ctx: Context) {
@@ -331,9 +284,15 @@ async function startMatch(ctx: Context) {
     try {
       if (!isLock) {
         isLock = true;
-        await matchSourceData(ctx, page, 500);
+        const list = await matchSourceData(ctx, page, 500);
         page++;
         isLock = false;
+        if (list.length <= 0) {
+          ctx.logger.info(
+            "---------------------- startMatch end --------------------"
+          );
+          clearInterval(timer);
+        }
       }
     } catch (error) {
       isLock = false;
@@ -343,6 +302,8 @@ async function startMatch(ctx: Context) {
 }
 async function bootstrap() {
   const ctx = new Context();
+  const instances = Number(process.env.INSTANCES || 1);
+  const instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
   try {
     subscribeInject(ctx);
     ctx.makerConfigs = await convertMarketListToFile(
@@ -352,17 +313,34 @@ async function bootstrap() {
     const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
     const scanChain = new ScanChainMain(ctx.config.chains);
     for (const id in chainGroup) {
-      scanChain.mq.subscribe(`${id}:txlist`, (txlist: Array<ITransaction>) => {
-        for (const tx of txlist) {
-          processSubTx(ctx, tx);
-        }
+      if (Number(id) % instances !== instanceId) {
+        continue;
+      }
+      ctx.logger.info(
+        `chainId: ${id} start subscribe , instanceId:${instanceId}`
+      );
+      pubSub.subscribe(`${id}:txlist`, (txlist: Array<ITransaction>) => {
+        bulkCreateTransaction(ctx, txlist).then((txList) =>
+          txList.forEach((tx) => matchSourceDataByTx(ctx, tx))
+        );
       });
       await scanChain.startScanChain(id, chainGroup[id]);
     }
   } catch (error: any) {
     ctx.logger.error("startSub error:", error);
   }
-  startMatch(ctx);
+  // instanceId == 0 && startMatch(ctx);
 }
 
 bootstrap();
+
+process.on("uncaughtException", (err: Error) => {
+  console.error("Global Uncaught exception:", err);
+});
+
+process.on("unhandledRejection", (err: Error, promise) => {
+  console.error(
+    "There are failed functions where promise is not captured：",
+    err.message
+  );
+});

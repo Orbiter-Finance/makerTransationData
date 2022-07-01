@@ -1,6 +1,5 @@
 import { Context, processMakerSendUserTx, processUserSendMakerTx } from "../..";
-import { ImmutableX } from "orbiter-chaincore/src/chain/immutableX.service";
-import { getChainByChainId } from "orbiter-chaincore/src/utils/chains";
+import { ImmutableX } from "orbiter-chaincore/src/chain";
 import { getAmountFlag } from "../utils/oldUtils";
 import {
   IChainWatch,
@@ -12,12 +11,16 @@ import {
   QueryTxFilterZKSync,
 } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
-import { equals } from "orbiter-chaincore/src/utils/core";
-export async function batchCrateTxs(ctx: Context, txlist: Array<ITransaction>) {
+import { core, chains, dydx } from "orbiter-chaincore/src/utils";
+import { transaction } from "../models/transaction";
+export async function bulkCreateTransaction(
+  ctx: Context,
+  txlist: Array<ITransaction>
+) {
   const txsList = [];
   for (const tx of txlist) {
     // ctx.logger.info(`processSubTx:${tx.hash}`);
-    const chainConfig = getChainByChainId(tx.chainId);
+    const chainConfig = chains.getChainByChainId(tx.chainId);
     if (!chainConfig) {
       throw new Error(`chainId ${tx.chainId} not found`);
     }
@@ -27,16 +30,29 @@ export async function batchCrateTxs(ctx: Context, txlist: Array<ITransaction>) {
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
     if (["9", "99"].includes(chainConfig.internalId) && tx.extra) {
       memo = ((<any>tx.extra).memo % 9000) + "";
+    } else if (
+      ["11", "511"].includes(chainConfig.internalId) &&
+      tx.extra["type"] === "TRANSFER_OUT"
+    ) {
+      if (!tx.to) {
+        tx.to = dydx.getEthereumAddressFromClientId(tx.extra["clientId"]);
+      }
+      // makerAddress
+      if (!tx.from) {
+        const makerItem = await ctx.makerConfigs.find(
+          (row) => row.toChain.id === chainConfig.internalId
+        );
+        tx.from = (makerItem && makerItem.sender) || "";
+      }
     }
-    //   const dbTran = await ctx.sequelize.transaction();
     const txData: any = {
       hash: tx.hash,
       nonce: String(tx.nonce),
       blockHash: tx.blockHash,
       blockNumber: tx.blockNumber,
       transactionIndex: tx.transactionIndex,
-      from: tx.from,
-      to: tx.to,
+      from: tx.from || "",
+      to: tx.to || "",
       value: tx.value.toString(),
       symbol: tx.symbol,
       gasPrice: tx.gasPrice,
@@ -62,10 +78,20 @@ export async function batchCrateTxs(ctx: Context, txlist: Array<ITransaction>) {
     txsList.push(txData);
   }
   try {
-    ctx.models.transaction.bulkCreate(txsList, {
-      updateOnDuplicate: ["hash", "chainId"],
+    const result = await ctx.models.transaction.bulkCreate(txsList, {
+      returning: true,
+      updateOnDuplicate: [
+        "from",
+        "to",
+        "value",
+        "fee",
+        "symbol",
+        "status",
+        "nonce",
+        "memo",
+      ],
     });
-    return txsList;
+    return result.map((row) => row.toJSON());
   } catch (error: any) {
     ctx.logger.error("processSubTx error:", error);
     throw error;
@@ -112,7 +138,7 @@ export async function loopPullImxHistory(
           result
         );
         if (result && result.txlist.length > 0) {
-          const returnTxList: Array<any> = await batchCrateTxs(
+          const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
             result.txlist
           );
@@ -169,7 +195,7 @@ export async function loopPullZKSpaceHistory(
           filter
         );
         if (result && result.txlist.length > 0) {
-          const returnTxList: Array<any> = await batchCrateTxs(
+          const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
             result.txlist
           );
@@ -237,7 +263,7 @@ export async function loopPullZKSyncHistory(
         console.log("data length:", result.txlist.length);
 
         if (result && result.txlist.length > 0) {
-          const returnTxList: Array<any> = await batchCrateTxs(
+          const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
             result.txlist
           );
@@ -298,7 +324,7 @@ export async function loopOptimisticHistory(
           filter
         );
         if (result && result.txlist.length > 0) {
-          const returnTxList: Array<any> = await batchCrateTxs(
+          const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
             result.txlist
           );
@@ -329,7 +355,38 @@ export async function loopOptimisticHistory(
     }
   }, 5000);
 }
-export async function matchSourceData(ctx: Context, pageIndex:number = 1,pageSize:number = 500) {
+export async function matchSourceDataByTx(ctx: Context, txData: any) {
+  const tx = await ctx.models.transaction.findOne({
+    raw: true,
+    where: {
+      chainId: txData.chainId,
+      hash: txData.hash
+    }
+  })
+  if (!tx || !tx.id) {
+    throw new Error('Tx Not Found')
+  }
+  const isMakerSend =
+    ctx.makerConfigs.findIndex((row) => core.equals(row.sender, tx.from)) !==
+    -1;
+  const isUserSend =
+    ctx.makerConfigs.findIndex((row) => core.equals(row.recipient, tx.to)) !==
+    -1;
+  if (isMakerSend) {
+    return await processMakerSendUserTx(ctx, tx);
+  } else if (isUserSend) {
+    return await processUserSendMakerTx(ctx, tx);
+  } else {
+    ctx.logger.error(
+      `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`
+    );
+  }
+}
+export async function matchSourceData(
+  ctx: Context,
+  pageIndex: number = 1,
+  pageSize: number = 500
+) {
   const [result] = await ctx.sequelize.query(
     "select t1.id,t1.hash from `transaction` as t1 left join maker_transaction as mt on t1.id = mt.inId where mt.id is null order by t1.id desc  limit " +
       pageSize +
@@ -340,7 +397,7 @@ export async function matchSourceData(ctx: Context, pageIndex:number = 1,pageSiz
       raw: true,
     }
   );
-  const trxIds = result.map((row:any) => row['id']);
+  const trxIds = result.map((row: any) => row["id"]);
   if (result.length <= 0 || !result) {
     throw new Error("match last");
   }
@@ -348,25 +405,13 @@ export async function matchSourceData(ctx: Context, pageIndex:number = 1,pageSiz
     raw: true,
     where: {
       id: {
-        [Op.in]:trxIds,
+        [Op.in]: trxIds,
       },
     },
   });
   for (const tx of trxs) {
-    console.log('process match:', tx.id)
-    const isMakerSend =
-      ctx.makerConfigs.findIndex((row) => equals(row.sender, tx.from)) !== -1;
-    const isUserSend =
-      ctx.makerConfigs.findIndex((row) => equals(row.recipient, tx.to)) !== -1;
-    if (isMakerSend) {
-      await processMakerSendUserTx(ctx, tx);
-    } else if (isUserSend) {
-      await processUserSendMakerTx(ctx, tx);
-    } else {
-      ctx.logger.error(
-        `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`
-      );
-    }
+    console.log(`page ${pageIndex} process match:`, tx.id);
+    await matchSourceDataByTx(ctx, tx);
   }
   return result;
 }

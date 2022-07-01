@@ -341,6 +341,6 @@ process.on("uncaughtException", (err: Error) => {
 process.on("unhandledRejection", (err: Error, promise) => {
   console.error(
     "There are failed functions where promise is not captured：",
-    err.message
+    err
   );
 });

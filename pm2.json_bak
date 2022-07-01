@@ -1,0 +1,28 @@
+{
+  "apps": [
+    {
+      "name": "inject_server",
+      "exec_mode": "fork",
+      "script": "server.js",
+      "cwd": "./cmd/",
+      "env": {
+        "NODE_ENV": "prod"
+      }
+    },
+    {
+      "name": "makerTpransationData",
+      "instances": 4,
+      "exec_mode": "cluster",
+      "script": "index.js",
+      "cwd": "./dist/",
+      "env": {
+        "DB_HOST": "XXXX",
+        "DB_NAME": "orbiterTransaction",
+        "DB_USER": "orbiter",
+        "DB_PASS": "XXXXXXXX",
+        "NODE_ENV": "prod",
+        "INSTANCES": 4
+      }
+    }
+  ]
+}

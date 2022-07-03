@@ -12,7 +12,6 @@ import {
 } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
 import { core, chains, dydx } from "orbiter-chaincore/src/utils";
-import { transaction } from "../models/transaction";
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<ITransaction>
@@ -85,8 +84,13 @@ export async function bulkCreateTransaction(
         "to",
         "value",
         "fee",
+        "feeToken",
         "symbol",
         "status",
+        "input",
+        "extra",
+        "timestamp",
+        "tokenAddress",
         "nonce",
         "memo",
       ],
@@ -266,10 +270,6 @@ export async function loopPullZKSyncHistory(
           const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
             result.txlist
-          );
-          console.log(
-            returnTxList.map((row) => row.hash),
-            "==hashs"
           );
           filter.from = returnTxList[returnTxList.length - 1].hash;
           return resolve(returnTxList);

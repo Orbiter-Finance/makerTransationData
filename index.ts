@@ -7,7 +7,7 @@ import {
   sleep,
 } from "./src/utils";
 import { makerList } from "./maker";
-import { Sequelize } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { initModels, transactionAttributes } from "./src/models/init-models";
 import { IMarket } from "./src/types";
 import { padStart } from "lodash";
@@ -23,6 +23,7 @@ import {
   bulkCreateTransaction,
 } from "./src/service";
 import net from "net";
+import dayjs from "dayjs";
 export function TransactionID(
   fromAddress: string,
   fromChainId: number | string,
@@ -180,11 +181,14 @@ export async function processUserSendMakerTx(
     raw: true,
     attributes: ["id"],
     where: {
+      chainId: toChainId,
       from: market.sender,
       to: replyAccount,
-      chainId: toChainId,
       symbol: trx.symbol,
       memo: trx.nonce,
+      timestamp:{
+        [Op.gte]: dayjs(trx.timestamp).subtract(2,'m')
+      }
     },
     order: [["id", "desc"]],
   });
@@ -220,6 +224,9 @@ export async function processMakerSendUserTx(
         nonce: userSendTxNonce,
         status: 1,
         symbol: trx.symbol,
+        timestamp:{
+          [Op.lte]: dayjs(trx.timestamp).add(2,'m')
+        }
       },
       include: [
         {
@@ -241,6 +248,9 @@ export async function processMakerSendUserTx(
       nonce: userSendTxNonce,
       status: 1,
       symbol: trx.symbol,
+      timestamp:{
+        [Op.lte]:  dayjs(trx.timestamp).add(2,'m')
+      }
     };
     userSendTx = await models.transaction.findOne({
       attributes: ["id", "from", "chainId", "symbol", "nonce"],

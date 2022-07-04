@@ -45,7 +45,7 @@ export interface Config {
 function subscribeInject(ctx: Context) {
   const client = new net.Socket();
   client.connect(8001, "127.0.0.1", function () {
-    console.log("Successfully connected to the server\n");
+    console.log("[Inject-Service] Successfully connected to the server\n");
     client.write(
       JSON.stringify({
         op: "subscribe",
@@ -186,9 +186,9 @@ export async function processUserSendMakerTx(
       to: replyAccount,
       symbol: trx.symbol,
       memo: trx.nonce,
-      timestamp:{
-        [Op.gte]: dayjs(trx.timestamp).subtract(2,'m')
-      }
+      timestamp: {
+        [Op.gte]: dayjs(trx.timestamp).subtract(2, "m"),
+      },
     },
     order: [["id", "desc"]],
   });
@@ -224,9 +224,9 @@ export async function processMakerSendUserTx(
         nonce: userSendTxNonce,
         status: 1,
         symbol: trx.symbol,
-        timestamp:{
-          [Op.lte]: dayjs(trx.timestamp).add(2,'m')
-        }
+        timestamp: {
+          [Op.lte]: dayjs(trx.timestamp).add(2, "m"),
+        },
       },
       include: [
         {
@@ -248,9 +248,9 @@ export async function processMakerSendUserTx(
       nonce: userSendTxNonce,
       status: 1,
       symbol: trx.symbol,
-      timestamp:{
-        [Op.lte]:  dayjs(trx.timestamp).add(2,'m')
-      }
+      timestamp: {
+        [Op.lte]: dayjs(trx.timestamp).add(2, "m"),
+      },
     };
     userSendTx = await models.transaction.findOne({
       attributes: ["id", "from", "chainId", "symbol", "nonce"],
@@ -323,6 +323,7 @@ async function bootstrap() {
     const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
     const scanChain = new ScanChainMain(ctx.config.chains);
     for (const id in chainGroup) {
+      console.log(id, '===id')
       if (Number(id) % instances !== instanceId) {
         continue;
       }
@@ -336,6 +337,11 @@ async function bootstrap() {
       });
       await scanChain.startScanChain(id, chainGroup[id]);
     }
+    process.on("SIGINT",  async() => {
+
+      scanChain.stop();
+      process.exit(0);
+    });
   } catch (error: any) {
     ctx.logger.error("startSub error:", error);
   }

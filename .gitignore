@@ -18,3 +18,4 @@ runtime/
 src/config/chains.json
 src/config/testnet.json
 pm2.json
+.yalc

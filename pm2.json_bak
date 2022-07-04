@@ -16,6 +16,7 @@
       "script": "index.js",
       "cwd": "./dist/",
       "env": {
+        "RUNTIME_DIR": "/home/makerTransationData",
         "DB_HOST": "XXXX",
         "DB_NAME": "orbiterTransaction",
         "DB_USER": "orbiter",

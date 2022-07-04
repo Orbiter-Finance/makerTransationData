@@ -186,7 +186,7 @@ export async function processUserSendMakerTx(
       symbol: trx.symbol,
       memo: trx.nonce,
       timestamp: {
-        [Op.gte]: dayjs(trx.timestamp).subtract(2, "m"),
+        [Op.gte]: dayjs(trx.timestamp).subtract(2, "m").toDate(),
       },
     },
     order: [["id", "desc"]],
@@ -224,7 +224,7 @@ export async function processMakerSendUserTx(
         status: 1,
         symbol: trx.symbol,
         timestamp: {
-          [Op.lte]: dayjs(trx.timestamp).add(2, "m"),
+          [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
         },
       },
       include: [
@@ -248,7 +248,7 @@ export async function processMakerSendUserTx(
       status: 1,
       symbol: trx.symbol,
       timestamp: {
-        [Op.lte]: dayjs(trx.timestamp).add(2, "m"),
+        [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
       },
     };
     userSendTx = await models.transaction.findOne({

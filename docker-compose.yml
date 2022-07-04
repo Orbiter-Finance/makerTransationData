@@ -10,5 +10,5 @@ services:
     volumes:
       - './src/config/chains.json:/home/makerTransationData/dist/src/config/chains.json'
       - './src/config/testnet.json:/home/makerTransationData/dist/src/config/testnet.json'
-      - './runtime:/home/makerTransationData/dist/runtime'
+      - './runtime:/home/makerTransationData/runtime'
       - './pm2.json:/home/makerTransationData/pm2.json'

@@ -339,7 +339,7 @@ async function bootstrap() {
     }
     process.on("SIGINT",  async() => {
 
-      scanChain.stop();
+      scanChain.pause();
       process.exit(0);
     });
   } catch (error: any) {

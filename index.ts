@@ -14,7 +14,6 @@ import { padStart } from "lodash";
 import { getAmountFlag, getAmountToSend } from "./src/utils/oldUtils";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { ITransaction } from "orbiter-chaincore/src/types/transaction";
-import { IChainConfig } from "orbiter-chaincore/src/types";
 import mainChainConfigs from "./src/config/chains.json";
 import testChainConfigs from "./src/config/testnet.json";
 import {
@@ -40,7 +39,7 @@ export interface Config {
       [key: string]: string;
     };
   };
-  chains: Array<IChainConfig>;
+  chains: Array<any>;
 }
 function subscribeInject(ctx: Context) {
   const client = new net.Socket();
@@ -70,9 +69,9 @@ function subscribeInject(ctx: Context) {
       chain.api.key = body.data.value;
     }
   });
-  client.on("end", () => {
-    console.log("Send Data end");
-  });
+  // client.on("end", () => {
+  //   console.log("Send Data end");
+  // });
   client.on("error", (error) => {
     if ((Date.now() / 1000) * 10 === 0) {
       console.error("sub error:", error);
@@ -323,22 +322,30 @@ async function bootstrap() {
     const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
     const scanChain = new ScanChainMain(ctx.config.chains);
     for (const id in chainGroup) {
-      console.log(id, '===id')
       if (Number(id) % instances !== instanceId) {
         continue;
       }
       ctx.logger.info(
-        `chainId: ${id} start subscribe , instanceId:${instanceId}`
+        `Start Subscribe ChainId: ${id}, instanceId:${instanceId}, instances:${instances}`
       );
-      pubSub.subscribe(`${id}:txlist`, (txlist: Array<ITransaction>) => {
-        bulkCreateTransaction(ctx, txlist).then((txList) =>
-          txList.forEach((tx) => matchSourceDataByTx(ctx, tx))
-        );
+      pubSub.subscribe(`${id}:txlist`, async (txlist: Array<ITransaction>) => {
+        try {
+          await bulkCreateTransaction(ctx, txlist).then((txList: any[]) =>
+            txList.forEach((tx) => {
+              try {
+                matchSourceDataByTx(ctx, tx)
+              } catch (error) {
+                ctx.logger.error("bulkCreateTransaction matchSourceDataByTx error：", error);
+              }
+            })
+          );
+        } catch (error) {
+          ctx.logger.error("bulkCreateTransaction error：", error);
+        }
       });
       await scanChain.startScanChain(id, chainGroup[id]);
     }
-    process.on("SIGINT",  async() => {
-
+    process.on("SIGINT", async () => {
       scanChain.pause();
       process.exit(0);
     });

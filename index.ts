@@ -12,7 +12,7 @@ import { initModels, transactionAttributes } from "./src/models/init-models";
 import { IMarket } from "./src/types";
 import { padStart } from "lodash";
 import { getAmountFlag, getAmountToSend } from "./src/utils/oldUtils";
-import { equals } from "orbiter-chaincore/src/utils/core";
+import { equals, fix0xPadStartAddress } from "orbiter-chaincore/src/utils/core";
 import { ITransaction } from "orbiter-chaincore/src/types/transaction";
 import mainChainConfigs from "./src/config/chains.json";
 import testChainConfigs from "./src/config/testnet.json";
@@ -175,6 +175,9 @@ export async function processUserSendMakerTx(
     // 11,511 0x02 first
     // 4, 44 0x03 first
     replyAccount = `0x${ext.substring(4)}`;
+    if (["44", "4"].includes(toChainId)) {
+      replyAccount = fix0xPadStartAddress(replyAccount, 66);
+    }
   }
   const makerSendTx = await ctx.models.transaction.findOne({
     raw: true,
@@ -333,9 +336,12 @@ async function bootstrap() {
           await bulkCreateTransaction(ctx, txlist).then((txList: any[]) =>
             txList.forEach((tx) => {
               try {
-                matchSourceDataByTx(ctx, tx)
+                matchSourceDataByTx(ctx, tx);
               } catch (error) {
-                ctx.logger.error("bulkCreateTransaction matchSourceDataByTx error：", error);
+                ctx.logger.error(
+                  "bulkCreateTransaction matchSourceDataByTx error：",
+                  error
+                );
               }
             })
           );

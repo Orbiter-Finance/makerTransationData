@@ -360,11 +360,11 @@ export async function matchSourceDataByTx(ctx: Context, txData: any) {
     raw: true,
     where: {
       chainId: txData.chainId,
-      hash: txData.hash
-    }
-  })
+      hash: txData.hash,
+    },
+  });
   if (!tx || !tx.id) {
-    throw new Error('Tx Not Found')
+    throw new Error("Tx Not Found");
   }
   const isMakerSend =
     ctx.makerConfigs.findIndex((row) => core.equals(row.sender, tx.from)) !==
@@ -373,9 +373,17 @@ export async function matchSourceDataByTx(ctx: Context, txData: any) {
     ctx.makerConfigs.findIndex((row) => core.equals(row.recipient, tx.to)) !==
     -1;
   if (isMakerSend) {
-    return await processMakerSendUserTx(ctx, tx);
+    try {
+      return await processMakerSendUserTx(ctx, tx);
+    } catch (error) {
+      ctx.logger.error(`processMakerSendUserTx error: `, tx);
+    }
   } else if (isUserSend) {
-    return await processUserSendMakerTx(ctx, tx);
+    try {
+      return await processUserSendMakerTx(ctx, tx);
+    } catch (error) {
+      ctx.logger.error(`processUserSendMakerTx error: `, tx);
+    }
   } else {
     ctx.logger.error(
       `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`

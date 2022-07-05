@@ -131,7 +131,7 @@ export async function processUserSendMakerTx(
 ) {
   // user send to Maker
   const fromChainId = Number(trx.chainId);
-  const trxid = TransactionID(
+  const transcationId = TransactionID(
     String(trx.from),
     trx.chainId,
     trx.nonce,
@@ -195,7 +195,7 @@ export async function processUserSendMakerTx(
     order: [["id", "desc"]],
   });
   const upsertParams = {
-    transcationId: trxid,
+    transcationId,
     inId: trx.id,
     outId: makerSendTx ? makerSendTx.id : undefined,
     fromChain: trx.chainId,
@@ -262,15 +262,15 @@ export async function processMakerSendUserTx(
   }
   const replySender = trx.from;
   const replyAccount = trx.to;
-  if (userSendTx?.id) {
-    const trxId = TransactionID(
+  if (userSendTx?.id && userSendTx.from) {
+    const transcationId = TransactionID(
       String(userSendTx.from),
       userSendTx.chainId,
       userSendTx.nonce,
       userSendTx.symbol
     );
     return await models.maker_transaction.upsert({
-      transcationId: trxId,
+      transcationId,
       inId: userSendTx.id,
       outId: trx.id,
       fromChain: userSendTx.chainId,

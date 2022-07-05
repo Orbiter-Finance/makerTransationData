@@ -11,4 +11,5 @@ services:
       - './src/config/chains.json:/home/makerTransationData/dist/src/config/chains.json'
       - './src/config/testnet.json:/home/makerTransationData/dist/src/config/testnet.json'
       - './runtime:/home/makerTransationData/runtime'
+      - './src/config:/home/makerTransationData/dist/src/config'
       - './pm2.json:/home/makerTransationData/pm2.json'

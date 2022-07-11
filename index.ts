@@ -72,12 +72,15 @@ function subscribeInject(ctx: Context) {
   // client.on("end", () => {
   //   console.log("Send Data end");
   // });
-  client.on("error", async error => {
+  client.on("error", error => {
     if ((Date.now() / 1000) * 10 === 0) {
-      console.error("sub error:", error);
+      ctx.logger.error("sub error:", error);
     }
-    await sleep(1000 * 10);
-    subscribeInject(ctx);
+    sleep(1000 * 10).then(() => {
+      subscribeInject(ctx);
+    }).catch(error=> {
+      ctx.logger.error('sleep error:', error);
+    })
   });
 }
 export class Context {
@@ -122,7 +125,9 @@ export class Context {
       },
     );
     this.models = initModels(this.sequelize);
-    this.sequelize.sync();
+    this.sequelize.sync().catch(error => {
+      this.logger.error("sequelize sync error:", error);
+    });
   }
 }
 export async function processUserSendMakerTx(
@@ -292,7 +297,7 @@ export async function processMakerSendUserTx(
 async function startMatch(ctx: Context) {
   let page = 1,
     isLock = false;
-  const timer = setInterval(async () => {
+  const matchTimerFun = async () => {
     try {
       if (!isLock) {
         isLock = true;
@@ -303,14 +308,17 @@ async function startMatch(ctx: Context) {
           ctx.logger.info(
             "---------------------- startMatch end --------------------",
           );
-          clearInterval(timer);
+          timer && clearInterval(timer);
         }
       }
+      return isLock;
     } catch (error) {
       isLock = false;
       ctx.logger.error("startMatch error:", error);
     }
-  }, 5000);
+  };
+  // eslint-disable-next-line
+  const timer = setInterval(matchTimerFun, 5000);
 }
 async function bootstrap() {
   const ctx = new Context();
@@ -347,10 +355,14 @@ async function bootstrap() {
           ctx.logger.error("bulkCreateTransaction error：", error);
         }
       });
-      await scanChain.startScanChain(id, chainGroup[id]);
+      await scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+        ctx.logger.error(`${id} startScanChain error:`, error);
+      });
     }
-    process.on("SIGINT", async () => {
-      scanChain.pause();
+    process.on("SIGINT", () => {
+      scanChain.pause().catch(error => {
+        ctx.logger.error("chaincore pause error:", error);
+      });
       process.exit(0);
     });
   } catch (error: any) {
@@ -359,7 +371,9 @@ async function bootstrap() {
   // instanceId == 0 && startMatch(ctx);
 }
 
-bootstrap();
+bootstrap().catch(error => {
+  console.error("start app error", error);
+});
 
 process.on("uncaughtException", (err: Error) => {
   console.error("Global Uncaught exception:", err);

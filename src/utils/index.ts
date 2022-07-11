@@ -1,8 +1,8 @@
 export * from "./maker";
-export async function sleep(ms: number) {
+export async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve(null);
+      resolve();
     }, ms);
   });
 }

@@ -309,7 +309,7 @@ async function startMatch(ctx: Context) {
         const list = await matchSourceData(ctx, page, 500);
         page++;
         isLock = false;
-        if (list.length <= 0) {
+        if (list.length <= 0 || page >= 50) {
           ctx.logger.info(
             "---------------------- startMatch end --------------------",
           );
@@ -373,7 +373,7 @@ async function bootstrap() {
   } catch (error: any) {
     ctx.logger.error("startSub error:", error);
   }
-  // instanceId == 0 && startMatch(ctx);
+  instanceId == 0 && startMatch(ctx);
 }
 
 bootstrap().catch(error => {

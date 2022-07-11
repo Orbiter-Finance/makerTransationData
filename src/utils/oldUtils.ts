@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { BigNumber } from "bignumber.js";
 
 const MAX_BITS: any = {
@@ -97,8 +98,8 @@ function isAmountValid(chain: number, amount: any) {
     };
   }
 
-  let validDigit = AmountValidDigits(chain, amount); // 10 11
-  var amountLength = amount.toString().length;
+  const validDigit = AmountValidDigits(chain, amount); // 10 11
+  const amountLength = amount.toString().length;
   if (amountLength < SIZE_OP.P_NUMBER) {
     return {
       state: false,
@@ -117,8 +118,8 @@ function isAmountValid(chain: number, amount: any) {
     };
   }
   if (isLimitNumber(chain) && amountLength > validDigit) {
-    let zkAmount = amount.toString().slice(0, validDigit);
-    let op_text = zkAmount.slice(-SIZE_OP.P_NUMBER);
+    const zkAmount = amount.toString().slice(0, validDigit);
+    const op_text = zkAmount.slice(-SIZE_OP.P_NUMBER);
     if (Number(op_text) === 0) {
       return {
         state: true,
@@ -129,7 +130,7 @@ function isAmountValid(chain: number, amount: any) {
       error: "Insufficient number of flag bits",
     };
   } else {
-    let op_text = amount.toString().slice(-SIZE_OP.P_NUMBER);
+    const op_text = amount.toString().slice(-SIZE_OP.P_NUMBER);
     if (Number(op_text) === 0) {
       return {
         state: true,
@@ -149,26 +150,26 @@ function getToAmountFromUserAmount(
     gasFee: BigNumber.Value;
     precision: number;
   },
-  isWei: any
+  isWei: any,
 ) {
-  let toAmount_tradingFee = new BigNumber(userAmount).minus(
-    new BigNumber(selectMakerInfo.tradingFee)
+  const toAmount_tradingFee = new BigNumber(userAmount).minus(
+    new BigNumber(selectMakerInfo.tradingFee),
   );
-  let gasFee = toAmount_tradingFee
+  const gasFee = toAmount_tradingFee
     .multipliedBy(new BigNumber(selectMakerInfo.gasFee))
     .dividedBy(new BigNumber(1000));
-  let digit = selectMakerInfo.precision === 18 ? 5 : 2;
+  const digit = selectMakerInfo.precision === 18 ? 5 : 2;
   // accessLogger.info('digit =', digit)
-  let gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
+  const gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
   // accessLogger.info('gasFee_fix =', gasFee_fix.toString())
-  let toAmount_fee = toAmount_tradingFee.minus(gasFee_fix);
+  const toAmount_fee = toAmount_tradingFee.minus(gasFee_fix);
   // accessLogger.info('toAmount_fee =', toAmount_fee.toString())
   if (!toAmount_fee || isNaN(Number(toAmount_fee))) {
     return 0;
   }
   if (isWei) {
     return toAmount_fee.multipliedBy(
-      new BigNumber(10 ** selectMakerInfo.precision)
+      new BigNumber(10 ** selectMakerInfo.precision),
     );
   } else {
     return toAmount_fee;
@@ -177,7 +178,7 @@ function getToAmountFromUserAmount(
 function getTAmountFromRAmount(
   chain: number,
   amount: string,
-  pText: string | any[]
+  pText: string | any[],
 ) {
   if (!isChainSupport(chain)) {
     return {
@@ -198,8 +199,8 @@ function getTAmountFromRAmount(
     };
   }
 
-  let validDigit = AmountValidDigits(chain, amount); // 10 11
-  var amountLength = amount.toString().length;
+  const validDigit = AmountValidDigits(chain, amount); // 10 11
+  const amountLength = amount.toString().length;
   if (amountLength < SIZE_OP.P_NUMBER) {
     return {
       state: false,
@@ -207,7 +208,7 @@ function getTAmountFromRAmount(
     };
   }
   if (isLimitNumber(chain) && amountLength > validDigit) {
-    let tAmount =
+    const tAmount =
       amount.toString().slice(0, validDigit - pText.length) +
       pText +
       amount.toString().slice(validDigit);
@@ -221,7 +222,7 @@ function getTAmountFromRAmount(
       tAmount: amount + "",
     };
   } else {
-    let tAmount =
+    const tAmount =
       amount.toString().slice(0, amountLength - pText.length) + pText;
     return {
       state: true,
@@ -230,7 +231,7 @@ function getTAmountFromRAmount(
   }
 }
 
-function getPTextFromTAmount(chain:number, amount: string) {
+function getPTextFromTAmount(chain: number, amount: string) {
   if (!isChainSupport(chain)) {
     return {
       state: false,
@@ -244,8 +245,8 @@ function getPTextFromTAmount(chain:number, amount: string) {
     };
   }
   //Get the effective number of digits
-  let validDigit = AmountValidDigits(chain, amount); // 10 11
-  var amountLength = amount.toString().length;
+  const validDigit = AmountValidDigits(chain, amount); // 10 11
+  const amountLength = amount.toString().length;
   if (amountLength < SIZE_OP.P_NUMBER) {
     return {
       state: false,
@@ -253,14 +254,14 @@ function getPTextFromTAmount(chain:number, amount: string) {
     };
   }
   if (isLimitNumber(chain) && amountLength > validDigit) {
-    let zkAmount = amount.toString().slice(0, validDigit);
-    let op_text = zkAmount.slice(-SIZE_OP.P_NUMBER);
+    const zkAmount = amount.toString().slice(0, validDigit);
+    const op_text = zkAmount.slice(-SIZE_OP.P_NUMBER);
     return {
       state: true,
       pText: op_text,
     };
   } else {
-    let op_text = amount.toString().slice(-SIZE_OP.P_NUMBER);
+    const op_text = amount.toString().slice(-SIZE_OP.P_NUMBER);
     return {
       state: true,
       pText: op_text,
@@ -285,8 +286,8 @@ function getRAmountFromTAmount(chain: number, amount: string) {
     };
   }
 
-  let validDigit = AmountValidDigits(chain, amount); // 10 11
-  var amountLength = amount.toString().length;
+  const validDigit = AmountValidDigits(chain, amount); // 10 11
+  const amountLength = amount.toString().length;
   if (amountLength < SIZE_OP.P_NUMBER) {
     return {
       state: false,
@@ -294,7 +295,7 @@ function getRAmountFromTAmount(chain: number, amount: string) {
     };
   }
   if (isLimitNumber(chain) && amountLength > validDigit) {
-    let rAmount =
+    const rAmount =
       amount.toString().slice(0, validDigit - SIZE_OP.P_NUMBER) +
       pText +
       amount.toString().slice(validDigit);
@@ -303,7 +304,7 @@ function getRAmountFromTAmount(chain: number, amount: string) {
       rAmount: rAmount,
     };
   } else {
-    let rAmount =
+    const rAmount =
       amount.toString().slice(0, amountLength - SIZE_OP.P_NUMBER) + pText;
     return {
       state: true,
@@ -331,14 +332,14 @@ function AmountRegion(chain: number): any {
     };
   }
   if (typeof chain === "number") {
-    let max = new BigNumber(2 ** MAX_BITS[CHAIN_INDEX[chain]] - 1);
+    const max = new BigNumber(2 ** MAX_BITS[CHAIN_INDEX[chain]] - 1);
     return {
       min: new BigNumber(0),
       max: max,
     };
   } else if (typeof chain === "string") {
     const n = MAX_BITS[String(chain).toLowerCase()];
-    let max = new BigNumber(2 ** n - 1);
+    const max = new BigNumber(2 ** n - 1);
     return {
       min: new BigNumber(0),
       max: max,
@@ -347,7 +348,7 @@ function AmountRegion(chain: number): any {
 }
 
 function AmountMaxDigits(chain: number) {
-  let amountRegion = AmountRegion(chain);
+  const amountRegion = AmountRegion(chain);
   if (amountRegion?.error) {
     return amountRegion;
   }
@@ -355,15 +356,15 @@ function AmountMaxDigits(chain: number) {
 }
 
 function AmountValidDigits(chain: number, amount: string) {
-  let amountMaxDigits = AmountMaxDigits(chain);
+  const amountMaxDigits = AmountMaxDigits(chain);
   if (amountMaxDigits.error) {
     return amountMaxDigits.error;
   }
-  let amountRegion = AmountRegion(chain);
+  const amountRegion = AmountRegion(chain);
 
-  let ramount = removeSidesZero(amount.toString());
+  const ramount = removeSidesZero(amount.toString());
   if (ramount.length > amountMaxDigits) {
-    return 'amount is inValid'
+    return "amount is inValid";
   }
   //note:the compare is one by one,not all by all
   if (ramount > amountRegion.max.toFixed()) {
@@ -387,7 +388,7 @@ function isAmountInRegion(amount: BigNumber.Value, chain: number) {
       error: "The chain did not support",
     };
   }
-  let amountRegion = AmountRegion(chain);
+  const amountRegion = AmountRegion(chain);
   if (amountRegion.error) {
     return false;
   }
@@ -412,20 +413,19 @@ function transferTimeStampToTime(timestamp: string | number | Date) {
   if (timestamp.toString().length === 10) {
     timestamp = Number(timestamp) * 1000;
   }
-  var date = new Date(timestamp);
-  var Y = date.getFullYear() + "-";
-  var M =
+  const date = new Date(timestamp);
+  const Y = date.getFullYear() + "-";
+  const M =
     (date.getMonth() + 1 < 10
       ? "0" + (date.getMonth() + 1)
       : date.getMonth() + 1) + "-";
-  var D = date.getDate() + " ";
-  var h = date.getHours() + ":";
-  var m = date.getMinutes() + ":";
-  var s = date.getSeconds();
-  var result = Y + M + D + h + m + s;
+  const D = date.getDate() + " ";
+  const h = date.getHours() + ":";
+  const m = date.getMinutes() + ":";
+  const s = date.getSeconds();
+  const result = Y + M + D + h + m + s;
   return result;
 }
-
 
 /**
  * Get return amount
@@ -436,48 +436,45 @@ function transferTimeStampToTime(timestamp: string | number | Date) {
  * @param nonce
  * @returns
  */
- export function getAmountToSend(
-    fromChainID: number,
-    toChainID: number,
-    amountStr: string,
-    pool: { precision: number; tradingFee: number; gasFee: number },
-    nonce: string | number
-  ) {
-    const realAmount = getRAmountFromTAmount(fromChainID, amountStr)
-    if (!realAmount.state) {
-      console.error(realAmount.error)
-      return
-    }
-    const rAmount = <any>realAmount.rAmount
-    if (nonce > 8999) {
-      console.error('nonce too high, not allowed')
-      return
-    }
-    var nonceStr = pTextFormatZero(String(nonce))
-    var readyAmount = getToAmountFromUserAmount(
-      new BigNumber(rAmount).dividedBy(new BigNumber(10 ** pool.precision)),
-      pool,
-      true
-    )
-  
-    return getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr)
+export function getAmountToSend(
+  fromChainID: number,
+  toChainID: number,
+  amountStr: string,
+  pool: { precision: number; tradingFee: number; gasFee: number },
+  nonce: string | number,
+) {
+  const realAmount = getRAmountFromTAmount(fromChainID, amountStr);
+  if (!realAmount.state) {
+    console.error(realAmount.error);
+    return;
   }
+  const rAmount = <any>realAmount.rAmount;
+  if (nonce > 8999) {
+    console.error("nonce too high, not allowed");
+    return;
+  }
+  const nonceStr = pTextFormatZero(String(nonce));
+  const readyAmount = getToAmountFromUserAmount(
+    new BigNumber(rAmount).dividedBy(new BigNumber(10 ** pool.precision)),
+    pool,
+    true,
+  );
+
+  return getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+}
 /**
  * @param chainId
  * @param amount
  * @returns
  */
- export function getAmountFlag(
-    chainId:number,
-    amount: string
-  ): string {
-    const rst = getPTextFromTAmount(chainId, amount)
-    if (!rst.state) {
-      return '0'
-    }
-    return (Number(rst.pText) % 9000) + ''
+export function getAmountFlag(chainId: number, amount: string): string {
+  const rst = getPTextFromTAmount(chainId, amount);
+  if (!rst.state) {
+    return "0";
   }
-  
+  return (Number(rst.pText) % 9000) + "";
+}
+
 export {
   isAmountValid,
   transferTimeStampToTime,

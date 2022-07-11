@@ -10,7 +10,10 @@
     "start": "node ./dist/index.js",
     "build": "npm run clean && tsc && ncp package.json dist/package.json",
     "clean": "rimraf coverage output dist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint 'src/**/*.{js,ts}' 'index.ts' --fix",
+    "prettier": "prettier --check --write --config .prettierrc 'src/**/*.{js,ts,tsc}'",
+    "prepare": "husky install"
   },
   "bin": {
     "inject": "./dist/inject/client.js"
@@ -23,7 +26,19 @@
     "@types/inquirer": "^8.2.1",
     "@types/lodash": "^4.14.182",
     "@types/node": "^18.0.0",
-    "@types/sequelize": "^4.28.13"
+    "@types/sequelize": "^4.28.13",
+    "@typescript-eslint/eslint-plugin": "^5.30.5",
+    "@typescript-eslint/parser": "^5.30.5",
+    "eslint": "^8.19.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "husky": "^8.0.1",
+    "ncp": "^2.0.0",
+    "prettier": "^2.7.1",
+    "rimraf": "^3.0.2",
+    "ts-node": "^10.8.1",
+    "typescript": "^4.7.4"
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -34,14 +49,10 @@
     "inquirer": "^8.2.4",
     "lodash": "^4.17.21",
     "mysql2": "^2.3.3",
-    "ncp": "^2.0.0",
-    "orbiter-chaincore": "^1.1.3",
+    "orbiter-chaincore": "^1.1.4",
     "prompt": "^1.3.0",
-    "rimraf": "^3.0.2",
     "sequelize": "^6.21.0",
     "sequelize-auto": "^0.8.8",
-    "sequelize-typescript": "^2.1.3",
-    "ts-node": "^10.8.1",
-    "typescript": "^4.7.4"
+    "sequelize-typescript": "^2.1.3"
   }
 }

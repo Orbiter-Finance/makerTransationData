@@ -14,7 +14,7 @@ import { Op } from "sequelize";
 import { core, chains, dydx } from "orbiter-chaincore/src/utils";
 export async function bulkCreateTransaction(
   ctx: Context,
-  txlist: Array<ITransaction>
+  txlist: Array<ITransaction>,
 ) {
   const txsList = [];
   for (const tx of txlist) {
@@ -28,7 +28,7 @@ export async function bulkCreateTransaction(
     // );
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
     if (["9", "99"].includes(chainConfig.internalId) && tx.extra) {
-      memo = ((<any>tx.extra).memo % 9000) + "";
+      memo = String(tx.extra.memo % 9000);
     } else if (
       ["11", "511"].includes(chainConfig.internalId) &&
       tx.extra["type"] === "TRANSFER_OUT"
@@ -39,7 +39,7 @@ export async function bulkCreateTransaction(
       // makerAddress
       if (!tx.from) {
         const makerItem = await ctx.makerConfigs.find(
-          (row) => row.toChain.id === chainConfig.internalId
+          row => row.toChain.id === chainConfig.internalId,
         );
         tx.from = (makerItem && makerItem.sender) || "";
       }
@@ -95,7 +95,7 @@ export async function bulkCreateTransaction(
         "memo",
       ],
     });
-    return result.map((row) => row.toJSON());
+    return result.map(row => row.toJSON());
   } catch (error: any) {
     ctx.logger.error("processSubTx error:", error);
     throw error;
@@ -105,7 +105,7 @@ export async function bulkCreateTransaction(
 export async function loopPullImxHistory(
   ctx: Context,
   chainService: IChainWatch,
-  address: string
+  address: string,
 ) {
   const chainId = Number(chainService.chain.chainConfig.internalId);
   const filter: Partial<QueryTxFilterIMX> = {
@@ -116,7 +116,7 @@ export async function loopPullImxHistory(
   };
   const imxService = <ImmutableX>chainService.chain;
   const client = await imxService.createClient();
-  let isFinish = false;
+  const isFinish = false;
   let isLock = false;
   const requestTx = async (filterParams: any) => {
     const response: any = {
@@ -139,12 +139,12 @@ export async function loopPullImxHistory(
         ctx.logger.debug(
           `--------- ${chainId} = ${address} getData History data: ${result.txlist.length}`,
           filter,
-          result
+          result,
         );
         if (result && result.txlist.length > 0) {
           const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
-            result.txlist
+            result.txlist,
           );
           filter.cursor = result.cursor;
           return resolve(returnTxList);
@@ -177,7 +177,7 @@ export async function loopPullImxHistory(
 export async function loopPullZKSpaceHistory(
   ctx: Context,
   chainService: IChainWatch,
-  address: string
+  address: string,
 ) {
   const chainId = Number(chainService.chain.chainConfig.internalId);
   const filter: Partial<QueryTxFilterZKSpace> = {
@@ -185,23 +185,23 @@ export async function loopPullZKSpaceHistory(
     limit: 100,
     start: 0,
   };
-  let isFinish = false;
+  const isFinish = false;
   let isLock = false;
   const getData = () => {
     return new Promise(async (resolve, reject) => {
       try {
         const result = await chainService?.chain.getTransactions(
           address,
-          filter
+          filter,
         );
         ctx.logger.debug(
           `--------- ${chainId} = ${address} getData History data: ${result.txlist.length}`,
-          filter
+          filter,
         );
         if (result && result.txlist.length > 0) {
           const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
-            result.txlist
+            result.txlist,
           );
           filter.start = Number(filter.start) + 1;
           return resolve(returnTxList);
@@ -233,7 +233,7 @@ export async function loopPullZKSpaceHistory(
 export async function loopPullZKSyncHistory(
   ctx: Context,
   chainService: IChainWatch,
-  address: string
+  address: string,
 ) {
   const chainId = Number(chainService.chain.chainConfig.internalId);
 
@@ -254,14 +254,14 @@ export async function loopPullZKSyncHistory(
     limit: 100,
     direction: "newer",
   };
-  let isFinish = false;
+  const isFinish = false;
   let isLock = false;
   const getData = () => {
     return new Promise(async (resolve, reject) => {
       try {
         const result = await chainService?.chain.getTransactions(
           address,
-          filter
+          filter,
         );
         ctx.logger.debug(`${chainId} = ${address} getData History`, filter);
         console.log("data length:", result.txlist.length);
@@ -269,7 +269,7 @@ export async function loopPullZKSyncHistory(
         if (result && result.txlist.length > 0) {
           const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
-            result.txlist
+            result.txlist,
           );
           filter.from = returnTxList[returnTxList.length - 1].hash;
           return resolve(returnTxList);
@@ -301,7 +301,7 @@ export async function loopPullZKSyncHistory(
 export async function loopOptimisticHistory(
   ctx: Context,
   chainService: IChainWatch,
-  address: string
+  address: string,
 ) {
   const chainId = Number(chainService.chain.chainConfig.internalId);
   // https://api.etherscan.io/api?module=account&action=txlist&address=0x80C67432656d59144cEFf962E8fAF8926599bCF8&startblock=0&endblock=99999999&page=1&offset=10&sort=asc
@@ -313,7 +313,7 @@ export async function loopOptimisticHistory(
     page: 1,
     offset: 100,
   };
-  let isFinish = false;
+  const isFinish = false;
   let isLock = false;
   const getData = () => {
     ctx.logger.debug(`${chainId} ${address} getData History`, filter);
@@ -321,12 +321,12 @@ export async function loopOptimisticHistory(
       try {
         const result = await chainService?.chain.getTransactions(
           address,
-          filter
+          filter,
         );
         if (result && result.txlist.length > 0) {
           const returnTxList: Array<any> = await bulkCreateTransaction(
             ctx,
-            result.txlist
+            result.txlist,
           );
           filter.startblock = returnTxList[returnTxList.length - 1].blockNumber;
           return resolve(returnTxList);
@@ -367,11 +367,9 @@ export async function matchSourceDataByTx(ctx: Context, txData: any) {
     throw new Error("Tx Not Found");
   }
   const isMakerSend =
-    ctx.makerConfigs.findIndex((row) => core.equals(row.sender, tx.from)) !==
-    -1;
+    ctx.makerConfigs.findIndex(row => core.equals(row.sender, tx.from)) !== -1;
   const isUserSend =
-    ctx.makerConfigs.findIndex((row) => core.equals(row.recipient, tx.to)) !==
-    -1;
+    ctx.makerConfigs.findIndex(row => core.equals(row.recipient, tx.to)) !== -1;
   if (isMakerSend) {
     try {
       return await processMakerSendUserTx(ctx, tx);
@@ -386,14 +384,14 @@ export async function matchSourceDataByTx(ctx: Context, txData: any) {
     }
   } else {
     ctx.logger.error(
-      `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`
+      `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
     );
   }
 }
 export async function matchSourceData(
   ctx: Context,
-  pageIndex: number = 1,
-  pageSize: number = 500
+  pageIndex = 1,
+  pageSize = 500,
 ) {
   const [result] = await ctx.sequelize.query(
     "select t1.id,t1.hash from `transaction` as t1 left join maker_transaction as mt on t1.id = mt.inId where mt.id is null order by t1.id desc  limit " +
@@ -403,7 +401,7 @@ export async function matchSourceData(
       "",
     {
       raw: true,
-    }
+    },
   );
   const trxIds = result.map((row: any) => row["id"]);
   if (result.length <= 0 || !result) {

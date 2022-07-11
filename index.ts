@@ -27,7 +27,7 @@ export function TransactionID(
   fromAddress: string,
   fromChainId: number | string,
   fromTxNonce: string | number,
-  symbol: string | undefined
+  symbol: string | undefined,
 ) {
   return `${fromAddress}${padStart(String(fromChainId), 4, "00")}${
     symbol || "NULL"
@@ -49,7 +49,7 @@ function subscribeInject(ctx: Context) {
       JSON.stringify({
         op: "subscribe",
         data: "",
-      })
+      }),
     );
   });
   client.on("data", (str: string) => {
@@ -60,10 +60,10 @@ function subscribeInject(ctx: Context) {
     if (body && body.op === "inject") {
       const chain = chains
         .getAllChains()
-        .find((row) => equals(row.internalId, body.data.key));
+        .find(row => equals(row.internalId, body.data.key));
       if (!chain) {
         return ctx.logger.error(
-          `Inject Key Not Find Chain Config ${body.data.key}`
+          `Inject Key Not Find Chain Config ${body.data.key}`,
         );
       }
       chain.api.key = body.data.value;
@@ -72,11 +72,11 @@ function subscribeInject(ctx: Context) {
   // client.on("end", () => {
   //   console.log("Send Data end");
   // });
-  client.on("error", (error) => {
+  client.on("error", async error => {
     if ((Date.now() / 1000) * 10 === 0) {
       console.error("sub error:", error);
     }
-    sleep(1000 * 10);
+    await sleep(1000 * 10);
     subscribeInject(ctx);
   });
 }
@@ -119,7 +119,7 @@ export class Context {
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
         logging: false,
-      }
+      },
     );
     this.models = initModels(this.sequelize);
     this.sequelize.sync();
@@ -127,7 +127,7 @@ export class Context {
 }
 export async function processUserSendMakerTx(
   ctx: Context,
-  trx: transactionAttributes
+  trx: transactionAttributes,
 ) {
   // user send to Maker
   const fromChainId = Number(trx.chainId);
@@ -135,18 +135,18 @@ export async function processUserSendMakerTx(
     String(trx.from),
     trx.chainId,
     trx.nonce,
-    trx.symbol
+    trx.symbol,
   );
   let toChainId = getAmountFlag(fromChainId, String(trx.value));
   if ([9, 99].includes(fromChainId) && trx.extra) {
-    toChainId = ((<any>trx.extra).memo % 9000) + "";
+    toChainId = String((<any>trx.extra).memo % 9000);
   }
   const market = ctx.makerConfigs.find(
-    (m) =>
+    m =>
       equals(m.fromChain.id, String(fromChainId)) &&
       equals(m.toChain.id, toChainId) &&
       equals(m.fromChain.symbol, trx.symbol) &&
-      equals(m.fromChain.tokenAddress, trx.tokenAddress)
+      equals(m.fromChain.tokenAddress, trx.tokenAddress),
   );
   if (!market) {
     ctx.logger.error("market not found:", {
@@ -167,7 +167,7 @@ export async function processUserSendMakerTx(
       Number(toChainId),
       trx.value.toString(),
       market.pool,
-      trx.nonce
+      trx.nonce,
     )?.tAmount || "0";
   let replyAccount: string | undefined = trx.from;
   if (["44", "4", "11", "511"].includes(toChainId)) {
@@ -208,11 +208,11 @@ export async function processUserSendMakerTx(
 }
 export async function processMakerSendUserTx(
   ctx: Context,
-  trx: transactionAttributes
+  trx: transactionAttributes,
 ) {
-  let makerAddress = trx.from;
+  const makerAddress = trx.from;
   const models = ctx.models;
-  let userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
+  const userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
 
   let userSendTx;
   if ([4, 44].includes(trx.chainId)) {
@@ -267,7 +267,7 @@ export async function processMakerSendUserTx(
       String(userSendTx.from),
       userSendTx.chainId,
       userSendTx.nonce,
-      userSendTx.symbol
+      userSendTx.symbol,
     );
     return await models.maker_transaction.upsert({
       transcationId,
@@ -292,7 +292,7 @@ export async function processMakerSendUserTx(
 async function startMatch(ctx: Context) {
   let page = 1,
     isLock = false;
-  let timer = setInterval(async () => {
+  const timer = setInterval(async () => {
     try {
       if (!isLock) {
         isLock = true;
@@ -301,7 +301,7 @@ async function startMatch(ctx: Context) {
         isLock = false;
         if (list.length <= 0) {
           ctx.logger.info(
-            "---------------------- startMatch end --------------------"
+            "---------------------- startMatch end --------------------",
           );
           clearInterval(timer);
         }
@@ -320,7 +320,7 @@ async function bootstrap() {
     subscribeInject(ctx);
     ctx.makerConfigs = await convertMarketListToFile(
       makerList,
-      ctx.config.L1L2Mapping
+      ctx.config.L1L2Mapping,
     );
     const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
     const scanChain = new ScanChainMain(ctx.config.chains);
@@ -329,21 +329,19 @@ async function bootstrap() {
         continue;
       }
       ctx.logger.info(
-        `Start Subscribe ChainId: ${id}, instanceId:${instanceId}, instances:${instances}`
+        `Start Subscribe ChainId: ${id}, instanceId:${instanceId}, instances:${instances}`,
       );
       pubSub.subscribe(`${id}:txlist`, async (txlist: Array<ITransaction>) => {
         try {
           await bulkCreateTransaction(ctx, txlist).then((txList: any[]) =>
-            txList.forEach((tx) => {
-              try {
-                matchSourceDataByTx(ctx, tx);
-              } catch (error) {
+            txList.forEach(tx => {
+              matchSourceDataByTx(ctx, tx).catch(error => {
                 ctx.logger.error(
                   "bulkCreateTransaction matchSourceDataByTx error：",
-                  error
+                  error,
                 );
-              }
-            })
+              });
+            }),
           );
         } catch (error) {
           ctx.logger.error("bulkCreateTransaction error：", error);
@@ -370,6 +368,6 @@ process.on("uncaughtException", (err: Error) => {
 process.on("unhandledRejection", (err: Error, promise) => {
   console.error(
     "There are failed functions where promise is not captured：",
-    err
+    err,
   );
 });

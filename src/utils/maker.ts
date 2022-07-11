@@ -2,19 +2,20 @@ import { IMarket } from "../types";
 import { uniq, flatten } from "lodash";
 export async function convertMarketListToFile(
   makerList: Array<any>,
-  L1L2Mapping: any
+  L1L2Mapping: any,
 ): Promise<Array<IMarket>> {
   const configs = flatten(
-    makerList.map((row) => {
+    makerList.map(row => {
       return convertPool(row);
-    })
-  ).map((row) => {
+    }),
+  ).map(row => {
     if (["4", "44"].includes(row.toChain.id)) {
       row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
     }
     if (["4", "44"].includes(row.fromChain.id)) {
       // starknet mapping
-      row.recipient = L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
+      row.recipient =
+        L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
     }
     return row;
   });
@@ -24,15 +25,15 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
   [key: string]: Array<string>;
 } {
   const chainIds = uniq(
-    flatten(makerList.map((row) => [row.fromChain.id, row.toChain.id]))
+    flatten(makerList.map(row => [row.fromChain.id, row.toChain.id])),
   );
   const chain: any = {};
   for (const id of chainIds) {
     const recipientAddress = uniq(
-      makerList.filter((m) => m.fromChain.id === id).map((m) => m.recipient)
+      makerList.filter(m => m.fromChain.id === id).map(m => m.recipient),
     );
     const senderAddress = uniq(
-      makerList.filter((m) => m.toChain.id === id).map((m) => m.sender)
+      makerList.filter(m => m.toChain.id === id).map(m => m.sender),
     );
     chain[id] = uniq([...senderAddress, ...recipientAddress]);
   }

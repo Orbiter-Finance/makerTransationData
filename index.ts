@@ -76,11 +76,13 @@ function subscribeInject(ctx: Context) {
     if ((Date.now() / 1000) * 10 === 0) {
       ctx.logger.error("sub error:", error);
     }
-    sleep(1000 * 10).then(() => {
-      subscribeInject(ctx);
-    }).catch(error=> {
-      ctx.logger.error('sleep error:', error);
-    })
+    sleep(1000 * 10)
+      .then(() => {
+        subscribeInject(ctx);
+      })
+      .catch(error => {
+        ctx.logger.error("sleep error:", error);
+      });
   });
 }
 export class Context {
@@ -197,7 +199,7 @@ export async function processUserSendMakerTx(
         [Op.gte]: dayjs(trx.timestamp).subtract(2, "m").toDate(),
       },
     },
-    order: [["id", "desc"]],
+    order: [["timestamp", "asc"]],
   });
   const upsertParams = {
     transcationId,
@@ -215,56 +217,59 @@ export async function processMakerSendUserTx(
   ctx: Context,
   trx: transactionAttributes,
 ) {
-  const makerAddress = trx.from;
+  // const makerAddress = trx.from;
   const models = ctx.models;
   const userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
 
-  let userSendTx;
-  if ([4, 44].includes(trx.chainId)) {
-    userSendTx = await models.transaction.findOne({
-      attributes: ["id"],
-      raw: true,
-      where: {
-        // to: makerAddress,
-        // from: trx.to,
-        memo: trx.chainId,
-        nonce: userSendTxNonce,
-        status: 1,
-        symbol: trx.symbol,
-        timestamp: {
-          [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
-        },
-      },
-      include: [
-        {
-          attributes: ["id"],
-          model: models.maker_transaction,
-          as: "maker_transaction",
-          where: {
-            replySender: trx.from,
-            replyAccount: trx.to,
-          },
-        },
-      ],
-    });
-  } else {
-    const where = {
-      to: makerAddress,
-      from: trx.to,
+  // let userSendTx;
+  // if ([4, 44].includes(trx.chainId)) {
+  const userSendTx = await models.transaction.findOne({
+    attributes: ["id", "from", "to", "chainId", "symbol", "nonce"],
+    raw: true,
+    order: [["timestamp", "desc"]],
+    where: {
       memo: trx.chainId,
       nonce: userSendTxNonce,
       status: 1,
       symbol: trx.symbol,
       timestamp: {
-        [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
+        [Op.lte]: dayjs(trx.timestamp).add(1, "m").toDate(),
       },
-    };
-    userSendTx = await models.transaction.findOne({
-      attributes: ["id", "from", "chainId", "symbol", "nonce"],
-      raw: true,
-      where,
-    });
-  }
+      value: {
+        [Op.gte]: String(trx.value),
+      },
+    },
+    include: [
+      {
+        // required: false,
+        attributes: ["id"],
+        model: models.maker_transaction,
+        as: "maker_transaction",
+        where: {
+          replySender: trx.from,
+          replyAccount: trx.to,
+        },
+      },
+    ],
+  });
+  // } else {
+  //   const where = {
+  //     to: makerAddress,
+  //     from: trx.to,
+  //     memo: trx.chainId,
+  //     nonce: userSendTxNonce,
+  //     status: 1,
+  //     symbol: trx.symbol,
+  //     timestamp: {
+  //       [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
+  //     },
+  //   };
+  //   userSendTx = await models.transaction.findOne({
+  //     attributes: ["id", "from", "chainId", "symbol", "nonce"],
+  //     raw: true,
+  //     where,
+  //   });
+  // }
   const replySender = trx.from;
   const replyAccount = trx.to;
   if (userSendTx?.id && userSendTx.from) {

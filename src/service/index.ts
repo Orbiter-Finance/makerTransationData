@@ -373,13 +373,13 @@ export async function matchSourceDataByTx(ctx: Context, txData: any) {
     try {
       return await processMakerSendUserTx(ctx, tx);
     } catch (error) {
-      ctx.logger.error(`processMakerSendUserTx error: `, tx);
+      ctx.logger.error(`processMakerSendUserTx error: `, { error, tx });
     }
   } else if (isUserSend) {
     try {
       return await processUserSendMakerTx(ctx, tx);
     } catch (error) {
-      ctx.logger.error(`processUserSendMakerTx error: `, tx);
+      ctx.logger.error(`processUserSendMakerTx error: `, { error, tx });
     }
   } else {
     ctx.logger.error(
@@ -402,7 +402,7 @@ export async function matchSourceData(
   if (result.length <= 0 || !result) {
     throw new Error("match last");
   }
-  const trxs = await ctx.models.transaction.findAll({
+  const txlist = await ctx.models.transaction.findAll({
     raw: true,
     where: {
       id: {
@@ -410,7 +410,7 @@ export async function matchSourceData(
       },
     },
   });
-  for (const tx of trxs) {
+  for (const tx of txlist) {
     console.log(`page ${pageIndex} process match:`, tx.id);
     await matchSourceDataByTx(ctx, tx);
   }

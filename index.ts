@@ -1,11 +1,11 @@
 import "dotenv/config";
 import { ScanChainMain, chains, pubSub } from "orbiter-chaincore";
-import logger from "orbiter-chaincore/src/utils/logger";
 import {
   convertMarketListToFile,
   groupWatchAddressByChain,
   sleep,
 } from "./src/utils";
+import { BigNumber } from 'bignumber.js'
 import { makerList } from "./maker";
 import { Op, Sequelize } from "sequelize";
 import { initModels, transactionAttributes } from "./src/models/init-models";
@@ -23,15 +23,15 @@ import {
 } from "./src/service";
 import net from "net";
 import dayjs from "dayjs";
+import { LoggerService } from "orbiter-chaincore/src/utils";
 export function TransactionID(
   fromAddress: string,
   fromChainId: number | string,
   fromTxNonce: string | number,
   symbol: string | undefined,
 ) {
-  return `${fromAddress}${padStart(String(fromChainId), 4, "00")}${
-    symbol || "NULL"
-  }${fromTxNonce}`.toLowerCase();
+  return `${fromAddress}${padStart(String(fromChainId), 4, "00")}${symbol || "NULL"
+    }${fromTxNonce}`.toLowerCase();
 }
 export interface Config {
   L1L2Mapping: {
@@ -56,7 +56,7 @@ function subscribeInject(ctx: Context) {
     let body: any = {};
     try {
       body = JSON.parse(str);
-    } catch (err) {}
+    } catch (err) { }
     if (body && body.op === "inject") {
       const chain = chains
         .getAllChains()
@@ -107,7 +107,10 @@ export class Context {
     const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, NODE_ENV } = <any>(
       process.env
     );
-    this.logger = logger;
+    const instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
+    this.logger = LoggerService.createLogger({
+      dir: `runtime/logs${instanceId}`
+    });
     if (NODE_ENV === "prod") {
       this.logger.info("Start APP Read Chain Config:[Mainnet]");
       this.config.chains = <any>mainChainConfigs;
@@ -123,7 +126,7 @@ export class Context {
         host: DB_HOST,
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
-        logging: false,
+        logging: true,
       },
     );
     this.models = initModels(this.sequelize);
@@ -186,32 +189,44 @@ export async function processUserSendMakerTx(
       replyAccount = fix0xPadStartAddress(replyAccount, 66);
     }
   }
-  const makerSendTx = await ctx.models.transaction.findOne({
-    raw: true,
-    attributes: ["id"],
-    where: {
-      chainId: toChainId,
-      from: market.sender,
-      to: replyAccount,
-      symbol: trx.symbol,
-      memo: trx.nonce,
-      timestamp: {
-        [Op.gte]: dayjs(trx.timestamp).subtract(2, "m").toDate(),
+  const t = await ctx.sequelize.transaction();
+  try {
+    const makerSendTx = await ctx.models.transaction.findOne({
+      raw: true,
+      attributes: ["id"],
+      where: {
+        chainId: toChainId,
+        from: market.sender,
+        to: replyAccount,
+        symbol: trx.symbol,
+        memo: trx.nonce,
+        timestamp: {
+          [Op.gte]: dayjs(trx.timestamp).subtract(2, "m").toDate(),
+        },
       },
-    },
-    order: [["timestamp", "asc"]],
-  });
-  const upsertParams = {
-    transcationId,
-    inId: trx.id,
-    outId: makerSendTx ? makerSendTx.id : undefined,
-    fromChain: trx.chainId,
-    toChain: Number(toChainId),
-    toAmount: String(needToAmount),
-    replySender: market.sender,
-    replyAccount,
-  };
-  await ctx.models.maker_transaction.upsert(upsertParams);
+      order: [["timestamp", "asc"]],
+      transaction: t
+    });
+    const upsertParams = {
+      transcationId,
+      inId: trx.id,
+      outId: makerSendTx ? makerSendTx.id : undefined,
+      fromChain: trx.chainId,
+      toChain: Number(toChainId),
+      toAmount: String(needToAmount),
+      replySender: market.sender,
+      replyAccount,
+    };
+    const result = await ctx.models.maker_transaction.upsert(upsertParams, {
+      transaction: t,
+    });
+    await t.commit();
+    return result[0].toJSON();
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+
 }
 export async function processMakerSendUserTx(
   ctx: Context,
@@ -220,106 +235,120 @@ export async function processMakerSendUserTx(
   // const makerAddress = trx.from;
   const models = ctx.models;
   const userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
-
-  // let userSendTx;
-  // if ([4, 44].includes(trx.chainId)) {
-  const userSendTx = await models.transaction.findOne({
-    attributes: ["id", "from", "to", "chainId", "symbol", "nonce"],
-    raw: true,
-    order: [["timestamp", "desc"]],
-    where: {
-      memo: trx.chainId,
-      nonce: userSendTxNonce,
-      status: 1,
-      symbol: trx.symbol,
-      timestamp: {
-        [Op.lte]: dayjs(trx.timestamp).add(1, "m").toDate(),
-      },
-      value: {
-        [Op.gte]: String(trx.value),
-      },
-    },
-    include: [
-      {
-        // required: false,
-        attributes: ["id"],
-        model: models.maker_transaction,
-        as: "maker_transaction",
-        where: {
-          replySender: trx.from,
-          replyAccount: trx.to,
+  const t = await ctx.sequelize.transaction();
+  try {
+    // let userSendTx;
+    // if ([4, 44].includes(trx.chainId)) {
+    const userSendTx = await models.transaction.findOne({
+      attributes: ["id", "from", "to", "chainId", "symbol", "nonce"],
+      raw: true,
+      order: [["timestamp", "desc"]],
+      where: {
+        memo: trx.chainId,
+        nonce: userSendTxNonce,
+        status: 1,
+        symbol: trx.symbol,
+        timestamp: {
+          [Op.lte]: dayjs(trx.timestamp).add(1, "m").toDate(),
+        },
+        value: {
+          [Op.gte]: String(trx.value),
         },
       },
-    ],
-  });
-  // } else {
-  //   const where = {
-  //     to: makerAddress,
-  //     from: trx.to,
-  //     memo: trx.chainId,
-  //     nonce: userSendTxNonce,
-  //     status: 1,
-  //     symbol: trx.symbol,
-  //     timestamp: {
-  //       [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
-  //     },
-  //   };
-  //   userSendTx = await models.transaction.findOne({
-  //     attributes: ["id", "from", "chainId", "symbol", "nonce"],
-  //     raw: true,
-  //     where,
-  //   });
-  // }
-  const replySender = trx.from;
-  const replyAccount = trx.to;
-  if (userSendTx?.id && userSendTx.from) {
-    const transcationId = TransactionID(
-      String(userSendTx.from),
-      userSendTx.chainId,
-      userSendTx.nonce,
-      userSendTx.symbol,
-    );
-    return await models.maker_transaction.upsert({
-      transcationId,
-      inId: userSendTx.id,
-      outId: trx.id,
-      fromChain: userSendTx.chainId,
-      toChain: trx.chainId,
-      toAmount: String(trx.value),
-      replySender,
-      replyAccount,
+      include: [
+        {
+          // required: false,
+          attributes: ["id"],
+          model: models.maker_transaction,
+          as: "maker_transaction",
+          where: {
+            replySender: trx.from,
+            replyAccount: trx.to,
+          },
+        },
+      ],
+      transaction: t
     });
-  } else {
-    return await ctx.models.maker_transaction.upsert({
-      outId: trx.id,
-      toChain: Number(trx.chainId),
-      toAmount: String(trx.value),
-      replySender,
-      replyAccount,
-    });
+    // } else {
+    //   const where = {
+    //     to: makerAddress,
+    //     from: trx.to,
+    //     memo: trx.chainId,
+    //     nonce: userSendTxNonce,
+    //     status: 1,
+    //     symbol: trx.symbol,
+    //     timestamp: {
+    //       [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
+    //     },
+    //   };
+    //   userSendTx = await models.transaction.findOne({
+    //     attributes: ["id", "from", "chainId", "symbol", "nonce"],
+    //     raw: true,
+    //     where,
+    //   });
+    // }
+    const replySender = trx.from;
+    const replyAccount = trx.to;
+    let result;
+    if (userSendTx?.id && userSendTx.from) {
+      const transcationId = TransactionID(
+        String(userSendTx.from),
+        userSendTx.chainId,
+        userSendTx.nonce,
+        userSendTx.symbol,
+      );
+      result = await models.maker_transaction.upsert({
+        transcationId,
+        inId: userSendTx.id,
+        outId: trx.id,
+        fromChain: userSendTx.chainId,
+        toChain: trx.chainId,
+        toAmount: String(trx.value),
+        replySender,
+        replyAccount,
+      }, {
+        transaction: t
+      });
+    } else {
+      result = await ctx.models.maker_transaction.upsert({
+        outId: trx.id,
+        toChain: Number(trx.chainId),
+        toAmount: String(trx.value),
+        replySender,
+        replyAccount,
+      }, {
+        transaction: t
+      });
+    }
+    await t.commit()
+    return result[0].toJSON()
+  } catch (error) {
+    await t.rollback();
+    throw error;
   }
+
 }
 async function startMatch(ctx: Context) {
   let page = 1,
     isLock = false;
+  ctx.logger.info('Start matching task...')
   const matchTimerFun = async () => {
     try {
       if (!isLock) {
         isLock = true;
-        const list = await matchSourceData(ctx, page, 500);
+        const list = await matchSourceData(ctx, page, 100);
         page++;
         isLock = false;
         if (list.length <= 0 || page >= 50) {
-          ctx.logger.info(
-            "---------------------- startMatch end --------------------",
-          );
+          ctx.logger.info('The matching task has been executed.....')
           timer && clearInterval(timer);
         }
       }
       return isLock;
     } catch (error) {
-      isLock = false;
       ctx.logger.error("startMatch error:", error);
+      isLock = false;
+      timer && clearInterval(timer);
     }
   };
   // eslint-disable-next-line
@@ -345,6 +374,9 @@ async function bootstrap() {
         `Start Subscribe ChainId: ${id}, instanceId:${instanceId}, instances:${instances}`,
       );
       pubSub.subscribe(`${id}:txlist`, async (txlist: Array<ITransaction>) => {
+        ctx.logger.info(
+          `[${id}] Subscribe to transaction, instanceId:${instanceId}, instances:${instances}`, txlist
+        );
         try {
           await bulkCreateTransaction(ctx, txlist).then((txList: any[]) =>
             txList.forEach(tx => {
@@ -373,7 +405,7 @@ async function bootstrap() {
   } catch (error: any) {
     ctx.logger.error("startSub error:", error);
   }
-  instanceId == 0 && startMatch(ctx);
+  // instanceId == 0 && startMatch(ctx);
 }
 
 bootstrap().catch(error => {

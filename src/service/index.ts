@@ -400,7 +400,7 @@ export async function matchSourceData(
   });
   const trxIds = result.map((row: any) => row["id"]);
   if (result.length <= 0 || !result) {
-    throw new Error("match last");
+    throw [];
   }
   const txlist = await ctx.models.transaction.findAll({
     raw: true,

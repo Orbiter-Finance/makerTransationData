@@ -1,5 +1,12 @@
 version: '3.8'
 services:
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - ./runtime/redis:/data:rw
+    ports:
+      - "6389:6379"
   data-server:
     build: .
     container_name: maker-data-server
@@ -7,6 +14,10 @@ services:
     command: pm2-runtime start pm2.json
     ports:
       - '8001:8001'
+    depends_on:
+      - redis
+    links:
+      - redis
     volumes:
       - './src/config/chains.json:/home/makerTransationData/dist/src/config/chains.json'
       - './src/config/testnet.json:/home/makerTransationData/dist/src/config/testnet.json'

@@ -1,106 +1,6 @@
-import { Context, processMakerSendUserTx, processUserSendMakerTx } from "../..";
-import { ImmutableX } from "orbiter-chaincore/src/chain";
-import { getAmountFlag } from "../utils/oldUtils";
-import {
-  IChainWatch,
-  QueryTxFilterIMX,
-  TransactionStatus,
-  ITransaction,
-  QueryTxFilterEther,
-  QueryTxFilterZKSpace,
-  QueryTxFilterZKSync,
-} from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
-import { core, chains, dydx } from "orbiter-chaincore/src/utils";
-export async function bulkCreateTransaction(
-  ctx: Context,
-  txlist: Array<ITransaction>,
-) {
-  const txsList = [];
-  for (const tx of txlist) {
-    // ctx.logger.info(`processSubTx:${tx.hash}`);
-    const chainConfig = chains.getChainByChainId(tx.chainId);
-    if (!chainConfig) {
-      throw new Error(`chainId ${tx.chainId} not found`);
-    }
-    // ctx.logger.info(
-    //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
-    // );
-    let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
-    if (["9", "99"].includes(chainConfig.internalId) && tx.extra) {
-      memo = String(tx.extra.memo % 9000);
-    } else if (
-      ["11", "511"].includes(chainConfig.internalId) &&
-      tx.extra["type"] === "TRANSFER_OUT"
-    ) {
-      if (!tx.to) {
-        tx.to = dydx.getEthereumAddressFromClientId(tx.extra["clientId"]);
-      }
-      // makerAddress
-      if (!tx.from) {
-        const makerItem = await ctx.makerConfigs.find(
-          row => row.toChain.id === chainConfig.internalId,
-        );
-        tx.from = (makerItem && makerItem.sender) || "";
-      }
-    }
-    const txData: any = {
-      hash: tx.hash,
-      nonce: String(tx.nonce),
-      blockHash: tx.blockHash,
-      blockNumber: tx.blockNumber,
-      transactionIndex: tx.transactionIndex,
-      from: tx.from || "",
-      to: tx.to || "",
-      value: tx.value.toString(),
-      symbol: tx.symbol,
-      gasPrice: tx.gasPrice,
-      gas: tx.gas,
-      input: tx.input != "0x" ? tx.input : null,
-      status: tx.status,
-      tokenAddress: tx.tokenAddress || "",
-      timestamp: new Date(tx.timestamp * 1000),
-      fee: tx.fee.toString(),
-      feeToken: tx.feeToken,
-      chainId: Number(chainConfig.internalId),
-      source: tx.source,
-      extra: tx.extra,
-      memo,
-    };
-    if (
-      [3, 33, 8, 88, 12, 512].includes(Number(txData.chainId)) &&
-      txData.status === TransactionStatus.PENDING
-    ) {
-      txData.status = TransactionStatus.COMPLETE;
-    }
-
-    txsList.push(txData);
-  }
-  try {
-    const result = await ctx.models.transaction.bulkCreate(txsList, {
-      returning: true,
-      updateOnDuplicate: [
-        "from",
-        "to",
-        "value",
-        "fee",
-        "feeToken",
-        "symbol",
-        "status",
-        "input",
-        "extra",
-        "timestamp",
-        "tokenAddress",
-        "nonce",
-        "memo",
-      ],
-    });
-    return result.map(row => row.toJSON());
-  } catch (error: any) {
-    ctx.logger.error("processSubTx error:", error);
-    throw error;
-  }
-}
+import { Context } from "../../context";
+import { findByHashTxMatch } from "./transaction";
 
 // export async function loopPullImxHistory(
 //   ctx: Context,
@@ -354,39 +254,6 @@ export async function bulkCreateTransaction(
 //     }
 //   }, 5000);
 // }
-export async function matchSourceDataByTx(ctx: Context, txData: any) {
-  const tx = await ctx.models.transaction.findOne({
-    raw: true,
-    where: {
-      chainId: txData.chainId,
-      hash: txData.hash,
-    },
-  });
-  if (!tx || !tx.id) {
-    throw new Error("Tx Not Found");
-  }
-  const isMakerSend =
-    ctx.makerConfigs.findIndex(row => core.equals(row.sender, tx.from)) !== -1;
-  const isUserSend =
-    ctx.makerConfigs.findIndex(row => core.equals(row.recipient, tx.to)) !== -1;
-  if (isMakerSend) {
-    try {
-      return await processMakerSendUserTx(ctx, tx);
-    } catch (error) {
-      ctx.logger.error(`processMakerSendUserTx error: `, { error, tx });
-    }
-  } else if (isUserSend) {
-    try {
-      return await processUserSendMakerTx(ctx, tx);
-    } catch (error) {
-      ctx.logger.error(`processUserSendMakerTx error: `, { error, tx });
-    }
-  } else {
-    ctx.logger.error(
-      `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
-    );
-  }
-}
 export async function matchSourceData(
   ctx: Context,
   pageIndex = 1,
@@ -412,7 +279,7 @@ export async function matchSourceData(
   });
   for (const tx of txlist) {
     console.log(`page ${pageIndex} process match:`, tx.id);
-    await matchSourceDataByTx(ctx, tx);
+    await findByHashTxMatch(ctx, tx.chainId, tx.hash);
   }
   return result;
 }

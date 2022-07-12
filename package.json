@@ -11,8 +11,8 @@
     "build": "npm run clean && tsc && ncp package.json dist/package.json",
     "clean": "rimraf coverage output dist",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint 'src/**/*.{js,ts}' 'index.ts' --fix",
-    "prettier": "prettier --check --write --config .prettierrc 'src/**/*.{js,ts,tsc}'",
+    "lint": "eslint 'src/**/*.{js,ts}' 'index.ts' 'context.ts' --fix",
+    "prettier": "prettier --check --write --config .prettierrc.json '**/*.{ts,tsc}'",
     "prepare": "husky install"
   },
   "bin": {
@@ -33,6 +33,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-simple-import-sort": "^7.0.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
     "husky": "^8.0.1",
     "ncp": "^2.0.0",
     "prettier": "^2.7.1",
@@ -48,6 +49,7 @@
     "figlet": "^1.5.2",
     "fs-extra": "^10.1.0",
     "inquirer": "^8.2.4",
+    "ioredis": "^5.2.0",
     "lodash": "^4.17.21",
     "mysql2": "^2.3.3",
     "orbiter-chaincore": "^1.1.4",

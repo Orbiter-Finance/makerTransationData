@@ -15,3 +15,11 @@ export interface IMarket {
   };
   pool?: any;
 }
+export interface Config {
+  L1L2Mapping: {
+    [key: string]: {
+      [key: string]: string;
+    };
+  };
+  chains: Array<any>;
+}

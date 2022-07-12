@@ -2,7 +2,6 @@ import * as Sequelize from "sequelize";
 import { DataTypes, Model, Optional } from "sequelize";
 import type {
   maker_transaction,
-  maker_transactionCreationAttributes,
   maker_transactionId,
 } from "./maker_transaction";
 

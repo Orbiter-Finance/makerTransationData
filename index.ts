@@ -109,7 +109,7 @@ export class Context {
     );
     const instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.logger = LoggerService.createLogger({
-      dir:  `${process.env.RUNTIME_DIR || ''}runtime/logs${instanceId}`
+      dir:  `${process.env.RUNTIME_DIR || ''}/logs${instanceId}`
     });
     if (NODE_ENV === "prod") {
       this.logger.info("Start APP Read Chain Config:[Mainnet]");

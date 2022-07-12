@@ -109,7 +109,7 @@ export class Context {
     );
     const instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.logger = LoggerService.createLogger({
-      dir:  `${process.env.RUNTIME_DIR || ''}/logs${instanceId}`
+      dir: `${process.env.RUNTIME_DIR || ''}/logs${instanceId}`
     });
     if (NODE_ENV === "prod") {
       this.logger.info("Start APP Read Chain Config:[Mainnet]");
@@ -375,7 +375,7 @@ async function bootstrap() {
       );
       pubSub.subscribe(`${id}:txlist`, async (txlist: Array<ITransaction>) => {
         ctx.logger.info(
-          `[${id}] Subscribe to transaction, instanceId:${instanceId}, instances:${instances}`, txlist
+          `Received subscription transaction, interior ChainId:${id},instanceId:${instanceId}, instances:${instances}`, { txlist }
         );
         try {
           await bulkCreateTransaction(ctx, txlist).then((txList: any[]) =>

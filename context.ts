@@ -63,7 +63,7 @@ export class Context {
   private initRedis() {
     const { REDIS_PORT, REDIS_HOST } = <any>process.env;
     this.redis = new Redis(
-      Number(REDIS_PORT || 3306),
+      Number(REDIS_PORT || 6379),
       REDIS_HOST || "127.0.0.1",
     );
   }

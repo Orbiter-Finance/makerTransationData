@@ -15,6 +15,7 @@ export async function findByHashTxMatch(
 ) {
   const tx = await ctx.models.transaction.findOne({
     raw: true,
+    attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
     where: {
       chainId,
       hash,
@@ -31,17 +32,27 @@ export async function findByHashTxMatch(
     ctx.makerConfigs.findIndex((row: { recipient: any }) =>
       equals(row.recipient, tx.to),
     ) !== -1;
+  if (tx.status !== 1) {
+    return;
+  }
   if (isMakerSend) {
     try {
       return await processMakerSendUserTx(ctx, tx);
-    } catch (error) {
-      ctx.logger.error(`processMakerSendUserTx error: `, { error, tx });
+    } catch (error: any) {
+      ctx.logger.error(`processMakerSendUserTx error: `, {
+        errmsg: error.message,
+        tx,
+      });
     }
   } else if (isUserSend) {
     try {
       return await processUserSendMakerTx(ctx, tx);
-    } catch (error) {
-      ctx.logger.error(`processUserSendMakerTx error: `, { error, tx });
+    } catch (error: any) {
+      console.log(error);
+      ctx.logger.error(`processUserSendMakerTx error: `, {
+        errmsg: error.message,
+        tx,
+      });
     }
   } else {
     ctx.logger.error(
@@ -199,37 +210,55 @@ export async function processUserSendMakerTx(
   }
   const t = await ctx.sequelize.transaction();
   try {
+    const where = {
+      chainId: toChainId,
+      from: market.sender,
+      to: replyAccount,
+      symbol: trx.symbol,
+      memo: trx.nonce,
+      timestamp: {
+        [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
+        [Op.lte]: dayjs(trx.timestamp)
+          .subtract(6 * 60, "m")
+          .toDate(),
+      },
+      value: {
+        [Op.lt]: Number(trx.value),
+      },
+    };
+    // Because of the delay of starknet network, the time will be longer if it is starknet
+    if (["4", "44"].includes(String(fromChainId))) {
+      where.timestamp = {
+        [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
+        [Op.lte]: dayjs(trx.timestamp)
+          .subtract(6 * 60, "m")
+          .toDate(),
+      };
+    }
     const makerSendTx = await ctx.models.transaction.findOne({
       raw: true,
       attributes: ["id"],
-      where: {
-        chainId: toChainId,
-        from: market.sender,
-        to: replyAccount,
-        symbol: trx.symbol,
-        memo: trx.nonce,
-        timestamp: {
-          [Op.gte]: dayjs(trx.timestamp).subtract(2, "m").toDate(),
-        },
-      },
-      order: [["timestamp", "asc"]],
+      where,
+      order: [["timestamp", "desc"]],
       transaction: t,
     });
-    const upsertParams = {
-      transcationId,
-      inId: trx.id,
-      outId: makerSendTx ? makerSendTx.id : undefined,
-      fromChain: trx.chainId,
-      toChain: Number(toChainId),
-      toAmount: String(needToAmount),
-      replySender: market.sender,
-      replyAccount,
-    };
-    const result = await ctx.models.maker_transaction.upsert(upsertParams, {
-      transaction: t,
-    });
+    if (makerSendTx) {
+      const upsertParams = {
+        transcationId,
+        inId: trx.id,
+        outId: makerSendTx ? makerSendTx.id : undefined,
+        fromChain: trx.chainId,
+        toChain: Number(toChainId),
+        toAmount: String(needToAmount),
+        replySender: market.sender,
+        replyAccount,
+      };
+      await ctx.models.maker_transaction.upsert(upsertParams, {
+        transaction: t,
+      });
+    }
     await t.commit();
-    return result[0].toJSON();
+    return true;
   } catch (error) {
     await t.rollback();
     throw error;
@@ -255,10 +284,13 @@ export async function processMakerSendUserTx(
         status: 1,
         symbol: trx.symbol,
         timestamp: {
-          [Op.lte]: dayjs(trx.timestamp).add(1, "m").toDate(),
+          [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
+          [Op.gte]: dayjs(trx.timestamp)
+            .subtract(60 * 6, "m")
+            .toDate(),
         },
         value: {
-          [Op.gte]: String(trx.value),
+          [Op.gt]: Number(trx.value),
         },
       },
       include: [

@@ -75,9 +75,9 @@ export class Application {
               });
           },
         );
-        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-        //   ctx.logger.error(`${id} startScanChain error:`, error);
-        // });
+        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+          ctx.logger.error(`${id} startScanChain error:`, error);
+        });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -127,15 +127,24 @@ export class Application {
     }
     const txList = await this.ctx.models.transaction.findAll({
       raw: true,
+      attributes: ["chainId", "hash"],
       where: <any>{
         id: {
           [Op.in]: txIdList.map((row: any) => row.inId),
         },
       },
     });
+    let i = 0;
     for (const tx of txList) {
       try {
-        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
+        console.log("startMatch by hash:", tx.hash);
+        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash).catch(error => {
+          this.ctx.logger.error("startMatch for error:", error);
+        });
+        i++;
+        if (i % 20 === 0) {
+          await sleep(1000 * 10);
+        }
       } catch (error) {
         this.ctx.logger.error("startMatch error:", error);
       }

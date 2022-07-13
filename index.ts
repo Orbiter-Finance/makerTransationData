@@ -8,7 +8,6 @@ import {
 import { makerList } from "./maker";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { ITransaction } from "orbiter-chaincore/src/types/transaction";
-import { matchSourceData } from "./src/service";
 import net from "net";
 import { Context } from "./context";
 import {
@@ -16,6 +15,7 @@ import {
   findByHashTxMatch,
 } from "./src/service/transaction";
 import { WAIT_MATCH_REDIS_KEY } from "./src/types/const";
+import { Op } from "sequelize";
 export class Application {
   public ctx: Context;
   constructor() {
@@ -75,9 +75,9 @@ export class Application {
               });
           },
         );
-        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-          ctx.logger.error(`${id} startScanChain error:`, error);
-        });
+        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+        //   ctx.logger.error(`${id} startScanChain error:`, error);
+        // });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -116,31 +116,56 @@ export class Application {
     }
   }
   async startMatch() {
-    const ctx = this.ctx;
-    let page = 1,
-      isLock = false;
-    ctx.logger.info("Start matching task...");
-    const matchTimerFun = async () => {
+    const where = { outId: { [Op.is]: null } };
+    const txIdList = await this.ctx.models.maker_transaction.findAll({
+      attributes: ["inId"],
+      raw: true,
+      where,
+    });
+    if (txIdList.length <= 0) {
+      return console.log("Not Data");
+    }
+    const txList = await this.ctx.models.transaction.findAll({
+      raw: true,
+      where: <any>{
+        id: {
+          [Op.in]: txIdList.map((row: any) => row.inId),
+        },
+      },
+    });
+    for (const tx of txList) {
       try {
-        if (!isLock) {
-          isLock = true;
-          const list = await matchSourceData(ctx, page, 100);
-          page++;
-          isLock = false;
-          if (list.length <= 0 || page >= 50) {
-            ctx.logger.info("The matching task has been executed.....");
-            timer && clearInterval(timer);
-          }
-        }
-        return isLock;
+        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
       } catch (error) {
-        ctx.logger.error("startMatch error:", error);
-        isLock = false;
-        timer && clearInterval(timer);
+        this.ctx.logger.error("startMatch error:", error);
       }
-    };
-    // eslint-disable-next-line
-    const timer = setInterval(matchTimerFun, 5000);
+    }
+
+    // const ctx = this.ctx;
+    // let page = 1,
+    //   isLock = false;
+    // ctx.logger.info("Start matching task...");
+    // const matchTimerFun = async () => {
+    //   try {
+    //     if (!isLock) {
+    //       isLock = true;
+    //       const list = await matchSourceData(ctx, page, 100);
+    //       page++;
+    //       isLock = false;
+    //       if (list.length <= 0 || page >= 50) {
+    //         ctx.logger.info("The matching task has been executed.....");
+    //         timer && clearInterval(timer);
+    //       }
+    //     }
+    //     return isLock;
+    //   } catch (error) {
+    //     ctx.logger.error("startMatch error:", error);
+    //     isLock = false;
+    //     timer && clearInterval(timer);
+    //   }
+    // };
+    // // eslint-disable-next-line
+    // const timer = setInterval(matchTimerFun, 5000);
   }
 }
 function subscribeInject(ctx: Context) {

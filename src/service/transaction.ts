@@ -10,7 +10,7 @@ import { TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 export async function findByHashTxMatch(
   ctx: Context,
-  chainId: string,
+  chainId: number,
   hash: string,
 ) {
   const tx = await ctx.models.transaction.findOne({
@@ -184,7 +184,11 @@ export async function processUserSendMakerTx(
       trx.nonce,
     )?.tAmount || "0";
   let replyAccount: string | undefined = trx.from;
-  if (["44", "4", "11", "511"].includes(toChainId)) {
+  if (["44", "4", "11", "511"].includes(String(fromChainId))) {
+    // dydx contract send
+    // starknet contract send
+    replyAccount = (<any>trx.extra)["ext"] || "";
+  } else if (["44", "4", "11", "511"].includes(toChainId)) {
     const ext = (<any>trx.extra)["ext"] || "";
     // 11,511 0x02 first
     // 4, 44 0x03 first
@@ -240,12 +244,11 @@ export async function processMakerSendUserTx(
   const userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
   const t = await ctx.sequelize.transaction();
   try {
-    // let userSendTx;
-    // if ([4, 44].includes(trx.chainId)) {
     const userSendTx = await models.transaction.findOne({
       attributes: ["id", "from", "to", "chainId", "symbol", "nonce"],
-      raw: true,
       order: [["timestamp", "desc"]],
+      raw: true,
+      nest: true,
       where: {
         memo: trx.chainId,
         nonce: userSendTxNonce,
@@ -260,8 +263,8 @@ export async function processMakerSendUserTx(
       },
       include: [
         {
-          // required: false,
-          attributes: ["id"],
+          required: true,
+          attributes: ["inId", "outId"],
           model: models.maker_transaction,
           as: "maker_transaction",
           where: {
@@ -272,35 +275,20 @@ export async function processMakerSendUserTx(
       ],
       transaction: t,
     });
-    // } else {
-    //   const where = {
-    //     to: makerAddress,
-    //     from: trx.to,
-    //     memo: trx.chainId,
-    //     nonce: userSendTxNonce,
-    //     status: 1,
-    //     symbol: trx.symbol,
-    //     timestamp: {
-    //       [Op.lte]: dayjs(trx.timestamp).add(2, "m").toDate(),
-    //     },
-    //   };
-    //   userSendTx = await models.transaction.findOne({
-    //     attributes: ["id", "from", "chainId", "symbol", "nonce"],
-    //     raw: true,
-    //     where,
-    //   });
-    // }
+    // const makerTransaction: any = userSendTx
+    //   ? userSendTx.maker_transaction
+    //   : {};
     const replySender = trx.from;
     const replyAccount = trx.to;
-    let result;
     if (userSendTx?.id && userSendTx.from) {
+      // exists user transaction
       const transcationId = TransactionID(
         String(userSendTx.from),
         userSendTx.chainId,
         userSendTx.nonce,
         userSendTx.symbol,
       );
-      result = await models.maker_transaction.upsert(
+      await models.maker_transaction.upsert(
         {
           transcationId,
           inId: userSendTx.id,
@@ -316,7 +304,7 @@ export async function processMakerSendUserTx(
         },
       );
     } else {
-      result = await ctx.models.maker_transaction.upsert(
+      await ctx.models.maker_transaction.upsert(
         {
           outId: trx.id,
           toChain: Number(trx.chainId),
@@ -330,9 +318,9 @@ export async function processMakerSendUserTx(
       );
     }
     await t.commit();
-    return result[0].toJSON();
+    return userSendTx;
   } catch (error) {
-    await t.rollback();
+    t && (await t.rollback());
     throw error;
   }
 }

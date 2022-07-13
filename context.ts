@@ -1,5 +1,9 @@
 import Redis from "ioredis";
-import { initModels } from "./src/models/init-models";
+import {
+  initModels,
+  maker_transaction,
+  transaction,
+} from "./src/models/init-models";
 import { Config, IMarket } from "./src/types";
 import mainChainConfigs from "./src/config/chains.json";
 import testChainConfigs from "./src/config/testnet.json";
@@ -8,7 +12,10 @@ import { Sequelize } from "sequelize";
 import { Logger } from "winston";
 
 export class Context {
-  public models!: { transaction: any; maker_transaction: any };
+  public models!: {
+    transaction: typeof transaction;
+    maker_transaction: typeof maker_transaction;
+  };
   public logger!: Logger;
   public redis!: Redis;
   public sequelize!: Sequelize;
@@ -37,7 +44,7 @@ export class Context {
         host: DB_HOST,
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
-        logging: false,
+        logging: true,
       },
     );
     this.models = initModels(this.sequelize);

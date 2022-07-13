@@ -219,7 +219,7 @@ export async function processUserSendMakerTx(
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .add(6 * 60, "m")
+          .add(2 * 60, "m")
           .toDate(),
       },
       value: String(needToAmount),
@@ -229,7 +229,7 @@ export async function processUserSendMakerTx(
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .add(6 * 60, "m")
+          .add(2 * 60, "m")
           .toDate(),
       };
     }
@@ -284,7 +284,7 @@ export async function processMakerSendUserTx(
         timestamp: {
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
           [Op.gte]: dayjs(trx.timestamp)
-            .subtract(60 * 6, "m")
+            .subtract(60 * 2, "m")
             .toDate(),
         },
         value: {

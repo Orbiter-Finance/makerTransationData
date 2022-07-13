@@ -172,7 +172,7 @@ export class transaction
           comment: "input",
         },
         status: {
-          type: DataTypes.BOOLEAN,
+          type: DataTypes.TINYINT,
           allowNull: false,
           comment: "status:0=PENDING,1=COMPLETE,2=FAIL",
         },

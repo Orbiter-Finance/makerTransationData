@@ -37,7 +37,7 @@ export class Context {
         host: DB_HOST,
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
-        logging: true,
+        logging: false,
       },
     );
     this.models = initModels(this.sequelize);

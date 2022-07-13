@@ -133,7 +133,7 @@ export async function bulkCreateTransaction(
         "memo",
       ],
     });
-    return result.map((row: { toJSON: () => any }) => row.toJSON());
+    return result.map((row: any) => row.toJSON());
   } catch (error: any) {
     ctx.logger.error("processSubTx error:", error);
     throw error;

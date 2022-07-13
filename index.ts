@@ -52,7 +52,10 @@ export class Application {
             );
             bulkCreateTransaction(ctx, txlist)
               .then(txList => {
-                txList.forEach((tx: any) => {
+                for (const tx of txList) {
+                  if (Number(tx.status) !== 1) {
+                    continue;
+                  }
                   delete tx.id;
                   this.ctx.redis
                     .lpush(
@@ -65,7 +68,7 @@ export class Application {
                         error,
                       );
                     });
-                });
+                }
               })
               .catch(error => {
                 ctx.logger.error("bulkCreateTransaction error：", error);

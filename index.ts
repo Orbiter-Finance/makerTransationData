@@ -75,9 +75,9 @@ export class Application {
               });
           },
         );
-        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-          ctx.logger.error(`${id} startScanChain error:`, error);
-        });
+        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+        //   ctx.logger.error(`${id} startScanChain error:`, error);
+        // });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {

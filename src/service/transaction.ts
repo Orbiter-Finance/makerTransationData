@@ -219,19 +219,17 @@ export async function processUserSendMakerTx(
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .subtract(6 * 60, "m")
+          .add(6 * 60, "m")
           .toDate(),
       },
-      value: {
-        [Op.lt]: Number(trx.value),
-      },
+      value: String(needToAmount),
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
     if (["4", "44"].includes(String(fromChainId))) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .subtract(6 * 60, "m")
+          .add(6 * 60, "m")
           .toDate(),
       };
     }
@@ -239,7 +237,7 @@ export async function processUserSendMakerTx(
       raw: true,
       attributes: ["id"],
       where,
-      order: [["timestamp", "desc"]],
+      order: [["timestamp", "asc"]],
       transaction: t,
     });
     if (makerSendTx) {

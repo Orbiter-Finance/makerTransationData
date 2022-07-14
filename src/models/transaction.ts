@@ -1,9 +1,5 @@
 import * as Sequelize from "sequelize";
 import { DataTypes, Model, Optional } from "sequelize";
-import type {
-  maker_transaction,
-  maker_transactionId,
-} from "./maker_transaction";
 
 export interface transactionAttributes {
   id: number;
@@ -30,9 +26,11 @@ export interface transactionAttributes {
   extra?: object;
   createdAt?: Date;
   updatedAt?: Date;
+  replyAccount?: string;
+  replySender?: string;
 }
 
-export type transactionPk = "id";
+export type transactionPk = "id" | "timestamp";
 export type transactionId = transaction[transactionPk];
 export type transactionOptionalAttributes =
   | "id"
@@ -49,7 +47,9 @@ export type transactionOptionalAttributes =
   | "memo"
   | "extra"
   | "createdAt"
-  | "updatedAt";
+  | "updatedAt"
+  | "replyAccount"
+  | "replySender";
 export type transactionCreationAttributes = Optional<
   transactionAttributes,
   transactionOptionalAttributes
@@ -83,23 +83,8 @@ export class transaction
   extra?: object;
   createdAt!: Date;
   updatedAt!: Date;
-
-  // transaction hasOne maker_transaction via inId
-  maker_transaction!: maker_transaction;
-  getMaker_transaction!: Sequelize.HasOneGetAssociationMixin<maker_transaction>;
-  setMaker_transaction!: Sequelize.HasOneSetAssociationMixin<
-    maker_transaction,
-    maker_transactionId
-  >;
-  createMaker_transaction!: Sequelize.HasOneCreateAssociationMixin<maker_transaction>;
-  // transaction hasOne maker_transaction via outId
-  out_maker_transaction!: maker_transaction;
-  getOut_maker_transaction!: Sequelize.HasOneGetAssociationMixin<maker_transaction>;
-  setOut_maker_transaction!: Sequelize.HasOneSetAssociationMixin<
-    maker_transaction,
-    maker_transactionId
-  >;
-  createOut_maker_transaction!: Sequelize.HasOneCreateAssociationMixin<maker_transaction>;
+  replyAccount?: string;
+  replySender?: string;
 
   static initModel(sequelize: Sequelize.Sequelize): typeof transaction {
     return transaction.init(
@@ -172,7 +157,7 @@ export class transaction
           comment: "input",
         },
         status: {
-          type: DataTypes.TINYINT,
+          type: DataTypes.BOOLEAN,
           allowNull: false,
           comment: "status:0=PENDING,1=COMPLETE,2=FAIL",
         },
@@ -185,6 +170,7 @@ export class transaction
           type: DataTypes.DATE,
           allowNull: false,
           defaultValue: Sequelize.Sequelize.literal("CURRENT_TIMESTAMP"),
+          primaryKey: true,
           comment: "timestamp",
         },
         fee: {
@@ -217,6 +203,14 @@ export class transaction
           allowNull: true,
           comment: "extra",
         },
+        replyAccount: {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+        },
+        replySender: {
+          type: DataTypes.STRING(255),
+          allowNull: true,
+        },
       },
       {
         sequelize,
@@ -227,7 +221,7 @@ export class transaction
             name: "PRIMARY",
             unique: true,
             using: "BTREE",
-            fields: [{ name: "id" }],
+            fields: [{ name: "id" }, { name: "timestamp" }],
           },
           {
             name: "hash",
@@ -238,7 +232,11 @@ export class transaction
           {
             name: "symbol",
             using: "BTREE",
-            fields: [{ name: "symbol" }, { name: "chainId" }],
+            fields: [
+              { name: "replySender" },
+              { name: "chainId" },
+              { name: "symbol" },
+            ],
           },
         ],
       },

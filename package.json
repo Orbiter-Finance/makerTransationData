@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "seqauto": "sequelize-auto -o ./src/models -d orbiter-new -h localhost -u root -p 3306 -x 123456 -e mysql -l ts",
     "dev": "ts-node ./index.ts",
     "pushServer": "ts-node ./cmd/server.js",
     "inject": "ts-node ./cmd/client.js",
@@ -52,7 +53,7 @@
     "ioredis": "^5.2.0",
     "lodash": "^4.17.21",
     "mysql2": "^2.3.3",
-    "orbiter-chaincore": "^1.1.4",
+    "orbiter-chaincore": "^1.1.6",
     "prompt": "^1.3.0",
     "sequelize": "^6.21.0",
     "sequelize-auto": "^0.8.8",

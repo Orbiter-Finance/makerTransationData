@@ -20,6 +20,7 @@ export class Context {
   public redis!: Redis;
   public sequelize!: Sequelize;
   public instanceId: number;
+  public instanceCount: number;
   public makerConfigs: Array<IMarket> = [];
   public config: Config = {
     chains: [],
@@ -76,6 +77,7 @@ export class Context {
   }
   constructor() {
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
+    this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
     this.initRedis();
     this.initDB();

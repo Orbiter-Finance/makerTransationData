@@ -1,3 +1,4 @@
+import { maker_transactionAttributes } from "./../models/maker_transaction";
 import dayjs from "dayjs";
 import { chains } from "orbiter-chaincore";
 import { ITransaction, TransactionStatus } from "orbiter-chaincore/src/types";
@@ -69,7 +70,7 @@ export async function bulkCreateTransaction(
     // ctx.logger.info(`processSubTx:${tx.hash}`);
     const chainConfig = chains.getChainByChainId(tx.chainId);
     if (!chainConfig) {
-      throw new Error(`chainId ${tx.chainId} not found`);
+      throw new Error(`getChainByInternalId chainId ${tx.chainId} not found`);
     }
     // ctx.logger.info(
     //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
@@ -93,7 +94,7 @@ export async function bulkCreateTransaction(
         tx.from = (makerItem && makerItem.sender) || "";
       }
     }
-    const txData: any = {
+    const txData = {
       hash: tx.hash,
       nonce: String(tx.nonce),
       blockHash: tx.blockHash,
@@ -101,21 +102,70 @@ export async function bulkCreateTransaction(
       transactionIndex: tx.transactionIndex,
       from: tx.from || "",
       to: tx.to || "",
-      value: tx.value.toString(),
+      value: String(tx.value),
       symbol: tx.symbol,
       gasPrice: tx.gasPrice,
       gas: tx.gas,
       input: tx.input != "0x" ? tx.input : null,
       status: tx.status,
       tokenAddress: tx.tokenAddress || "",
-      timestamp: new Date(tx.timestamp * 1000),
-      fee: tx.fee.toString(),
+      timestamp: dayjs(tx.timestamp * 1000).toDate(),
+      fee: String(tx.fee),
       feeToken: tx.feeToken,
       chainId: Number(chainConfig.internalId),
       source: tx.source,
       extra: tx.extra,
       memo,
+      replyAccount: "",
+      replySender: "",
     };
+    const isMakerSend =
+      ctx.makerConfigs.findIndex((row: { sender: any }) =>
+        equals(row.sender, tx.from),
+      ) !== -1;
+    const isUserSend =
+      ctx.makerConfigs.findIndex((row: { recipient: any }) =>
+        equals(row.recipient, tx.to),
+      ) !== -1;
+    if (isMakerSend) {
+      // maker send
+      txData.replyAccount = txData.to;
+      txData.replySender = txData.from;
+    } else if (isUserSend) {
+      // user send
+      const fromChainId = String(txData.chainId);
+      let toChainId = getAmountFlag(Number(fromChainId), String(txData.value));
+      if (["9", "99"].includes(fromChainId) && txData.extra) {
+        toChainId = String(Number(txData.extra.memo) % 9000);
+      }
+      txData.replyAccount = txData.from;
+      if (["44", "4", "11", "511"].includes(String(fromChainId))) {
+        // dydx contract send
+        // starknet contract send
+        txData.replyAccount = txData.extra["ext"] || "";
+      } else if (["44", "4", "11", "511"].includes(toChainId)) {
+        const ext = txData.extra["ext"] || "";
+        // 11,511 0x02 first
+        // 4, 44 0x03 first
+        txData.replyAccount = `0x${ext.substring(4)}`;
+        if (["44", "4"].includes(toChainId)) {
+          txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
+        }
+      }
+      const market = ctx.makerConfigs.find(
+        m =>
+          equals(m.fromChain.id, fromChainId) &&
+          equals(m.toChain.id, toChainId) &&
+          equals(m.fromChain.symbol, txData.symbol) &&
+          equals(m.fromChain.tokenAddress, txData.tokenAddress),
+      );
+      if (!market) {
+        txData.status = 3;
+      } else {
+        txData.replySender = market.sender;
+      }
+    }
+
     if (
       [3, 33, 8, 88, 12, 512].includes(Number(txData.chainId)) &&
       txData.status === TransactionStatus.PENDING
@@ -126,8 +176,8 @@ export async function bulkCreateTransaction(
     txsList.push(txData);
   }
   try {
-    const result = await ctx.models.transaction.bulkCreate(txsList, {
-      returning: true,
+    await ctx.models.transaction.bulkCreate(<any>txsList, {
+      // returning: true,
       updateOnDuplicate: [
         "from",
         "to",
@@ -142,9 +192,11 @@ export async function bulkCreateTransaction(
         "tokenAddress",
         "nonce",
         "memo",
+        "replyAccount",
+        "replySender",
       ],
     });
-    return result.map((row: any) => row.toJSON());
+    return txsList;
   } catch (error: any) {
     ctx.logger.error("processSubTx error:", error);
     throw error;
@@ -173,47 +225,37 @@ export async function processUserSendMakerTx(
       equals(m.fromChain.symbol, trx.symbol) &&
       equals(m.fromChain.tokenAddress, trx.tokenAddress),
   );
-  if (!market) {
-    ctx.logger.error("market not found:", {
-      hash: trx.hash,
-      value: trx.value.toString(),
-      from: trx.from,
-      to: trx.to,
-      fromChain: fromChainId,
-      toChainId: toChainId,
-      symbol: trx.symbol,
-      token: trx.tokenAddress,
-    });
-    return;
+  // if (!market) {
+  //   ctx.logger.error("market not found:", {
+  //     hash: trx.hash,
+  //     value: trx.value.toString(),
+  //     from: trx.from,
+  //     to: trx.to,
+  //     fromChain: fromChainId,
+  //     toChainId: toChainId,
+  //     symbol: trx.symbol,
+  //     token: trx.tokenAddress,
+  //   });
+  //   return;
+  // }
+  let needToAmount = "0";
+  if (market) {
+    needToAmount =
+      getAmountToSend(
+        Number(fromChainId),
+        Number(toChainId),
+        trx.value.toString(),
+        market.pool,
+        trx.nonce,
+      )?.tAmount || "0";
   }
-  const needToAmount =
-    getAmountToSend(
-      Number(fromChainId),
-      Number(toChainId),
-      trx.value.toString(),
-      market.pool,
-      trx.nonce,
-    )?.tAmount || "0";
-  let replyAccount: string | undefined = trx.from;
-  if (["44", "4", "11", "511"].includes(String(fromChainId))) {
-    // dydx contract send
-    // starknet contract send
-    replyAccount = (<any>trx.extra)["ext"] || "";
-  } else if (["44", "4", "11", "511"].includes(toChainId)) {
-    const ext = (<any>trx.extra)["ext"] || "";
-    // 11,511 0x02 first
-    // 4, 44 0x03 first
-    replyAccount = `0x${ext.substring(4)}`;
-    if (["44", "4"].includes(toChainId)) {
-      replyAccount = fix0xPadStartAddress(replyAccount, 66);
-    }
-  }
+
   const t = await ctx.sequelize.transaction();
   try {
     const where = {
       chainId: toChainId,
-      from: market.sender,
-      to: replyAccount,
+      from: trx.replySender,
+      to: trx.replyAccount,
       symbol: trx.symbol,
       memo: trx.nonce,
       timestamp: {
@@ -240,21 +282,21 @@ export async function processUserSendMakerTx(
       order: [["timestamp", "asc"]],
       transaction: t,
     });
+    const upsertData: Partial<maker_transactionAttributes> = {
+      transcationId,
+      inId: trx.id,
+      fromChain: trx.chainId,
+      toChain: Number(toChainId),
+      toAmount: String(needToAmount),
+      replySender: trx.replySender,
+      replyAccount: trx.replyAccount,
+    };
     if (makerSendTx) {
-      const upsertParams = {
-        transcationId,
-        inId: trx.id,
-        outId: makerSendTx ? makerSendTx.id : undefined,
-        fromChain: trx.chainId,
-        toChain: Number(toChainId),
-        toAmount: String(needToAmount),
-        replySender: market.sender,
-        replyAccount,
-      };
-      await ctx.models.maker_transaction.upsert(upsertParams, {
-        transaction: t,
-      });
+      upsertData.outId = makerSendTx.id;
     }
+    await ctx.models.maker_transaction.upsert(upsertData, {
+      transaction: t,
+    });
     await t.commit();
     return true;
   } catch (error) {
@@ -271,16 +313,28 @@ export async function processMakerSendUserTx(
   const userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
   const t = await ctx.sequelize.transaction();
   try {
+    // upsert
+    const replySender = trx.from;
+    const replyAccount = trx.to;
     const userSendTx = await models.transaction.findOne({
-      attributes: ["id", "from", "to", "chainId", "symbol", "nonce"],
-      order: [["timestamp", "desc"]],
       raw: true,
-      nest: true,
+      attributes: [
+        "id",
+        "from",
+        "to",
+        "chainId",
+        "symbol",
+        "nonce",
+        "replyAccount",
+        "replySender",
+      ],
       where: {
         memo: trx.chainId,
         nonce: userSendTxNonce,
         status: 1,
         symbol: trx.symbol,
+        replyAccount,
+        replySender,
         timestamp: {
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
           [Op.gte]: dayjs(trx.timestamp)
@@ -291,64 +345,30 @@ export async function processMakerSendUserTx(
           [Op.gt]: Number(trx.value),
         },
       },
-      include: [
-        {
-          required: true,
-          attributes: ["inId", "outId"],
-          model: models.maker_transaction,
-          as: "maker_transaction",
-          where: {
-            replySender: trx.from,
-            replyAccount: trx.to,
-          },
-        },
-      ],
       transaction: t,
     });
-    // const makerTransaction: any = userSendTx
-    //   ? userSendTx.maker_transaction
-    //   : {};
-    const replySender = trx.from;
-    const replyAccount = trx.to;
-    if (userSendTx?.id && userSendTx.from) {
-      // exists user transaction
-      const transcationId = TransactionID(
+    const upsertData: Partial<maker_transactionAttributes> = {
+      outId: trx.id,
+      toChain: Number(trx.chainId),
+      toAmount: String(trx.value),
+      replySender,
+      replyAccount,
+    };
+    if (userSendTx?.id) {
+      upsertData.inId = userSendTx.id;
+      upsertData.fromChain = userSendTx.chainId;
+      upsertData.transcationId = TransactionID(
         String(userSendTx.from),
         userSendTx.chainId,
         userSendTx.nonce,
         userSendTx.symbol,
       );
-      await models.maker_transaction.upsert(
-        {
-          transcationId,
-          inId: userSendTx.id,
-          outId: trx.id,
-          fromChain: userSendTx.chainId,
-          toChain: trx.chainId,
-          toAmount: String(trx.value),
-          replySender,
-          replyAccount,
-        },
-        {
-          transaction: t,
-        },
-      );
-    } else {
-      await ctx.models.maker_transaction.upsert(
-        {
-          outId: trx.id,
-          toChain: Number(trx.chainId),
-          toAmount: String(trx.value),
-          replySender,
-          replyAccount,
-        },
-        {
-          transaction: t,
-        },
-      );
     }
+    const [makerRelTrx] = await models.maker_transaction.upsert(upsertData, {
+      transaction: t,
+    });
     await t.commit();
-    return userSendTx;
+    return makerRelTrx;
   } catch (error) {
     t && (await t.rollback());
     throw error;

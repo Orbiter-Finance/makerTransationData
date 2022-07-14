@@ -1,6 +1,5 @@
 import * as Sequelize from "sequelize";
 import { DataTypes, Model, Optional } from "sequelize";
-import type { transaction, transactionId } from "./transaction";
 
 export interface maker_transactionAttributes {
   id: number;
@@ -54,17 +53,6 @@ export class maker_transaction
   createdAt!: Date;
   updatedAt!: Date;
 
-  // maker_transaction belongsTo transaction via inId
-  in!: transaction;
-  getIn!: Sequelize.BelongsToGetAssociationMixin<transaction>;
-  setIn!: Sequelize.BelongsToSetAssociationMixin<transaction, transactionId>;
-  createIn!: Sequelize.BelongsToCreateAssociationMixin<transaction>;
-  // maker_transaction belongsTo transaction via outId
-  out!: transaction;
-  getOut!: Sequelize.BelongsToGetAssociationMixin<transaction>;
-  setOut!: Sequelize.BelongsToSetAssociationMixin<transaction, transactionId>;
-  createOut!: Sequelize.BelongsToCreateAssociationMixin<transaction>;
-
   static initModel(sequelize: Sequelize.Sequelize): typeof maker_transaction {
     return maker_transaction.init(
       {
@@ -85,20 +73,12 @@ export class maker_transaction
           type: DataTypes.BIGINT,
           allowNull: true,
           comment: "inId",
-          references: {
-            model: "transaction",
-            key: "id",
-          },
           unique: "maker_transaction_ibfk_2",
         },
         outId: {
           type: DataTypes.BIGINT,
           allowNull: true,
           comment: "outId",
-          references: {
-            model: "transaction",
-            key: "id",
-          },
           unique: "maker_transaction_ibfk_1",
         },
         fromChain: {
@@ -155,6 +135,11 @@ export class maker_transaction
             unique: true,
             using: "BTREE",
             fields: [{ name: "outId" }],
+          },
+          {
+            name: "replySender",
+            using: "BTREE",
+            fields: [{ name: "replySender" }],
           },
         ],
       },

@@ -9,6 +9,7 @@ import { Context } from "../../context";
 import { transactionAttributes } from "../models/transaction";
 import { TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
+import { IMarket } from "../types";
 export async function findByHashTxMatch(
   ctx: Context,
   chainId: number,
@@ -26,11 +27,11 @@ export async function findByHashTxMatch(
     throw new Error("Tx Not Found");
   }
   const isMakerSend =
-    ctx.makerConfigs.findIndex((row: { sender: any }) =>
+    ctx.makerConfigs.findIndex((row: IMarket) =>
       equals(row.sender, tx.from),
     ) !== -1;
   const isUserSend =
-    ctx.makerConfigs.findIndex((row: { recipient: any }) =>
+    ctx.makerConfigs.findIndex((row: IMarket) =>
       equals(row.recipient, tx.to),
     ) !== -1;
   if (tx.status !== 1) {
@@ -41,7 +42,7 @@ export async function findByHashTxMatch(
       return await processMakerSendUserTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processMakerSendUserTx error: `, {
-        errmsg: error.message,
+        error,
         tx,
       });
     }
@@ -49,9 +50,8 @@ export async function findByHashTxMatch(
     try {
       return await processUserSendMakerTx(ctx, tx);
     } catch (error: any) {
-      console.log(error);
       ctx.logger.error(`processUserSendMakerTx error: `, {
-        errmsg: error.message,
+        error,
         tx,
       });
     }

@@ -2,6 +2,7 @@ version: '3.8'
 services:
   redis:
     image: redis:latest
+    container_name: data-redis
     restart: always
     volumes:
       - ./runtime/redis:/data:rw
@@ -9,7 +10,7 @@ services:
       - "6389:6379"
   data-server:
     build: .
-    container_name: maker-data-server
+    container_name: data-server
     restart: always
     command: pm2-runtime start pm2.json
     ports:

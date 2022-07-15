@@ -74,9 +74,9 @@ export class Application {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
-        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-          ctx.logger.error(`${id} startScanChain error:`, error);
-        });
+        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+        //   ctx.logger.error(`${id} startScanChain error:`, error);
+        // });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -90,9 +90,6 @@ export class Application {
     this.startMatch().catch(error => {
       ctx.logger.error("init startMatch error:", error);
     });
-    // this.modifyReplyUserAndReplyMaker(0).catch(error => {
-    //   ctx.logger.error("modifyReplyUserAndReplyMaker error:", error);
-    // });
     this.readQueneMatch().catch(error => {
       ctx.logger.error("readQueneMatch error:", error);
     });

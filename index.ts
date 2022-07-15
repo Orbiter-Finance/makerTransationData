@@ -67,7 +67,7 @@ export class Application {
             .then(result => {
               this.ctx.logger.info(
                 `Received subscription transaction,instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
-                { result },
+                result,
               );
             })
             .catch(error => {
@@ -90,16 +90,14 @@ export class Application {
     this.startMatch().catch(error => {
       ctx.logger.error("init startMatch error:", error);
     });
-    this.modifyReplyUserAndReplyMaker(0).catch(error => {
-      ctx.logger.error("modifyReplyUserAndReplyMaker error:", error);
-    });
-
+    // this.modifyReplyUserAndReplyMaker(0).catch(error => {
+    //   ctx.logger.error("modifyReplyUserAndReplyMaker error:", error);
+    // });
     this.readQueneMatch().catch(error => {
       ctx.logger.error("readQueneMatch error:", error);
     });
   }
   async modifyReplyUserAndReplyMaker(page = 0): Promise<any> {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     const txList = await this.ctx.models.transaction
       .findAll({
         raw: true,
@@ -126,25 +124,22 @@ export class Application {
       return this.modifyReplyUserAndReplyMaker(page >= 100 ? 0 : page++);
     }
   }
-  async readQueneMatch() {
+  async readQueneMatch(): Promise<any> {
     while (true) {
       const tx: any = await this.ctx.redis
         .rpop(WAIT_MATCH_REDIS_KEY)
         .then(result => result && JSON.parse(result));
-      if (tx) {
-        try {
-          await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
-        } catch (error) {
-          this.ctx.logger.error(
-            "readQueneMatch findByHashTxMatch error:",
-            error,
-          );
-        }
-      }
       if (!tx) {
         await sleep(1000 * 10);
+        continue;
+      }
+      try {
+        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
+      } catch (error) {
+        this.ctx.logger.error("readQueneMatch findByHashTxMatch error:", error);
       }
     }
+    // return this.readQueneMatch();
   }
   async startMatch() {
     const where: any = {

@@ -19,7 +19,6 @@ import {
 } from "./src/service/transaction";
 import { WAIT_MATCH_REDIS_KEY } from "./src/types/const";
 import { Op } from "sequelize";
-import dayjs from "dayjs";
 export class Application {
   public ctx: Context;
   constructor() {
@@ -74,9 +73,9 @@ export class Application {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
-        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-        //   ctx.logger.error(`${id} startScanChain error:`, error);
-        // });
+        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+          ctx.logger.error(`${id} startScanChain error:`, error);
+        });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -94,49 +93,18 @@ export class Application {
       ctx.logger.error("readQueneMatch error:", error);
     });
   }
-  async modifyReplyUserAndReplyMaker(page = 0): Promise<any> {
-    const txList = await this.ctx.models.transaction
-      .findAll({
-        raw: true,
-        where: <any>{
-          replyAccount: null,
-        },
-        order: [["id", "desc"]],
-        offset: page * 100,
-        limit: 100,
-      })
-      .then(trx => {
-        const newList = trx.map(row => {
-          const item: any = row;
-          const chainConfig = chains.getChainByInternalId(String(row.chainId));
-          item.chainId = chainConfig.chainId;
-          item.timestamp = dayjs(row.timestamp).unix();
-          return item;
-        });
-        newList.length > 0 && bulkCreateTransaction(this.ctx, <any>newList);
-        return newList;
-      });
-    await sleep(1000 * 10);
-    if (txList.length > 0) {
-      return this.modifyReplyUserAndReplyMaker(page >= 100 ? 0 : page++);
-    }
-  }
   async readQueneMatch(): Promise<any> {
-    while (true) {
-      const tx: any = await this.ctx.redis
-        .rpop(WAIT_MATCH_REDIS_KEY)
-        .then(result => result && JSON.parse(result));
-      if (!tx) {
-        await sleep(1000 * 10);
-        continue;
-      }
-      try {
-        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
-      } catch (error) {
-        this.ctx.logger.error("readQueneMatch findByHashTxMatch error:", error);
-      }
+    const tx: any = await this.ctx.redis
+      .blpop(WAIT_MATCH_REDIS_KEY, 0)
+      .then((result: any) => {
+        return result && Array.isArray(result) && JSON.parse(result[1]);
+      });
+    try {
+      await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
+    } catch (error) {
+      this.ctx.logger.error("readQueneMatch findByHashTxMatch error:", error);
     }
-    // return this.readQueneMatch();
+    return this.readQueneMatch();
   }
   async startMatch() {
     const where: any = {
@@ -174,7 +142,7 @@ export class Application {
     });
     txList.forEach(tx => {
       this.ctx.redis
-        .lpush(
+        .rpush(
           WAIT_MATCH_REDIS_KEY,
           JSON.stringify({ chainId: tx.chainId, hash: tx.hash }),
         )

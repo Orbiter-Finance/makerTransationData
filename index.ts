@@ -153,7 +153,8 @@ export class Application {
       attributes: ["inId", "outId"],
       raw: true,
       where,
-      limit: 100,
+      order: [["id", "desc"]],
+      limit: 500,
     });
     const txIdList = mtxList.map(row => {
       return row.inId || row.outId;

@@ -36,7 +36,9 @@ export class Context {
     },
   };
   private initDB() {
-    const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT } = <any>process.env;
+    const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, DEBUG } = <any>(
+      process.env
+    );
     this.sequelize = new Sequelize(
       DB_NAME || "orbiter",
       String(DB_USER),
@@ -45,7 +47,7 @@ export class Context {
         host: DB_HOST,
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
-        logging: true,
+        logging: !!DEBUG,
       },
     );
     this.models = initModels(this.sequelize);

@@ -3,7 +3,11 @@ import dayjs from "dayjs";
 import { chains } from "orbiter-chaincore";
 import { ITransaction, TransactionStatus } from "orbiter-chaincore/src/types";
 import { dydx } from "orbiter-chaincore/src/utils";
-import { equals, fix0xPadStartAddress } from "orbiter-chaincore/src/utils/core";
+import {
+  equals,
+  fix0xPadStartAddress,
+  isEmpty,
+} from "orbiter-chaincore/src/utils/core";
 import { Op } from "sequelize";
 import { Context } from "../../context";
 import { transactionAttributes } from "../models/transaction";
@@ -25,6 +29,15 @@ export async function findByHashTxMatch(
   });
   if (!tx || !tx.id) {
     throw new Error("Tx Not Found");
+  }
+  if (
+    isEmpty(tx.from) ||
+    isEmpty(tx.to) ||
+    isEmpty(tx.value) ||
+    isEmpty(tx.nonce) ||
+    isEmpty(tx.symbol)
+  ) {
+    throw new Error(`Tx ${tx.hash} Missing required parameters`);
   }
   const isMakerSend =
     ctx.makerConfigs.findIndex((row: IMarket) =>

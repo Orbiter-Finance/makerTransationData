@@ -34,10 +34,16 @@ export async function findByHashTxMatch(
     isEmpty(tx.from) ||
     isEmpty(tx.to) ||
     isEmpty(tx.value) ||
-    isEmpty(tx.nonce) ||
+    isEmpty(String(tx.nonce)) ||
     isEmpty(tx.symbol)
   ) {
-    throw new Error(`Tx ${tx.hash} Missing required parameters`);
+    return ctx.logger.error(`Tx ${tx.hash} Missing required parameters`, {
+      from: tx.from,
+      to: tx.to,
+      value: tx.value,
+      nonce: tx.nonce,
+      symbol: tx.symbol,
+    });
   }
   const isMakerSend =
     ctx.makerConfigs.findIndex((row: IMarket) =>

@@ -133,29 +133,31 @@ export async function bulkCreateTransaction(
       txData.replySender = txData.from;
     } else if (isUserSend) {
       // user send
-      const fromChainId = String(txData.chainId);
-      let toChainId = getAmountFlag(Number(fromChainId), String(txData.value));
-      if (["9", "99"].includes(fromChainId) && txData.extra) {
-        toChainId = String(Number(txData.extra.memo) % 9000);
+      const fromChainId = Number(txData.chainId);
+      let toChainId = Number(
+        getAmountFlag(Number(fromChainId), String(txData.value)),
+      );
+      if ([9, 99].includes(fromChainId) && txData.extra) {
+        toChainId = Number(txData.extra.memo) % 9000;
       }
       txData.replyAccount = txData.from;
-      if (["44", "4", "11", "511"].includes(String(fromChainId))) {
+      if ([44, 4, 11, 511].includes(fromChainId)) {
         // dydx contract send
         // starknet contract send
         txData.replyAccount = txData.extra["ext"] || "";
-      } else if (["44", "4", "11", "511"].includes(toChainId)) {
+      } else if ([44, 4, 11, 511].includes(toChainId)) {
         const ext = txData.extra["ext"] || "";
         // 11,511 0x02 first
         // 4, 44 0x03 first
         txData.replyAccount = `0x${ext.substring(4)}`;
-        if (["44", "4"].includes(toChainId)) {
+        if ([44, 4].includes(toChainId)) {
           txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
         }
       }
       const market = ctx.makerConfigs.find(
         m =>
-          equals(m.fromChain.id, fromChainId) &&
-          equals(m.toChain.id, toChainId) &&
+          equals(m.fromChain.id, String(fromChainId)) &&
+          equals(m.toChain.id, String(toChainId)) &&
           equals(m.fromChain.symbol, txData.symbol) &&
           equals(m.fromChain.tokenAddress, txData.tokenAddress),
       );
@@ -214,30 +216,14 @@ export async function processUserSendMakerTx(
     trx.nonce,
     trx.symbol,
   );
-  let toChainId = getAmountFlag(fromChainId, String(trx.value));
-  if ([9, 99].includes(fromChainId) && trx.extra) {
-    toChainId = String((<any>trx.extra).memo % 9000);
-  }
+  const toChainId = Number(trx.memo);
   const market = ctx.makerConfigs.find(
     m =>
       equals(m.fromChain.id, String(fromChainId)) &&
-      equals(m.toChain.id, toChainId) &&
+      equals(m.toChain.id, String(toChainId)) &&
       equals(m.fromChain.symbol, trx.symbol) &&
       equals(m.fromChain.tokenAddress, trx.tokenAddress),
   );
-  // if (!market) {
-  //   ctx.logger.error("market not found:", {
-  //     hash: trx.hash,
-  //     value: trx.value.toString(),
-  //     from: trx.from,
-  //     to: trx.to,
-  //     fromChain: fromChainId,
-  //     toChainId: toChainId,
-  //     symbol: trx.symbol,
-  //     token: trx.tokenAddress,
-  //   });
-  //   return;
-  // }
   let needToAmount = "0";
   if (market) {
     needToAmount =
@@ -261,13 +247,13 @@ export async function processUserSendMakerTx(
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .add(2 * 60, "m")
+          .add(24 * 60, "m")
           .toDate(),
       },
       value: String(needToAmount),
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
-    if (["4", "44"].includes(String(fromChainId))) {
+    if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
@@ -286,7 +272,7 @@ export async function processUserSendMakerTx(
       transcationId,
       inId: trx.id,
       fromChain: trx.chainId,
-      toChain: Number(toChainId),
+      toChain: toChainId,
       toAmount: String(needToAmount),
       replySender: trx.replySender,
       replyAccount: trx.replyAccount,
@@ -310,7 +296,6 @@ export async function processMakerSendUserTx(
 ) {
   // const makerAddress = trx.from;
   const models = ctx.models;
-  const userSendTxNonce = getAmountFlag(trx.chainId, String(trx.value));
   const t = await ctx.sequelize.transaction();
   try {
     // upsert
@@ -330,7 +315,7 @@ export async function processMakerSendUserTx(
       ],
       where: {
         memo: trx.chainId,
-        nonce: userSendTxNonce,
+        nonce: trx.memo,
         status: 1,
         symbol: trx.symbol,
         replyAccount,
@@ -338,7 +323,7 @@ export async function processMakerSendUserTx(
         timestamp: {
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
           [Op.gte]: dayjs(trx.timestamp)
-            .subtract(60 * 2, "m")
+            .subtract(60 * 24, "m")
             .toDate(),
         },
         value: {
@@ -349,7 +334,7 @@ export async function processMakerSendUserTx(
     });
     const upsertData: Partial<maker_transactionAttributes> = {
       outId: trx.id,
-      toChain: Number(trx.chainId),
+      toChain: trx.chainId,
       toAmount: String(trx.value),
       replySender,
       replyAccount,

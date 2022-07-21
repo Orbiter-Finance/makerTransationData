@@ -39,7 +39,7 @@ export class Application {
         continue;
       }
       this.ctx.redis
-        .lpush(
+        .rpush(
           WAIT_MATCH_REDIS_KEY,
           JSON.stringify({ chainId: tx.chainId, hash: tx.hash }),
         )
@@ -95,12 +95,16 @@ export class Application {
   }
   async readQueneMatch(): Promise<any> {
     const tx: any = await this.ctx.redis
-      .blpop(WAIT_MATCH_REDIS_KEY, 0)
+      .lpop(WAIT_MATCH_REDIS_KEY)
       .then((result: any) => {
-        return result && Array.isArray(result) && JSON.parse(result[1]);
+        return result && JSON.parse(result);
       });
     try {
-      await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
+      if (tx) {
+        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
+      } else {
+        await sleep(1000 * 10);
+      }
     } catch (error) {
       this.ctx.logger.error("readQueneMatch findByHashTxMatch error:", error);
     }

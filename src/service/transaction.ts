@@ -28,7 +28,7 @@ export async function findByHashTxMatch(
     },
   });
   if (!tx || !tx.id) {
-    throw new Error("Tx Not Found");
+    throw new Error(`chainId ${chainId} hash ${hash} Tx Not Found`);
   }
   if (tx.status === 99) {
     ctx.logger.error(`Tx ${tx.hash} Match already exists`);
@@ -38,6 +38,7 @@ export async function findByHashTxMatch(
     ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
     return false;
   }
+
   if (
     isEmpty(tx.from) ||
     isEmpty(tx.to) ||
@@ -66,6 +67,26 @@ export async function findByHashTxMatch(
     return false;
   }
   if (isMakerSend) {
+    const mtTx = await ctx.models.maker_transaction.findOne({
+      attributes: ["id"],
+      raw: true,
+      where: {
+        outId: tx.id,
+      },
+    });
+    if (mtTx && mtTx.id) {
+      await ctx.models.transaction.update(
+        {
+          status: 99,
+        },
+        {
+          where: {
+            id: tx.id,
+          },
+        },
+      );
+      return;
+    }
     try {
       ctx.logger.debug(`processMakerSendUserTx:${tx.hash}`);
       return await processMakerSendUserTx(ctx, tx);
@@ -76,6 +97,26 @@ export async function findByHashTxMatch(
       });
     }
   } else if (isUserSend) {
+    const mtTx = await ctx.models.maker_transaction.findOne({
+      attributes: ["id"],
+      raw: true,
+      where: {
+        inId: tx.id,
+      },
+    });
+    if (mtTx && mtTx.id) {
+      await ctx.models.transaction.update(
+        {
+          status: 99,
+        },
+        {
+          where: {
+            id: tx.id,
+          },
+        },
+      );
+      return;
+    }
     try {
       ctx.logger.debug(`processUserSendMakerTx:${tx.hash}`);
       return await processUserSendMakerTx(ctx, tx);

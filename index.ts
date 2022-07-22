@@ -73,6 +73,7 @@ export class Application {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
+        //TAG: On
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
@@ -86,12 +87,14 @@ export class Application {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    this.startMatch().catch(error => {
-      ctx.logger.error("init startMatch error:", error);
-    });
-    this.readQueneMatch().catch(error => {
-      ctx.logger.error("readQueneMatch error:", error);
-    });
+    this.ctx.instanceId === 0 &&
+      this.startMatch().catch(error => {
+        ctx.logger.error("init startMatch error:", error);
+      });
+    this.ctx.instanceId === 0 &&
+      this.readQueneMatch().catch(error => {
+        ctx.logger.error("readQueneMatch error:", error);
+      });
   }
   async readQueneMatch(): Promise<any> {
     const tx: any = await this.ctx.redis
@@ -137,6 +140,7 @@ export class Application {
     const txList = await this.ctx.models.transaction.findAll({
       attributes: ["chainId", "hash"],
       raw: true,
+      order: [["id", "desc"]],
       where: <any>{
         status: 1,
         id: {

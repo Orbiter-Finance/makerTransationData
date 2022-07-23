@@ -95,6 +95,9 @@ export class Application {
       this.readQueneMatch().catch(error => {
         ctx.logger.error("readQueneMatch error:", error);
       });
+    // this.readTableDescMatch().catch(error => {
+    //   console.log(error);
+    // });
   }
   async readQueneMatch(): Promise<any> {
     const tx: any = await this.ctx.redis
@@ -113,6 +116,27 @@ export class Application {
     }
     return this.readQueneMatch();
   }
+  async readTableDescMatch() {
+    const txList = await this.ctx.models.transaction.findAll({
+      attributes: ["chainId", "hash"],
+      raw: true,
+      where: {
+        status: 1,
+      },
+      order: [["id", "desc"]],
+      limit: 1000,
+    });
+    txList.forEach(tx => {
+      this.ctx.redis
+        .rpush(
+          WAIT_MATCH_REDIS_KEY,
+          JSON.stringify({ chainId: tx.chainId, hash: tx.hash }),
+        )
+        .catch(error => {
+          this.ctx.logger.error("save waitMatching queue error:", error);
+        });
+    });
+  }
   async startMatch() {
     const where: any = {
       [Op.or]: [
@@ -129,7 +153,7 @@ export class Application {
       raw: true,
       where,
       order: [["id", "desc"]],
-      limit: 500,
+      limit: 1000,
     });
     const txIdList = mtxList.map(row => {
       return row.inId || row.outId;
@@ -140,7 +164,7 @@ export class Application {
     const txList = await this.ctx.models.transaction.findAll({
       attributes: ["chainId", "hash"],
       raw: true,
-      order: [["id", "desc"]],
+      // order: [["id", "desc"]],
       where: <any>{
         status: 1,
         id: {

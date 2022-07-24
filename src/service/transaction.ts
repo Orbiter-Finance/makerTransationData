@@ -211,7 +211,9 @@ export async function bulkCreateTransaction(
           equals(m.fromChain.id, String(fromChainId)) &&
           equals(m.toChain.id, String(toChainId)) &&
           equals(m.fromChain.symbol, txData.symbol) &&
-          equals(m.fromChain.tokenAddress, txData.tokenAddress),
+          equals(m.fromChain.tokenAddress, txData.tokenAddress) &&
+          dayjs(txData.timestamp).unix() >= m.times[0] &&
+          dayjs(txData.timestamp).unix() <= m.times[1],
       );
       if (!market) {
         txData.status = 3;

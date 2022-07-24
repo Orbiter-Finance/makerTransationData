@@ -59,13 +59,10 @@ export function convertPool(pool: any): Array<IMarket> {
         tokenAddress: pool.t2Address,
         symbol: pool.tName,
       },
-      // minPrice: pool.c1MinPrice,
-      // maxPrice: pool.c1MaxPrice,
-      // precision: pool.precision,
-      // avalibleDeposit: pool.c1AvalibleDeposit,
-      // tradingFee: pool.c1TradingFee,
-      // gasFee: pool.c1GasFee,
-      // avalibleTimes: pool.c1AvalibleTimes,
+      times: [
+        pool["c1AvalibleTimes"][0].startTime,
+        pool["c1AvalibleTimes"][0].endTime,
+      ],
       pool: {
         //Subsequent versions will modify the structure
         makerAddress: pool.makerAddress,
@@ -107,6 +104,10 @@ export function convertPool(pool: any): Array<IMarket> {
       // tradingFee: pool.c2TradingFee,
       // gasFee: pool.c2GasFee,
       // avalibleTimes: pool.c2AvalibleTimes,
+      times: [
+        pool["c2AvalibleTimes"][0].startTime,
+        pool["c2AvalibleTimes"][0].endTime,
+      ],
       pool: {
         //Subsequent versions will modify the structure
         makerAddress: pool.makerAddress,

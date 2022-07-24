@@ -5,7 +5,7 @@ import {
   groupWatchAddressByChain,
   sleep,
 } from "./src/utils";
-import { makerList } from "./maker";
+import { makerList, makerListHistory } from "./maker";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import {
   ITransaction,
@@ -30,6 +30,12 @@ export class Application {
       makerList,
       this.ctx.config.L1L2Mapping,
     );
+    const makerConfigsHistory = await convertMarketListToFile(
+      makerListHistory,
+      this.ctx.config.L1L2Mapping,
+    );
+    this.ctx.makerConfigs.push(...makerConfigsHistory);
+    console.log(this.ctx.makerConfigs.length, "===");
     await this.watchChain();
   }
   async processSubTxList(txlist: Array<ITransaction>) {
@@ -122,6 +128,9 @@ export class Application {
       raw: true,
       where: {
         status: 1,
+        id: {
+          [Op.lte]: 796413,
+        },
       },
       order: [["id", "desc"]],
       limit: 1000,

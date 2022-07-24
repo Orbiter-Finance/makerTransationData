@@ -13,6 +13,7 @@ export interface IMarket {
     tokenAddress: string;
     symbol: string;
   };
+  times: Number[];
   pool?: any;
 }
 export interface Config {

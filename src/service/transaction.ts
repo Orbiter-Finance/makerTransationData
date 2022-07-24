@@ -14,7 +14,7 @@ import { transactionAttributes } from "../models/transaction";
 import { TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
-const maxPaymentTimeout = 60; // minus
+const maxPaymentTimeout = 60 * 12; // minus
 export async function findByHashTxMatch(
   ctx: Context,
   chainId: number,
@@ -74,7 +74,6 @@ export async function findByHashTxMatch(
       },
     },
   });
-  console.log(mtTx, "==");
   if (mtTx && mtTx.inId && mtTx.outId) {
     await ctx.models.transaction.update(
       {
@@ -92,7 +91,6 @@ export async function findByHashTxMatch(
   }
   if (isMakerSend) {
     try {
-      console.log(`processMakerSendUserTx:${tx.hash}`);
       return await processMakerSendUserTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processMakerSendUserTx error: `, {
@@ -102,7 +100,6 @@ export async function findByHashTxMatch(
     }
   } else if (isUserSend) {
     try {
-      console.log(`processUserSendMakerTx:${tx.hash}`);
       return await processUserSendMakerTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processUserSendMakerTx error: `, {
@@ -277,10 +274,17 @@ export async function processUserSendMakerTx(
       equals(m.fromChain.id, String(fromChainId)) &&
       equals(m.toChain.id, String(toChainId)) &&
       equals(m.fromChain.symbol, trx.symbol) &&
-      equals(m.fromChain.tokenAddress, trx.tokenAddress),
+      equals(m.fromChain.tokenAddress, trx.tokenAddress) &&
+      dayjs(trx.timestamp).unix() >= m.times[0] &&
+      dayjs(trx.timestamp).unix() <= m.times[1],
   );
+  if (isEmpty(market)) {
+    throw new Error(
+      `${trx.hash} Transaction pair not found ${trx.chainId} - ${trx.memo}`,
+    );
+  }
   let needToAmount = "0";
-  if (market) {
+  if (market && market.pool) {
     needToAmount =
       getAmountToSend(
         Number(fromChainId),
@@ -309,9 +313,7 @@ export async function processUserSendMakerTx(
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp)
-          .add(2 * 60, "m")
-          .toDate(),
+        [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
       };
     }
     // TODO:122

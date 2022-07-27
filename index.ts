@@ -128,9 +128,12 @@ export class Application {
       raw: true,
       where: {
         status: 1,
-        id: {
-          [Op.lte]: 796413,
+        timestamp: {
+          [Op.gte]: "2022-07-21 00:00:00",
         },
+        // id: {
+        //   [Op.lte]: 796413,
+        // },
       },
       order: [["id", "desc"]],
       limit: 1000,

@@ -14,7 +14,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint 'src/**/*.{js,ts}' 'index.ts' 'context.ts' --fix",
     "prettier": "prettier --check --write --config .prettierrc.json '**/*.{ts,tsc}'",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "patch-package"
   },
   "bin": {
     "inject": "./dist/inject/client.js"
@@ -53,10 +54,13 @@
     "ioredis": "^5.2.0",
     "lodash": "^4.17.21",
     "mysql2": "^2.3.3",
-    "orbiter-chaincore": "^1.2.4",
+    "orbiter-chaincore": "^1.2.6",
+    "patch-package": "^6.4.7",
+    "postinstall-postinstall": "^2.1.0",
     "prompt": "^1.3.0",
     "sequelize": "^6.21.0",
     "sequelize-auto": "^0.8.8",
-    "sequelize-typescript": "^2.1.3"
+    "sequelize-typescript": "^2.1.3",
+    "web3-core-helpers": "^1.7.4"
   }
 }

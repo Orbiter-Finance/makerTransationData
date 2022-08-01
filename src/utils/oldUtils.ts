@@ -1,4 +1,5 @@
 /* eslint-disable */
+
 import { BigNumber } from "bignumber.js";
 
 const MAX_BITS: any = {
@@ -17,7 +18,12 @@ const MAX_BITS: any = {
   zkspace: 35,
   bnbchain: 256,
 };
-
+const precisionResolverMap: any = {
+  // pay attention:  the type of field "userAmount" in the following methods is not BigNumber
+  // but string in decimal!!!
+  "18": (userAmount: any) => userAmount.slice(0, 6),
+  default: (userAmount: any) => userAmount,
+};
 export const CHAIN_INDEX: any = {
   1: "eth",
   2: "arbitrum",
@@ -145,29 +151,43 @@ function isAmountValid(chain: number, amount: any) {
     };
   }
 }
-
+/**
+ * @description {
+ *  This method is to confirm the legitimacy of the amount
+ *  if the amount u passed is legal, it will return it intact
+ *  otherwise the data we processed will be returned
+ * }
+ * @param userAmount the amount user given
+ * @param chain config of the current chain
+ */
+const performUserAmountLegality = (userAmount: BigNumber, chain: any) => {
+  const { precision } = chain;
+  const decimalData = userAmount.toFormat(); // convert BigNumber instance to decimal
+  // if the precision that current chain support equals 18, the maximum precision of userAmount u passed is 6
+  const matchResolver =
+    precisionResolverMap[precision] || precisionResolverMap["default"];
+  // eg: precision equals 18, but the value of userAmount is 0.3333333333
+  // covert result after matchResolver processed was 0.333333
+  const convertResult = matchResolver(decimalData, chain);
+  return new BigNumber(convertResult);
+};
 function getToAmountFromUserAmount(
-  userAmount: BigNumber.Value,
-  selectMakerInfo: {
-    tradingFee: BigNumber.Value;
-    gasFee: BigNumber.Value;
-    precision: number;
-  },
+  userAmount: BigNumber,
+  selectMakerInfo: any,
   isWei: any,
 ) {
-  const toAmount_tradingFee = new BigNumber(userAmount).minus(
+  userAmount = performUserAmountLegality(userAmount, selectMakerInfo);
+  let toAmount_tradingFee = new BigNumber(userAmount).minus(
     new BigNumber(selectMakerInfo.tradingFee),
   );
-  const gasFee = toAmount_tradingFee
+  let gasFee = toAmount_tradingFee
     .multipliedBy(new BigNumber(selectMakerInfo.gasFee))
     .dividedBy(new BigNumber(1000));
-  const digit = selectMakerInfo.precision === 18 ? 5 : 2;
-  // accessLogger.info('digit =', digit)
-  const gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
-  // accessLogger.info('gasFee_fix =', gasFee_fix.toString())
-  const toAmount_fee = toAmount_tradingFee.minus(gasFee_fix);
-  // accessLogger.info('toAmount_fee =', toAmount_fee.toString())
-  if (!toAmount_fee || isNaN(Number(toAmount_fee))) {
+  let digit = selectMakerInfo.precision === 18 ? 5 : 2;
+  let gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
+  let toAmount_fee = toAmount_tradingFee.minus(gasFee_fix);
+
+  if (!toAmount_fee || isNaN(toAmount_fee.toNumber())) {
     return 0;
   }
   if (isWei) {

@@ -31,10 +31,6 @@ export async function findByHashTxMatch(
   if (!tx || !tx.id) {
     throw new Error(`chainId ${chainId} hash ${hash} Tx Not Found`);
   }
-  // if (tx.status === 99) {
-  //   ctx.logger.error(`Tx ${tx.hash} Match already exists`);
-  //   return false;
-  // }
   if (![1, 99].includes(tx.status)) {
     ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
     return false;
@@ -223,7 +219,7 @@ export async function bulkCreateTransaction(
     }
 
     if (
-      [3, 33, 8, 88, 12, 512].includes(Number(txData.chainId)) &&
+      [3, 33, 8, 88, 12, 512, 9, 99].includes(Number(txData.chainId)) &&
       txData.status === TransactionStatus.PENDING
     ) {
       txData.status = TransactionStatus.COMPLETE;

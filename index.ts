@@ -80,9 +80,9 @@ export class Application {
             });
         });
         //TAG: On
-        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-        //   ctx.logger.error(`${id} startScanChain error:`, error);
-        // });
+        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+          ctx.logger.error(`${id} startScanChain error:`, error);
+        });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -93,29 +93,18 @@ export class Application {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    // this.ctx.instanceId === 0 &&
-    //   this.startMatch().catch(error => {
-    //     ctx.logger.error("init startMatch error:", error);
-    //   });
-    // this.ctx.instanceId === 0 &&
-    //   this.readQueneMatch().catch(error => {
-    //     ctx.logger.error("readQueneMatch error:", error);
-    //   });
+    this.ctx.instanceId === 0 &&
+      this.startMatch().catch(error => {
+        ctx.logger.error("init startMatch error:", error);
+      });
+    this.ctx.instanceId === 0 &&
+      this.readQueneMatch().catch(error => {
+        ctx.logger.error("readQueneMatch error:", error);
+      });
 
     // this.readTableDescMatch().catch(error => {
     //   console.log(error);
     // });
-    findByHashTxMatch(
-      this.ctx,
-      3,
-      "0xe3a5bba22007216126e236fb80784ec5ec2a440a454011097bbde7d93db102c1",
-    )
-      .then(result => {
-        console.log("=======", result);
-      })
-      .catch(error => {
-        console.log("error", error);
-      });
   }
   async readQueneMatch(): Promise<any> {
     const tx: any = await this.ctx.redis
@@ -140,9 +129,9 @@ export class Application {
       raw: true,
       where: {
         status: 1,
-        timestamp: {
-          [Op.gte]: "2022-07-21 00:00:00",
-        },
+        // timestamp: {
+        //   [Op.gte]: "2022-07-21 00:00:00",
+        // },
         // id: {
         //   [Op.lte]: 796413,
         // },

@@ -120,6 +120,13 @@ export async function bulkCreateTransaction(
     if (!chainConfig) {
       throw new Error(`getChainByInternalId chainId ${tx.chainId} not found`);
     }
+    if (
+      chainConfig.tokens.findIndex(row =>
+        equals(row.address, String(tx.tokenAddress)),
+      ) < 0
+    ) {
+      throw new Error(`${tx.hash} Tx ${tx.tokenAddress} Token Not Found`);
+    }
     // ctx.logger.info(
     //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
     // );

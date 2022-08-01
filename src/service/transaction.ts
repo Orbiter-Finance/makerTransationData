@@ -118,14 +118,16 @@ export async function bulkCreateTransaction(
     // ctx.logger.info(`processSubTx:${tx.hash}`);
     const chainConfig = chains.getChainByChainId(tx.chainId);
     if (!chainConfig) {
-      throw new Error(`getChainByInternalId chainId ${tx.chainId} not found`);
+      ctx.logger.error(`getChainByInternalId chainId ${tx.chainId} not found`);
+      continue;
     }
     if (
       chainConfig.tokens.findIndex(row =>
         equals(row.address, String(tx.tokenAddress)),
       ) < 0
     ) {
-      throw new Error(`${tx.hash} Tx ${tx.tokenAddress} Token Not Found`);
+      ctx.logger.error(`${tx.hash} Tx ${tx.tokenAddress} Token Not Found`);
+      continue;
     }
     // ctx.logger.info(
     //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`

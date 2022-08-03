@@ -14,17 +14,21 @@
       "decimals": 18,
       "address": "0x0000000000000000000000000000000000000000"
     },
-    "rpc": [
-      "wss://eth-rinkeby.alchemyapi.io/v2/{You Key}"
-    ],
+    "rpc": ["wss://eth-rinkeby.alchemyapi.io/v2/{You Key}"],
     "watch": ["rpc", "api"],
     "contracts": ["0x783703C20dF627893952d59DF40f556A172d1719"],
     "tokens": [
       {
+        "name": "Rinkeby BNB",
+        "symbol": "BNB",
+        "decimals": 18,
+        "address": "0x5a5D3Eb7265854902460523340a75148AAD7fcF1"
+      },
+      {
         "name": "USD Coin",
         "symbol": "USDC",
         "decimals": 6,
-        "address": "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
       }
     ]
   },
@@ -51,14 +55,14 @@
         "name": "USD Coin",
         "symbol": "USDC",
         "decimals": 6,
-        "address": "0x6079Dd4565cb1852D6c4190DB7af6C8A69f73Eae"
+        "address": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
       }
     ]
   },
   {
     "api": {
-      "url": "https://blockexplorer.rinkeby.boba.network/graphiql",
-      "key": ""
+      "url": "https://api-testnet.bobascan.com/api",
+      "key": "{You Key}"
     },
     "chainId": "28",
     "internalId": "513",
@@ -113,10 +117,10 @@
     "internalId": "33",
     "name": "ZKSync Rinkeby",
     "nativeCurrency": {
-      "id":0,
       "name": "Ether",
       "symbol": "ETH",
       "decimals": 18,
+      "id": 0,
       "address": "0x0000000000000000000000000000000000000000"
     },
     "rpc": [],
@@ -124,10 +128,10 @@
     "contracts": [],
     "tokens": [
       {
-        "id":2,
         "name": "USDC",
         "symbol": "USDC",
         "decimals": 6,
+        "id": 2,
         "address": "0xeb8f08a975ab53e34d8a0330e0d34de942c95926"
       }
     ]
@@ -141,9 +145,7 @@
     "networkId": "80001",
     "internalId": "66",
     "name": "Polygon Mumbai Testnet",
-    "rpc": [
-      "wss://polygon-mumbai.g.alchemy.com/v2/{You Key}"
-    ],
+    "rpc": ["wss://polygon-mumbai.g.alchemy.com/v2/{You Key}"],
     "nativeCurrency": {
       "name": "MATIC",
       "symbol": "MATIC",
@@ -193,7 +195,7 @@
       "key": ""
     },
     "chainId": "dydx_test",
-    "networkId": "5",
+    "networkId": "dydx",
     "internalId": "511",
     "name": "Dydx Testnet",
     "nativeCurrency": {
@@ -251,10 +253,10 @@
     "internalId": "99",
     "name": "Loopring Testnet",
     "nativeCurrency": {
-      "id":0,
       "name": "Ethereum",
       "symbol": "ETH",
       "decimals": 0,
+      "id": 0,
       "address": "0x0000000000000000000000000000000000000000"
     },
     "rpc": ["wss://ws.uat2.loopring.io/v3/ws"],
@@ -265,17 +267,18 @@
   {
     "api": {
       "url": "https://zksync2-testnet.zkscan.io/api",
-      "key": ""
+      "key": "{You Key}"
     },
     "chainId": "280",
     "networkId": "280",
+    "debug": true,
     "internalId": "514",
     "name": "zkSync alpha testnet",
     "nativeCurrency": {
       "name": "Ether",
       "symbol": "ETH",
       "decimals": 18,
-      "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      "address": "0x000000000000000000000000000000000000800A"
     },
     "rpc": [
       "wss://zksync2-testnet.zksync.dev/ws",
@@ -283,7 +286,14 @@
     ],
     "watch": ["api", "rpc"],
     "contracts": [],
-    "tokens": []
+    "tokens": [
+      {
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "address": "0x54a14D7559BAF2C8e8Fa504E019d32479739018c"
+      }
+    ]
   },
   {
     "api": {
@@ -295,10 +305,10 @@
     "internalId": "512",
     "name": "ZKSpace Testnet",
     "nativeCurrency": {
-      "id":0,
       "name": "Ether",
       "symbol": "ETH",
       "decimals": 18,
+      "id": 0,
       "address": "0x0000000000000000000000000000000000000000"
     },
     "rpc": [],
@@ -315,9 +325,11 @@
     "internalId": "44",
     "name": "Starknet Goerli Testnet",
     "debug": false,
-    "contracts": ["0x0457bf9a97e854007039c43a6cc1a81464bd2a4b907594dabc9132c162563eb3"],
+    "contracts": [
+      "0x0457bf9a97e854007039c43a6cc1a81464bd2a4b907594dabc9132c162563eb3"
+    ],
     "nativeCurrency": {
-      "id":0,
+      "id": 0,
       "name": "Ether",
       "symbol": "ETH",
       "decimals": 18,
@@ -326,5 +338,33 @@
     "rpc": [],
     "watch": ["rpc"],
     "tokens": []
+  },
+  {
+    "api": {
+      "url": "https://api-testnet.bscscan.com/api",
+      "key": "{You Key}"
+    },
+    "chainId": "97",
+    "networkId": "97",
+    "internalId": "515",
+    "name": "Binance Smart Chain Testnet",
+    "debug": true,
+    "contracts": [],
+    "nativeCurrency": {
+      "name": "Testnet BNB",
+      "symbol": "BNB",
+      "decimals": 18,
+      "address": "0x0000000000000000000000000000000000000000"
+    },
+    "rpc": ["https://data-seed-prebsc-1-s1.binance.org:8545"],
+    "watch": ["api", "rpc"],
+    "tokens": [
+      {
+        "name": "Testnet ETH",
+        "symbol": "ETH",
+        "decimals": 18,
+        "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
+      }
+    ]
   }
 ]

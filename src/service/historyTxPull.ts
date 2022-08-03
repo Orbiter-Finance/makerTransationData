@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Context } from "../../context";
+import { Context } from "../context";
 import { findByHashTxMatch } from "./transaction";
 
 // export async function loopPullImxHistory(

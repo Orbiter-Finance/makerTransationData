@@ -1,4 +1,4 @@
-import { Context } from "./../../context";
+import { Context } from "../context";
 import net from "net";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { sleep } from "../utils";

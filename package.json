@@ -12,7 +12,7 @@
     "build": "npm run clean && tsc && ncp package.json dist/package.json",
     "clean": "rimraf coverage output dist",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint 'src/**/*.{js,ts}' 'index.ts' 'context.ts' --fix",
+    "lint": "eslint 'src/**/*.{js,ts}' 'index.ts' --fix",
     "prettier": "prettier --check --write --config .prettierrc.json '**/*.{ts,tsc}'",
     "prepare": "husky install",
     "postinstall": "patch-package"
@@ -46,7 +46,7 @@
   "dependencies": {
     "bignumber.js": "^9.0.2",
     "chalk": "^4.1.2",
-    "dayjs": "^1.11.3",
+    "dayjs": "^1.11.4",
     "dotenv": "^16.0.1",
     "figlet": "^1.5.2",
     "fs-extra": "^10.1.0",

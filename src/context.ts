@@ -3,10 +3,10 @@ import {
   initModels,
   maker_transaction,
   transaction,
-} from "./src/models/init-models";
-import { Config, IMarket } from "./src/types";
-import mainChainConfigs from "./src/config/chains.json";
-import testChainConfigs from "./src/config/testnet.json";
+} from "./models/init-models";
+import { Config, IMarket } from "./types";
+import mainChainConfigs from "./config/chains.json";
+import testChainConfigs from "./config/testnet.json";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";

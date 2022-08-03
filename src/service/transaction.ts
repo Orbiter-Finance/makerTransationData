@@ -9,7 +9,7 @@ import {
   isEmpty,
 } from "orbiter-chaincore/src/utils/core";
 import { Op } from "sequelize";
-import { Context } from "../../context";
+import { Context } from "../context";
 import { transactionAttributes } from "../models/transaction";
 import { TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";

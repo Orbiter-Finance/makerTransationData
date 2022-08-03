@@ -1,16 +1,13 @@
 import { Watch } from "./src/service/watch";
 import "dotenv/config";
 import { convertMarketListToFile } from "./src/utils";
-import { makerList, makerListHistory } from "./maker";
+import { makerList, makerListHistory } from "./src/maker";
 
-import { Context } from "./context";
+import { Context } from "./src/context";
 import { TCPInject } from "./src/service/tcpInject";
 
 export class Application {
-  public ctx: Context;
-  constructor() {
-    this.ctx = new Context();
-  }
+  public ctx: Context = new Context();
   async bootstrap() {
     this.ctx.makerConfigs = await convertMarketListToFile(
       makerList,

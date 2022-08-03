@@ -3,7 +3,7 @@ import { Transaction } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
 import { WAIT_MATCH_REDIS_KEY } from "../types/const";
 import { groupWatchAddressByChain, sleep } from "../utils";
-import { Context } from "./../../context";
+import { Context } from "../context";
 import { bulkCreateTransaction, findByHashTxMatch } from "./transaction";
 export class Watch {
   constructor(public readonly ctx: Context) {}

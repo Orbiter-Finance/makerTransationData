@@ -35,7 +35,6 @@ export class Application {
       this.ctx.config.L1L2Mapping,
     );
     this.ctx.makerConfigs.push(...makerConfigsHistory);
-    console.log(this.ctx.makerConfigs.length, "===");
     await this.watchChain();
   }
   async processSubTxList(txlist: Array<ITransaction>) {

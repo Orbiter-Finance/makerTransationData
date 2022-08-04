@@ -1,3 +1,4 @@
+import { SPV } from "./src/service/spv";
 import { Watch } from "./src/service/watch";
 import "dotenv/config";
 import { convertMarketListToFile } from "./src/utils";
@@ -20,7 +21,13 @@ export class Application {
     this.ctx.makerConfigs.push(...makerConfigsHistory);
     new TCPInject(this.ctx);
     const watch = new Watch(this.ctx);
-    watch.start();
+    // watch.start();
+    const spvService = new SPV(this.ctx, 4);
+    // setInterval(() => {
+    spvService.initTree().catch(error => {
+      this.ctx.logger.error(`checkUncollectedTransaction error:`, error);
+    });
+    // }, 5000);
   }
 }
 const app = new Application();

@@ -1,15 +1,16 @@
 import dayjs from "dayjs";
-import { ethers, providers } from "ethers";
+import { Contract, ethers, providers } from "ethers";
 import keccak256 from "keccak256";
 import MerkleTree from "merkletreejs";
 import { Op } from "sequelize";
 import { Context } from "../context";
+import SPVAbi from "../abi/spv.json";
 export class SPV {
   private tree: MerkleTree = new MerkleTree([]);
   private rpcPovider!: providers.JsonRpcProvider;
   constructor(private readonly ctx: Context, private chainId: number) {
     this.rpcPovider = new providers.JsonRpcProvider(
-      "https://mainnet.infura.io/v3/b05e00d568ac421ebb76cf518e162c6b",
+      "https://ropsten.infura.io/v3/b05e00d568ac421ebb76cf518e162c6b",
     );
   }
   public async initTree() {
@@ -77,14 +78,21 @@ export class SPV {
   }
   public async getSPVMerkleTreeRoot() {
     // TODO: get mk root
-    // const contract = new Contract(
-    //   "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-    //   IERC20_ABI_JSON,
-    //   this.rpcPovider,
-    // );
-
+    const wallet = new ethers.Wallet(
+      "f7d1e7a4fe6fd67e321bd12fbe4331d07291ba19c21a506d7991081581257fb1",
+      this.rpcPovider,
+    );
+    const contract = new Contract(
+      "0x75c3cebcb18b38be13997b13e2617939c3fC2942",
+      SPVAbi,
+      wallet,
+    );
+    console.log(contract, "===contract");
+    const result = await contract.functions.pairsCount();
+    console.log(result, "==result");
     // const hash = await contract.callStatic.symbol();
     const hash = "";
+
     return hash;
   }
 }

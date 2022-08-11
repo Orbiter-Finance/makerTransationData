@@ -1,0 +1,32 @@
+{
+  "apps": [
+    {
+      "name": "inject_server",
+      "exec_mode": "fork",
+      "script": "server.js",
+      "cwd": "./cmd/",
+      "env": {
+        "NODE_ENV": "prod"
+      }
+    },
+    {
+      "name": "makerTpransationData",
+      "instances": 2,
+      "exec_mode": "cluster",
+      "script": "index.js",
+      "cwd": "./dist/",
+      "env": {
+        "RUNTIME_DIR": "/home/makerTransationData/runtime/",
+        "DB_HOST": "db",
+        "DB_NAME": "orbiter-new",
+        "DB_PORT": 3306,
+        "DB_USER": "root",
+        "DB_PASS": "123456",
+        "NODE_ENV": "prod",
+        "INSTANCES": 2,
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": 6379
+      }
+    }
+  ]
+}

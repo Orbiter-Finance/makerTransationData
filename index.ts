@@ -21,13 +21,16 @@ export class Application {
     this.ctx.makerConfigs.push(...makerConfigsHistory);
     new TCPInject(this.ctx);
     const watch = new Watch(this.ctx);
-    // watch.start();
-    const spvService = new SPV(this.ctx, 4);
-    // setInterval(() => {
-    spvService.initTree().catch(error => {
-      this.ctx.logger.error(`checkUncollectedTransaction error:`, error);
-    });
-    // }, 5000);
+    watch.start();
+    const spvService = new SPV(this.ctx, 1);
+    spvService
+      .initTree()
+      .then(() => {
+        spvService.checkTree();
+      })
+      .catch(error => {
+        this.ctx.logger.error("SPV init tree error:", error);
+      });
   }
 }
 const app = new Application();

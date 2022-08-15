@@ -1,98 +1,154 @@
+import { transactionAttributes } from "./../models/transaction";
+import { chains } from "orbiter-chaincore";
 import dayjs from "dayjs";
-import { Contract, ethers, providers } from "ethers";
+import { Contract, ethers, providers, utils } from "ethers";
 import keccak256 from "keccak256";
 import MerkleTree from "merkletreejs";
 import { Op } from "sequelize";
 import { Context } from "../context";
 import SPVAbi from "../abi/spv.json";
+import { orderBy } from "lodash";
 export class SPV {
   private tree: MerkleTree = new MerkleTree([]);
+  private lastTxId: Number = 0;
   private rpcPovider!: providers.JsonRpcProvider;
   constructor(private readonly ctx: Context, private chainId: number) {
-    this.rpcPovider = new providers.JsonRpcProvider(
-      "https://ropsten.infura.io/v3/b05e00d568ac421ebb76cf518e162c6b",
-    );
-  }
-  public async initTree() {
-    const txList = await this.getUncollectedTransaction(this.chainId);
-    const leafs = txList.map((tx: any) => {
-      // from , to, value, nonce
-      const from = tx["in.from"].toLowerCase();
-      const to = tx["in.to"].toLowerCase();
-      const nonce = tx["in.nonce"];
-      const value = tx["in.value"];
-      const hex = ethers.utils.solidityKeccak256(
-        ["address", "address", "uint256", "uint256"],
-        [from, to, value, nonce],
-      );
-      return Buffer.from(hex);
-    });
-    this.tree = new MerkleTree(leafs, keccak256, {
-      sort: true,
-      hashLeaves: true,
-    });
-    console.log("getHexLeaves", this.tree.getHexLayers());
-    console.log("root", this.tree.getHexRoot());
-    const nowRoot = this.tree.getHexRoot();
-    const onChainRoot = await this.getSPVMerkleTreeRoot();
-    if (onChainRoot != nowRoot) {
-      await this.setSPVMerkleTreeRoot(nowRoot);
+    const chain = chains.getChainByChainId("5777");
+    if (chain) {
+      this.rpcPovider = new providers.JsonRpcProvider(chain.rpc[0]);
     }
   }
-  public async getUncollectedTransaction(chainId: number) {
-    const where = {
-      outId: null,
-      fromChain: chainId,
+  public calculateLeaf(tx: transactionAttributes) {
+    const hash = tx.hash.toLowerCase();
+    const from = tx.from.toLowerCase();
+    const to = tx.to.toLowerCase();
+    const nonce = tx.nonce;
+    const value = tx.value;
+    const chainId = tx.chainId;
+    const token = tx.tokenAddress;
+    const hex = utils.solidityKeccak256(
+      [
+        "uint256",
+        "bytes32",
+        "address",
+        "address",
+        "uint256",
+        "uint256",
+        "address",
+      ],
+      [chainId, hash, from, to, nonce, value, token],
+    );
+    const leaf = {
+      chain: chainId,
+      id: hash,
+      from,
+      to,
+      nonce,
+      value,
+      token,
     };
-    const txList = await this.ctx.models.maker_transaction.findAll({
-      where: <any>where,
+    return { hex, leaf };
+  }
+  public async initTree() {
+    const txList = await this.getUncollectedTransactionList();
+    const tree = new MerkleTree([], keccak256, {
+      sort: false,
+    });
+    this.tree = tree;
+    await this.updateTree(txList);
+    return tree;
+  }
+  public async updateTree(txList: Array<transactionAttributes>) {
+    txList = orderBy(txList, ["id"], ["asc"]);
+    for (const tx of txList) {
+      const { hex } = this.calculateLeaf(tx);
+      if (this.tree.getLeafIndex(Buffer.from(hex)) < 0) {
+        if (tx.id > this.lastTxId) {
+          this.lastTxId = tx.id;
+        }
+        this.tree.addLeaf(Buffer.from(hex));
+      }
+    }
+    //
+    console.debug("getHexLeaves", this.tree.getHexLayers());
+    console.debug("root", this.tree.getHexRoot());
+    if (txList.length > 0) {
+      const nowRoot = this.tree.getHexRoot();
+      const onChainRoot = await this.getSPVMerkleTreeRoot();
+      if (onChainRoot != nowRoot) {
+        await this.setSPVMerkleTreeRoot(nowRoot);
+      }
+    }
+  }
+  public checkTree() {
+    setInterval(() => {
+      this.getUncollectedTransactionList()
+        .then(txList => {
+          txList.length > 0 && this.updateTree(txList);
+        })
+        .catch(error => {
+          this.ctx.logger.error(`checkTree error:`, error);
+        });
+    }, 1000 * 60);
+  }
+  public async getUncollectedTransactionList(): Promise<
+    Array<transactionAttributes>
+  > {
+    const where = {
+      chainId: this.chainId,
+      status: 1,
+      id: {
+        [Op.gt]: this.lastTxId,
+      },
+      timestamp: {
+        [Op.lte]: dayjs().subtract(5, "m").toDate(),
+      },
+    };
+    const txList = await this.ctx.models.transaction.findAll({
       attributes: [
         "id",
-        "transcationId",
-        "fromChain",
-        "toChain",
-        "toAmount",
-        "replySender",
-        "replyAccount",
+        "hash",
+        "from",
+        "to",
+        "value",
+        "nonce",
+        "tokenAddress",
+        "symbol",
+        "chainId",
       ],
       raw: true,
-      include: [
-        {
-          as: "in",
-          attributes: ["hash", "from", "to", "nonce", "value", "timestamp"],
-          model: this.ctx.models.transaction,
-          where: {
-            status: 1,
-            // chainId, TAG:
-            timestamp: {
-              [Op.lte]: dayjs().subtract(5, "m").toDate(),
-            },
-          },
-        },
-      ],
+      where,
     });
     return txList;
   }
-  public async setSPVMerkleTreeRoot(hash: string) {
+  public async setSPVMerkleTreeRoot(root: string) {
     // TODO: set mk root
+    console.log("set root", root);
+    const { SPV_CONTRACT, SPV_WALLET } = process.env;
+    if (!SPV_CONTRACT) {
+      throw new Error("SPV_CONTRACT Not Found");
+    }
+    if (!SPV_WALLET) {
+      throw new Error("SPV_WALLET Not Found");
+    }
+    // TODO: get mk root
+    const wallet = new ethers.Wallet(SPV_WALLET, this.rpcPovider);
+    const spvContract = new Contract(SPV_CONTRACT, SPVAbi, wallet);
+    const tx = await spvContract.setMerkleRoot(this.chainId, root);
+    return tx;
   }
   public async getSPVMerkleTreeRoot() {
+    const { SPV_CONTRACT, SPV_WALLET } = process.env;
+    if (!SPV_CONTRACT) {
+      throw new Error("SPV_CONTRACT Not Found");
+    }
+    if (!SPV_WALLET) {
+      throw new Error("SPV_WALLET Not Found");
+    }
     // TODO: get mk root
-    const wallet = new ethers.Wallet(
-      "f7d1e7a4fe6fd67e321bd12fbe4331d07291ba19c21a506d7991081581257fb1",
-      this.rpcPovider,
-    );
-    const contract = new Contract(
-      "0x75c3cebcb18b38be13997b13e2617939c3fC2942",
-      SPVAbi,
-      wallet,
-    );
-    console.log(contract, "===contract");
-    const result = await contract.functions.pairsCount();
-    console.log(result, "==result");
-    // const hash = await contract.callStatic.symbol();
-    const hash = "";
-
-    return hash;
+    const wallet = new ethers.Wallet(SPV_WALLET, this.rpcPovider);
+    const spvContract = new Contract(SPV_CONTRACT, SPVAbi, wallet);
+    const root = await spvContract.txTree(this.chainId);
+    return root;
   }
 }

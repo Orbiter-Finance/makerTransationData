@@ -1,4 +1,3 @@
-import { SPV } from "./src/service/spv";
 import { Watch } from "./src/service/watch";
 import "dotenv/config";
 import { convertMarketListToFile } from "./src/utils";
@@ -22,15 +21,15 @@ export class Application {
     new TCPInject(this.ctx);
     const watch = new Watch(this.ctx);
     watch.start();
-    const spvService = new SPV(this.ctx, 1);
-    spvService
-      .initTree()
-      .then(() => {
-        spvService.checkTree();
-      })
-      .catch(error => {
-        this.ctx.logger.error("SPV init tree error:", error);
-      });
+    // const spvService = new SPV(this.ctx, 1);
+    // spvService
+    //   .initTree()
+    //   .then(() => {
+    //     spvService.checkTree();
+    //   })
+    //   .catch(error => {
+    //     this.ctx.logger.error("SPV init tree error:", error);
+    //   });
   }
 }
 const app = new Application();

@@ -17,6 +17,7 @@ const MAX_BITS: any = {
   boba: 256,
   zkspace: 35,
   bnbchain: 256,
+  arbitrum_nova: 256,
 };
 const precisionResolverMap: any = {
   // pay attention:  the type of field "userAmount" in the following methods is not BigNumber
@@ -52,6 +53,8 @@ export const CHAIN_INDEX: any = {
   514: "zksync2",
   15: "bnbchain",
   515: "bnbchain",
+  16: "arbitrum_nova",
+  516: "arbitrum_nova",
 };
 
 export const SIZE_OP = {

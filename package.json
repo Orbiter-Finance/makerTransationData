@@ -6,6 +6,7 @@
   "scripts": {
     "seqauto": "sequelize-auto -o ./src/models -d orbiter-new -h localhost -u root -p 3306 -x 123456 -e mysql -l ts",
     "dev": "ts-node ./index.ts",
+    "dev:spv": "ts-node ./index.ts --spv",
     "pushServer": "ts-node ./cmd/server.js",
     "inject": "ts-node ./cmd/client.js",
     "start": "node ./dist/index.js",

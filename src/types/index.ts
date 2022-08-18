@@ -22,5 +22,6 @@ export interface Config {
       [key: string]: string;
     };
   };
+  makerTransferTimeout: number;
   chains: Array<any>;
 }

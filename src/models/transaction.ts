@@ -24,6 +24,7 @@ export interface transactionAttributes {
   source?: string;
   memo?: string;
   extra?: object;
+  side?: number;
   createdAt?: Date;
   updatedAt?: Date;
   replyAccount?: string;
@@ -46,6 +47,7 @@ export type transactionOptionalAttributes =
   | "source"
   | "memo"
   | "extra"
+  | "side"
   | "createdAt"
   | "updatedAt"
   | "replyAccount"
@@ -78,6 +80,7 @@ export class transaction
   fee?: string;
   feeToken?: string;
   chainId!: number;
+  side!: number;
   source?: string;
   memo?: string;
   extra?: object;
@@ -197,6 +200,11 @@ export class transaction
           type: DataTypes.STRING(50),
           allowNull: true,
           comment: "memo",
+        },
+        side: {
+          type: DataTypes.TINYINT,
+          allowNull: false,
+          comment: "side:0=user,1=maker",
         },
         extra: {
           type: DataTypes.JSON,

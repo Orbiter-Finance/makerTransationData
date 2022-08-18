@@ -14,7 +14,6 @@ import { transactionAttributes } from "../models/transaction";
 import { TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
-const maxPaymentTimeout = 60 * 12; // minus
 export async function findByHashTxMatch(
   ctx: Context,
   chainId: number,
@@ -175,6 +174,7 @@ export async function bulkCreateTransaction(
       memo,
       replyAccount: "",
       replySender: "",
+      side: 0,
     };
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
@@ -185,10 +185,12 @@ export async function bulkCreateTransaction(
         equals(row.recipient, tx.to),
       ) !== -1;
     if (isMakerSend) {
+      txData.side = 1;
       // maker send
       txData.replyAccount = txData.to;
       txData.replySender = txData.from;
     } else if (isUserSend) {
+      txData.side = 0;
       // user send
       const fromChainId = Number(txData.chainId);
       let toChainId = Number(
@@ -233,7 +235,6 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
-
     txsList.push(txData);
   }
   try {
@@ -255,6 +256,7 @@ export async function bulkCreateTransaction(
         "memo",
         "replyAccount",
         "replySender",
+        "side",
       ],
     });
     return txsList;
@@ -312,7 +314,7 @@ export async function processUserSendMakerTx(
       status: 1,
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
+        // [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
       },
       value: String(needToAmount),
     };
@@ -320,7 +322,7 @@ export async function processUserSendMakerTx(
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
+        // [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
       };
     }
     // TODO:122
@@ -342,9 +344,14 @@ export async function processUserSendMakerTx(
     };
     if (makerSendTx && makerSendTx.id) {
       upsertData.outId = makerSendTx.id;
+      let upStatus = 99;
+      const delayMin = dayjs(makerSendTx.timestamp).diff(trx.timestamp, "m");
+      if (delayMin > ctx.config.makerTransferTimeout) {
+        upStatus = 98; //
+      }
       await ctx.models.transaction.update(
         {
-          status: 99,
+          status: upStatus,
         },
         {
           where: {
@@ -355,7 +362,7 @@ export async function processUserSendMakerTx(
       );
       await ctx.models.transaction.update(
         {
-          status: 99,
+          status: upStatus,
         },
         {
           where: {
@@ -407,9 +414,7 @@ export async function processMakerSendUserTx(
         replySender,
         timestamp: {
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
-          [Op.gte]: dayjs(trx.timestamp)
-            .subtract(maxPaymentTimeout, "m")
-            .toDate(),
+          // [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
         },
         value: {
           [Op.gt]: Number(trx.value),
@@ -433,10 +438,15 @@ export async function processMakerSendUserTx(
         userSendTx.nonce,
         userSendTx.symbol,
       );
-      //
+      let upStatus = 99;
+      // Check whether the payment is delayed in minutes
+      const delayMin = dayjs(trx.timestamp).diff(userSendTx.timestamp, "m");
+      if (delayMin > ctx.config.makerTransferTimeout) {
+        upStatus = 98; //
+      }
       await ctx.models.transaction.update(
         {
-          status: 99,
+          status: upStatus,
         },
         {
           where: {
@@ -447,7 +457,7 @@ export async function processMakerSendUserTx(
       );
       await ctx.models.transaction.update(
         {
-          status: 99,
+          status: upStatus,
         },
         {
           where: {

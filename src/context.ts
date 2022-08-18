@@ -24,6 +24,7 @@ export class Context {
   public makerConfigs: Array<IMarket> = [];
   public config: Config = {
     chains: [],
+    makerTransferTimeout: 60,
     L1L2Mapping: {
       "4": {
         "0x80c67432656d59144ceff962e8faf8926599bcf8":

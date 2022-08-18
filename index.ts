@@ -5,7 +5,6 @@ import { makerList, makerListHistory } from "./src/maker";
 import { SPV } from "./src/service/spv";
 import { Context } from "./src/context";
 import { TCPInject } from "./src/service/tcpInject";
-
 export class Application {
   public ctx: Context = new Context();
   async bootstrap() {
@@ -38,11 +37,9 @@ const app = new Application();
 app.bootstrap().catch(error => {
   console.error("start app error", error);
 });
-
 process.on("uncaughtException", (err: Error) => {
   console.error("Global Uncaught exception:", err);
 });
-
 process.on("unhandledRejection", (err: Error) => {
   console.error(
     "There are failed functions where promise is not captured：",

@@ -14,6 +14,87 @@ import { transactionAttributes } from "../models/transaction";
 import { TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
+
+export async function txProcessMatch(ctx: Context, tx: any) {
+  if (![1, 99].includes(tx.status)) {
+    ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
+    return false;
+  }
+
+  if (
+    isEmpty(tx.from) ||
+    isEmpty(tx.to) ||
+    isEmpty(tx.value) ||
+    isEmpty(String(tx.nonce)) ||
+    isEmpty(tx.symbol)
+  ) {
+    ctx.logger.error(`Tx ${tx.hash} Missing required parameters`, {
+      from: tx.from,
+      to: tx.to,
+      value: tx.value,
+      nonce: tx.nonce,
+      symbol: tx.symbol,
+    });
+    return false;
+  }
+  const isMakerSend =
+    ctx.makerConfigs.findIndex((row: IMarket) =>
+      equals(row.sender, tx.from),
+    ) !== -1;
+  const isUserSend =
+    ctx.makerConfigs.findIndex((row: IMarket) =>
+      equals(row.recipient, tx.to),
+    ) !== -1;
+  const mtTx = await ctx.models.maker_transaction.findOne({
+    attributes: ["id", "inId", "outId"],
+    raw: true,
+    where: {
+      [Op.or]: {
+        inId: tx.id,
+        outId: tx.id,
+      },
+    },
+  });
+  if (mtTx && mtTx.inId && mtTx.outId) {
+    await ctx.models.transaction.update(
+      {
+        status: 99,
+      },
+      {
+        where: {
+          id: {
+            [Op.in]: [mtTx.inId, mtTx.outId],
+          },
+        },
+      },
+    );
+    return;
+  }
+  if (isMakerSend) {
+    try {
+      return await processMakerSendUserTx(ctx, tx);
+    } catch (error: any) {
+      ctx.logger.error(`processMakerSendUserTx error: `, {
+        error,
+        tx,
+      });
+    }
+  } else if (isUserSend) {
+    try {
+      return await processUserSendMakerTx(ctx, tx);
+    } catch (error: any) {
+      ctx.logger.error(`processUserSendMakerTx error: `, {
+        error,
+        tx,
+      });
+    }
+  } else {
+    ctx.logger.error(
+      `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
+    );
+  }
+}
+
 export async function findByHashTxMatch(
   ctx: Context,
   chainId: number,
@@ -351,6 +432,7 @@ export async function processUserSendMakerTx(
       }
       await ctx.models.transaction.update(
         {
+          side: 1,
           status: upStatus,
         },
         {
@@ -362,6 +444,7 @@ export async function processUserSendMakerTx(
       );
       await ctx.models.transaction.update(
         {
+          side: 0,
           status: upStatus,
         },
         {
@@ -447,6 +530,7 @@ export async function processMakerSendUserTx(
       await ctx.models.transaction.update(
         {
           status: upStatus,
+          side: 0,
         },
         {
           where: {
@@ -458,6 +542,7 @@ export async function processMakerSendUserTx(
       await ctx.models.transaction.update(
         {
           status: upStatus,
+          side: 1,
         },
         {
           where: {

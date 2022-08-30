@@ -53,6 +53,7 @@ export class Watch {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
+
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);

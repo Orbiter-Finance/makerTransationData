@@ -91,6 +91,7 @@ export async function txProcessMatch(ctx: Context, tx: any) {
   } else {
     ctx.logger.error(
       `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
+      tx,
     );
   }
 }
@@ -185,7 +186,8 @@ export async function findByHashTxMatch(
     }
   } else {
     ctx.logger.error(
-      `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
+      `findByHashTxMatch matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
+      tx,
     );
   }
 }

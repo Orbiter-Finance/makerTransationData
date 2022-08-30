@@ -411,7 +411,7 @@ export async function processUserSendMakerTx(
     // TODO:122
     const makerSendTx = await ctx.models.transaction.findOne({
       raw: true,
-      attributes: ["id"],
+      attributes: ["id", "timestamp"],
       where,
       order: [["timestamp", "asc"]],
       transaction: t,
@@ -487,6 +487,7 @@ export async function processMakerSendUserTx(
         "chainId",
         "symbol",
         "nonce",
+        "timestamp",
         "replyAccount",
         "replySender",
       ],

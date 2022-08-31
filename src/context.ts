@@ -48,7 +48,7 @@ export class Context {
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
         timezone: DB_TIMEZONE || "+00:00",
-        logging: false,
+        // logging: false,
       },
     );
     this.models = initModels(this.sequelize);
@@ -72,11 +72,12 @@ export class Context {
     });
   }
   private initRedis() {
-    const { REDIS_PORT, REDIS_HOST } = <any>process.env;
-    this.redis = new Redis(
-      Number(REDIS_PORT || 6379),
-      REDIS_HOST || "127.0.0.1",
-    );
+    const { REDIS_PORT, REDIS_HOST, REDIS_DB } = <any>process.env;
+    this.redis = new Redis({
+      port: Number(REDIS_PORT || 6379), // Redis port
+      host: REDIS_HOST || "127.0.0.1", // Redis host
+      db: Number(REDIS_DB || 0), // Defaults to 0
+    });
   }
   constructor() {
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);

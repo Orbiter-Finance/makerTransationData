@@ -7,6 +7,7 @@ import { Context } from "./src/context";
 import { TCPInject } from "./src/service/tcpInject";
 export class Application {
   public ctx: Context = new Context();
+
   async bootstrap() {
     this.ctx.makerConfigs = await convertMarketListToFile(
       makerList,
@@ -31,6 +32,14 @@ export class Application {
           this.ctx.logger.error("SPV init tree error:", error);
         });
     }
+    // watch
+    //   .readDBMatch("2022-08-25 00:47:33", "2022-08-31 00:47:33")
+    //   .then(result => {
+    //     this.ctx.logger.info(`readDBMatch end`, result);
+    //   })
+    //   .catch((error: any) => {
+    //     this.ctx.logger.error(`readDBMatch error`, error);
+    //   });
   }
 }
 const app = new Application();

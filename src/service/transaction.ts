@@ -68,7 +68,7 @@ export async function txProcessMatch(ctx: Context, tx: any) {
         },
       },
     );
-    return;
+    return { msg: "exists" };
   }
   if (isMakerSend) {
     try {
@@ -93,6 +93,7 @@ export async function txProcessMatch(ctx: Context, tx: any) {
       `matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
       tx,
     );
+    return { msg: "matched not found" };
   }
 }
 
@@ -397,7 +398,9 @@ export async function processUserSendMakerTx(
       status: 1,
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
-        // [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
+        [Op.lte]: dayjs(trx.timestamp)
+          .add(60 * 24 * 2, "m")
+          .toDate(),
       },
       value: String(needToAmount),
     };
@@ -405,7 +408,9 @@ export async function processUserSendMakerTx(
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
-        // [Op.lte]: dayjs(trx.timestamp).add(maxPaymentTimeout, "m").toDate(),
+        [Op.lte]: dayjs(trx.timestamp)
+          .add(60 * 24 * 2, "m")
+          .toDate(),
       };
     }
     // TODO:122
@@ -500,7 +505,9 @@ export async function processMakerSendUserTx(
         replySender,
         timestamp: {
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
-          // [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
+          [Op.gte]: dayjs(trx.timestamp)
+            .subtract(24 * 60 * 2, "m")
+            .toDate(),
         },
         value: {
           [Op.gt]: Number(trx.value),

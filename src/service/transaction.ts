@@ -541,10 +541,10 @@ export async function processMakerSendUserTx(
         replyAccount,
         replySender,
         timestamp: {
-          [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
           [Op.gte]: dayjs(trx.timestamp)
             .subtract(24 * 60 * 2, "m")
             .toDate(),
+          [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
         },
         value: {
           [Op.gt]: Number(trx.value),

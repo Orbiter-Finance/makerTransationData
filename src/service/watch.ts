@@ -121,6 +121,9 @@ export class Watch {
           outId: null,
         },
       ],
+      createdAt: {
+        [Op.gte]: dayjs().startOf("d"),
+      },
     };
     const mtxList = await this.ctx.models.maker_transaction.findAll({
       attributes: ["inId", "outId"],

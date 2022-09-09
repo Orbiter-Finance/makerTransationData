@@ -8,9 +8,14 @@ import { Op } from "sequelize";
 import { Context } from "../context";
 import SPVAbi from "../abi/spv.json";
 import { orderBy } from "lodash";
+import { calcMakerSendAmount } from "./transaction";
 export class SPV {
-  private userTxTree: MerkleTree = new MerkleTree([]);
-  private makerTxTree: MerkleTree = new MerkleTree([]);
+  private userTxTree: MerkleTree = new MerkleTree([], {
+    sort: false,
+  });
+  private makerTxTree: MerkleTree = new MerkleTree([], {
+    sort: false,
+  });
   private maxTxId = {
     user: 0,
     maker: 0,
@@ -23,13 +28,21 @@ export class SPV {
     }
   }
   public calculateLeaf(tx: transactionAttributes) {
-    const hash = tx.hash.toLowerCase();
-    const from = tx.from.toLowerCase();
-    const to = tx.to.toLowerCase();
-    const nonce = tx.nonce;
-    const value = tx.value;
-    const chainId = tx.chainId;
-    const token = tx.tokenAddress;
+    const responseAmount = calcMakerSendAmount(this.ctx.makerConfigs, tx);
+    const extra: any = tx.extra || {};
+    const ebcid = extra.ebcId || 0;
+    const leaf = {
+      chain: tx.chainId,
+      id: tx.hash,
+      from: tx.from.toLowerCase(),
+      to: tx.to.toLowerCase(),
+      nonce: tx.nonce,
+      value: tx.value,
+      token: tx.tokenAddress,
+      timestamp: tx.timestamp,
+      responseAmount: responseAmount,
+      ebcid,
+    };
     const hex = utils.solidityKeccak256(
       [
         "uint256",
@@ -39,18 +52,24 @@ export class SPV {
         "uint256",
         "uint256",
         "address",
+        "uint256",
+        "uint256",
+        "uint256",
       ],
-      [chainId, hash, from, to, nonce, value, token],
+      [
+        leaf.chain,
+        leaf.id,
+        leaf.from,
+        leaf.to,
+        leaf.nonce,
+        leaf.value,
+        leaf.token,
+        leaf.timestamp,
+        leaf.responseAmount,
+        leaf.ebcid,
+      ],
     );
-    const leaf = {
-      chain: chainId,
-      id: hash,
-      from,
-      to,
-      nonce,
-      value,
-      token,
-    };
+
     return { hex, leaf };
   }
   public async initTree() {
@@ -154,12 +173,15 @@ export class SPV {
         "tokenAddress",
         "symbol",
         "chainId",
+        "timestamp",
+        "extra",
       ],
       raw: true,
       where,
     });
     return txList;
   }
+
   public async getMakerDelayTransactionList(): Promise<
     Array<transactionAttributes>
   > {
@@ -183,6 +205,8 @@ export class SPV {
         "tokenAddress",
         "symbol",
         "chainId",
+        "timestamp",
+        "extra",
       ],
       raw: true,
       where,

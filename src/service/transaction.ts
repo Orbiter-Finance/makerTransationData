@@ -349,19 +349,56 @@ export async function bulkCreateTransaction(
     throw error;
   }
 }
+export async function calcMakerSendAmount(
+  makerConfigs: Array<any>,
+  trx: transactionAttributes,
+) {
+  if (
+    isEmpty(trx.chainId) ||
+    isEmpty(trx.memo) ||
+    isEmpty(trx.symbol) ||
+    isEmpty(trx.tokenAddress) ||
+    isEmpty(trx.timestamp)
+  ) {
+    throw new Error("Missing parameter");
+  }
+  const fromChainId = Number(trx.chainId);
+  const toChainId = Number(trx.memo);
+  const market = makerConfigs.find(
+    m =>
+      equals(m.fromChain.id, String(fromChainId)) &&
+      equals(m.toChain.id, String(toChainId)) &&
+      equals(m.fromChain.symbol, trx.symbol) &&
+      equals(m.fromChain.tokenAddress, trx.tokenAddress) &&
+      dayjs(trx.timestamp).unix() >= m.times[0] &&
+      dayjs(trx.timestamp).unix() <= m.times[1],
+  );
+  if (!market) {
+    return 0;
+  }
+  return (
+    getAmountToSend(
+      Number(fromChainId),
+      Number(toChainId),
+      trx.value.toString(),
+      market.pool,
+      trx.nonce,
+    )?.tAmount || 0
+  );
+}
 export async function processUserSendMakerTx(
   ctx: Context,
   trx: transactionAttributes,
 ) {
   // user send to Maker
   const fromChainId = Number(trx.chainId);
+  const toChainId = Number(trx.memo);
   const transcationId = TransactionID(
     String(trx.from),
     trx.chainId,
     trx.nonce,
     trx.symbol,
   );
-  const toChainId = Number(trx.memo);
   const market = ctx.makerConfigs.find(
     m =>
       equals(m.fromChain.id, String(fromChainId)) &&

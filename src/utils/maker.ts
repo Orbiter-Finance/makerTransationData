@@ -1,5 +1,9 @@
+import dayjs from "dayjs";
+import { BigNumber } from "bignumber.js";
+import { equals } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
 import { uniq, flatten } from "lodash";
+import { chains } from "orbiter-chaincore";
 export async function convertMarketListToFile(
   makerList: Array<any>,
   L1L2Mapping: any,
@@ -20,6 +24,73 @@ export async function convertMarketListToFile(
     return row;
   });
   return configs;
+}
+export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
+  return oldLpList.map(row => {
+    const pair = row["pair"];
+    const fromChain = chains.getChainByInternalId(pair.sourceChain);
+    const fromToken = fromChain.tokens.find(row =>
+      equals(row.address, pair.sourceToken),
+    );
+    const toChain = chains.getChainByInternalId(pair.destChain);
+    const toToken = toChain.tokens.find(row =>
+      equals(row.address, pair.destToken),
+    );
+    const recipientAddress = row["maker"]["owner"];
+    const senderAddress = row["maker"]["owner"];
+    const fromChainId = pair.sourceChain;
+    const toChainId = pair.destChain;
+    const minPrice = new BigNumber(
+      Number(row["minPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
+    ).toNumber();
+    const maxPrice = new BigNumber(
+      Number(row["maxPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
+    ).toNumber();
+    const times = [
+      Number(row["startTime"]),
+      Number(row["stopTime"] || dayjs().unix()),
+    ];
+    return {
+      recipient: recipientAddress,
+      sender: senderAddress,
+      fromChain: {
+        id: fromChainId,
+        name: fromChain.name,
+        tokenAddress: pair.sourceToken,
+        symbol: fromToken?.symbol || "",
+      },
+      toChain: {
+        id: toChainId,
+        name: toChain.name,
+        tokenAddress: pair.destToken,
+        symbol: toToken?.symbol || "",
+      },
+      times,
+      pool: {
+        //Subsequent versions will modify the structure
+        makerAddress: recipientAddress,
+        c1ID: fromChainId,
+        c2ID: toChainId,
+        c1Name: fromChain.name,
+        c2Name: toChain.name,
+        t1Address: pair.sourceToken,
+        t2Address: pair.destToken,
+        tName: fromToken?.symbol,
+        minPrice,
+        maxPrice,
+        precision: Number(row["sourcePresion"]),
+        avalibleDeposit: 1000,
+        tradingFee: new BigNumber(
+          Number(row["tradingFee"]) / Math.pow(10, Number(row["destPresion"])),
+        ).toNumber(),
+        gasFee: new BigNumber(
+          Number(row["gasFee"]) / Math.pow(10, Number(row["destPresion"])),
+        ).toNumber(),
+        avalibleTimes: times,
+      },
+    };
+  });
+  // return lpList;
 }
 export function groupWatchAddressByChain(makerList: Array<IMarket>): {
   [key: string]: Array<string>;

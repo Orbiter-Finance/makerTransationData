@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@alch/alchemy-web3@^1.4.2":
+"@alch/alchemy-web3@^1.4.6":
   version "1.4.6"
   resolved "https://registry.yarnpkg.com/@alch/alchemy-web3/-/alchemy-web3-1.4.6.tgz#afe7b671d2e6b81a964ff27b8f1e48d517a3f923"
   integrity sha512-eWkWXplQ0b7V62XNfzxBkozOnK6kXgPlQJnnvGsrEzr+DldrtJKnAcSgANpfPyOivztk/26IW4SWtREPHVJwrg==
@@ -1930,6 +1930,11 @@ bignumber.js@^9.0.0, bignumber.js@^9.0.1, bignumber.js@^9.0.2:
   resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-9.0.2.tgz#71c6c6bed38de64e24a65ebe16cfcf23ae693673"
   integrity sha512-GAcQvbpsM0pUb0zw1EI0KhQEZ+lRwR5fYaAp3vPOYuP7aDvGy6cVN6XHLauvF8SOga2y0dcLcjt3iQDTSEliyw==
 
+bignumber.js@^9.1.0:
+  version "9.1.0"
+  resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-9.1.0.tgz#8d340146107fe3a6cb8d40699643c302e8773b62"
+  integrity sha512-4LwHK4nfDOraBCtst+wOWIHbu1vhvAPJK8g8nROd4iuc3PSEjWif/qwbkh8jwCJz6yDBvtU4KPynETgrfh7y3A==
+
 bindings@^1.2.1, bindings@^1.3.0, bindings@^1.5.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/bindings/-/bindings-1.5.0.tgz#10353c9e945334bc0511a6d90b38fbc7c9c504df"
@@ -2454,7 +2459,7 @@ colorspace@1.1.x:
     color "^3.1.3"
     text-hex "1.0.x"
 
-combined-stream@^1.0.6, combined-stream@^1.0.8, combined-stream@~1.0.6:
+combined-stream@^1.0.6, combined-stream@~1.0.6:
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/combined-stream/-/combined-stream-1.0.8.tgz#c3d45a8b34fd730631a110a8a2520682b31d5a7f"
   integrity sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==
@@ -2666,7 +2671,7 @@ dashdash@^1.12.0:
   dependencies:
     assert-plus "^1.0.0"
 
-dayjs@^1.11.3, dayjs@^1.11.4:
+dayjs@^1.11.4:
   version "1.11.4"
   resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.4.tgz#3b3c10ca378140d8917e06ebc13a4922af4f433e"
   integrity sha512-Zj/lPM5hOvQ1Bf7uAvewDaUcsJoI6JmNqmHhHl3nyumwe0XHwt8sWdOVAPACJzCebL8gQCi+K49w7iKWnGwX9g==
@@ -3741,11 +3746,6 @@ external-editor@^3.0.3:
     iconv-lite "^0.4.24"
     tmp "^0.0.33"
 
-extract-files@^9.0.0:
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/extract-files/-/extract-files-9.0.0.tgz#8a7744f2437f81f5ed3250ed9f1550de902fe54a"
-  integrity sha512-CvdFfHkC95B4bBBk36hcEmvdR2awOdhhVUYH6S/zrVj3477zven/fJMYg7121h4T1xHZC+tetUpubpAhxwI7hQ==
-
 extsprintf@1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.3.0.tgz#96918440e3041a7a414f8c52e3c574eb3c3e1e05"
@@ -3946,15 +3946,6 @@ form-data-encoder@1.7.1:
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/form-data-encoder/-/form-data-encoder-1.7.1.tgz#ac80660e4f87ee0d3d3c3638b7da8278ddb8ec96"
   integrity sha512-EFRDrsMm/kyqbTQocNvRXMLjc7Es2Vk+IQFx/YW7hkUH1eBl4J1fqiP34l74Yt0pFLCNpc06fkbVk00008mzjg==
-
-form-data@^3.0.0:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/form-data/-/form-data-3.0.1.tgz#ebd53791b78356a99af9a300d4282c4d5eb9755f"
-  integrity sha512-RHkBKtLWUVwd7SqRIvCZMEvAMoGUp0XU+seQiZejj0COz3RI3hWP4sCv3gZWWLjJTd7rGwcsF5eKZGii0r/hbg==
-  dependencies:
-    asynckit "^0.4.0"
-    combined-stream "^1.0.8"
-    mime-types "^2.1.12"
 
 form-data@~2.3.2:
   version "2.3.3"
@@ -4255,20 +4246,6 @@ graceful-fs@^4.1.11, graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.2.0:
   version "4.2.10"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.10.tgz#147d3a006da4ca3ce14728c7aefc287c367d7a6c"
   integrity sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==
-
-graphql-request@^4.3.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/graphql-request/-/graphql-request-4.3.0.tgz#b934e08fcae764aa2cdc697d3c821f046cb5dbf2"
-  integrity sha512-2v6hQViJvSsifK606AliqiNiijb1uwWp6Re7o0RTyH+uRTv/u7Uqm2g4Fjq/LgZIzARB38RZEvVBFOQOVdlBow==
-  dependencies:
-    cross-fetch "^3.1.5"
-    extract-files "^9.0.0"
-    form-data "^3.0.0"
-
-graphql@^16.5.0:
-  version "16.5.0"
-  resolved "https://registry.yarnpkg.com/graphql/-/graphql-16.5.0.tgz#41b5c1182eaac7f3d47164fb247f61e4dfb69c85"
-  integrity sha512-qbHgh8Ix+j/qY+a/ZcJnFQ+j8ezakqPiHwPiZhV/3PgGlgf96QMBB5/f2rkiC9sgLoy/xvT6TSiaf2nTHJh5iA==
 
 har-schema@^2.0.0:
   version "2.0.0"
@@ -4989,12 +4966,19 @@ keyv@^3.0.0:
   dependencies:
     json-buffer "3.0.0"
 
-keyv@^4.0.0, keyv@^4.3.0:
+keyv@^4.0.0:
   version "4.3.3"
   resolved "https://registry.yarnpkg.com/keyv/-/keyv-4.3.3.tgz#6c1bcda6353a9e96fc1b4e1aeb803a6e35090ba9"
   integrity sha512-AcysI17RvakTh8ir03+a3zJr5r0ovnAH/XTXei/4HIv3bL2K/jzvgivLK9UuI/JbU1aJjM3NSAnVvVVd3n+4DQ==
   dependencies:
     compress-brotli "^1.3.8"
+    json-buffer "3.0.1"
+
+keyv@^4.3.3:
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/keyv/-/keyv-4.5.0.tgz#dbce9ade79610b6e641a9a65f2f6499ba06b9bc6"
+  integrity sha512-2YvuMsA+jnFGtBareKqgANOEKe1mk3HKiXu2fRmAfyxG0MJAywNhi5ttWA3PMjl4NmpyjZNbFifR2vNjW1znfA==
+  dependencies:
     json-buffer "3.0.1"
 
 keyvaluestorage-interface@^1.0.0:
@@ -5712,31 +5696,29 @@ ora@^5.4.1:
     strip-ansi "^6.0.0"
     wcwidth "^1.0.1"
 
-orbiter-chaincore@^1.2.6:
-  version "1.2.6"
-  resolved "https://registry.yarnpkg.com/orbiter-chaincore/-/orbiter-chaincore-1.2.6.tgz#660b931b00e63df3d47430c2df272dfb33c60266"
-  integrity sha512-ZO+3ZQ2ACtT7NhyXWJx4SWsuv6y0Kgr9Ppc+2IesvIKXBm+DzzbRtHojU8yImdyzYohejURo70rIxnQLg9wZ0g==
+orbiter-chaincore@1.3.3:
+  version "1.3.3"
+  resolved "https://registry.yarnpkg.com/orbiter-chaincore/-/orbiter-chaincore-1.3.3.tgz#da54534e860af7e14b46640d170bcee8fb642bb8"
+  integrity sha512-3efTZEaeVWQKbjMu5g2+7lsKFKc2I/T6TfGlt0Kt76AUKdhN4KuC9sG67Xhh/aaussXlgAK4G7cDv2VArEouVA==
   dependencies:
-    "@alch/alchemy-web3" "^1.4.2"
+    "@alch/alchemy-web3" "^1.4.6"
     "@dydxprotocol/v3-client" "^1.9.1"
     "@imtbl/imx-sdk" "^1.20.2"
     "@loopring-web/loopring-sdk" "^2.0.13"
-    bignumber.js "^9.0.2"
+    bignumber.js "^9.1.0"
     cross-fetch "^3.1.5"
-    dayjs "^1.11.3"
+    dayjs "^1.11.4"
     ethers "^5.6.9"
     fs-extra "^10.1.0"
-    graphql "^16.5.0"
-    graphql-request "^4.3.0"
-    keyv "^4.3.0"
+    keyv "^4.3.3"
     lodash "^4.17.21"
-    qs "^6.10.5"
+    qs "^6.11.0"
     starknet "^3.10.0"
-    web3 "^1.7.4"
-    web3-eth-abi "^1.7.3"
-    web3-utils "^1.7.3"
-    winston "^3.7.2"
-    winston-daily-rotate-file "^4.6.1"
+    web3 "^1.7.5"
+    web3-eth-abi "^1.7.5"
+    web3-utils "^1.7.5"
+    winston "^3.8.1"
+    winston-daily-rotate-file "^4.7.1"
 
 os-tmpdir@~1.0.2:
   version "1.0.2"
@@ -6078,7 +6060,7 @@ qs@6.10.3:
   dependencies:
     side-channel "^1.0.4"
 
-qs@^6.10.1, qs@^6.10.5:
+qs@^6.10.1, qs@^6.11.0:
   version "6.11.0"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.11.0.tgz#fd0d963446f7a65e1367e01abd85429453f0c37a"
   integrity sha512-MvjoMCJwEarSbUYk5O+nmoSzSutSsTwF85zcHPQ9OrlFoZOYIjaqBAJIqIXjptyD5vThxGq52Xu/MaJzRkIk4Q==
@@ -7661,7 +7643,7 @@ web3-eth-abi@1.7.1:
     "@ethersproject/abi" "5.0.7"
     web3-utils "1.7.1"
 
-web3-eth-abi@1.7.4, web3-eth-abi@^1.7.3:
+web3-eth-abi@1.7.4:
   version "1.7.4"
   resolved "https://registry.yarnpkg.com/web3-eth-abi/-/web3-eth-abi-1.7.4.tgz#3fee967bafd67f06b99ceaddc47ab0970f2a614a"
   integrity sha512-eMZr8zgTbqyL9MCTCAvb67RbVyN5ZX7DvA0jbLOqRWCiw+KlJKTGnymKO6jPE8n5yjk4w01e165Qb11hTDwHgg==
@@ -7676,6 +7658,14 @@ web3-eth-abi@1.7.5:
   dependencies:
     "@ethersproject/abi" "^5.6.3"
     web3-utils "1.7.5"
+
+web3-eth-abi@^1.7.5:
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/web3-eth-abi/-/web3-eth-abi-1.8.0.tgz#47fdff00bfdfa72064c9c612ff6369986598196d"
+  integrity sha512-xPeMb2hS9YLQK/Q5YZpkcmzoRGM+/R8bogSrYHhNC3hjZSSU0YRH+1ZKK0f9YF4qDZaPMI8tKWIMSCDIpjG6fg==
+  dependencies:
+    "@ethersproject/abi" "^5.6.3"
+    web3-utils "1.8.0"
 
 web3-eth-accounts@1.3.0:
   version "1.3.0"
@@ -8293,7 +8283,7 @@ web3-utils@1.7.1:
     randombytes "^2.1.0"
     utf8 "3.0.0"
 
-web3-utils@1.7.4, web3-utils@^1.7.3:
+web3-utils@1.7.4:
   version "1.7.4"
   resolved "https://registry.yarnpkg.com/web3-utils/-/web3-utils-1.7.4.tgz#eb6fa3706b058602747228234453811bbee017f5"
   integrity sha512-acBdm6Evd0TEZRnChM/MCvGsMwYKmSh7OaUfNf5OKG0CIeGWD/6gqLOWIwmwSnre/2WrA1nKGId5uW2e5EfluA==
@@ -8319,7 +8309,20 @@ web3-utils@1.7.5, web3-utils@^1.3.4:
     randombytes "^2.1.0"
     utf8 "3.0.0"
 
-web3@*, web3@1.7.4, web3@^1.7.4:
+web3-utils@1.8.0, web3-utils@^1.7.5:
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/web3-utils/-/web3-utils-1.8.0.tgz#0a506f8c6af9a2ad6ba79689892662769534fc03"
+  integrity sha512-7nUIl7UWpLVka2f09CMbKOSEvorvHnaugIabU4mj7zfMvm0tSByLcEu3eyV9qgS11qxxLuOkzBIwCstTflhmpQ==
+  dependencies:
+    bn.js "^5.2.1"
+    ethereum-bloom-filters "^1.0.6"
+    ethereumjs-util "^7.1.0"
+    ethjs-unit "0.1.6"
+    number-to-bn "1.7.0"
+    randombytes "^2.1.0"
+    utf8 "3.0.0"
+
+web3@*, web3@1.7.4:
   version "1.7.4"
   resolved "https://registry.yarnpkg.com/web3/-/web3-1.7.4.tgz#00c9aef8e13ade92fd773d845fff250535828e93"
   integrity sha512-iFGK5jO32vnXM/ASaJBaI0+gVR6uHozvYdxkdhaeOCD6HIQ4iIXadbO2atVpE9oc/H8l2MovJ4LtPhG7lIBN8A==
@@ -8443,7 +8446,7 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-winston-daily-rotate-file@^4.6.1:
+winston-daily-rotate-file@^4.7.1:
   version "4.7.1"
   resolved "https://registry.yarnpkg.com/winston-daily-rotate-file/-/winston-daily-rotate-file-4.7.1.tgz#f60a643af87f8867f23170d8cd87dbe3603a625f"
   integrity sha512-7LGPiYGBPNyGHLn9z33i96zx/bd71pjBn9tqQzO3I4Tayv94WPmBNwKC7CO1wPHdP9uvu+Md/1nr6VSH9h0iaA==
@@ -8474,11 +8477,28 @@ winston@2.x:
     isstream "0.1.x"
     stack-trace "0.0.x"
 
-winston@^3.3.3, winston@^3.7.2:
+winston@^3.3.3:
   version "3.8.1"
   resolved "https://registry.yarnpkg.com/winston/-/winston-3.8.1.tgz#76f15b3478cde170b780234e0c4cf805c5a7fb57"
   integrity sha512-r+6YAiCR4uI3N8eQNOg8k3P3PqwAm20cLKlzVD9E66Ch39+LZC+VH1UKf9JemQj2B3QoUHfKD7Poewn0Pr3Y1w==
   dependencies:
+    "@dabh/diagnostics" "^2.0.2"
+    async "^3.2.3"
+    is-stream "^2.0.0"
+    logform "^2.4.0"
+    one-time "^1.0.0"
+    readable-stream "^3.4.0"
+    safe-stable-stringify "^2.3.1"
+    stack-trace "0.0.x"
+    triple-beam "^1.3.0"
+    winston-transport "^4.5.0"
+
+winston@^3.8.1:
+  version "3.8.2"
+  resolved "https://registry.yarnpkg.com/winston/-/winston-3.8.2.tgz#56e16b34022eb4cff2638196d9646d7430fdad50"
+  integrity sha512-MsE1gRx1m5jdTTO9Ld/vND4krP2To+lgDoMEHGGa4HIlAUyXJtfc7CxQcGXVyz2IBpw5hbFkj2b/AtUdQwyRew==
+  dependencies:
+    "@colors/colors" "1.5.0"
     "@dabh/diagnostics" "^2.0.2"
     async "^3.2.3"
     is-stream "^2.0.0"

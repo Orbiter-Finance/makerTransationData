@@ -1,15 +1,67 @@
 import Redis from "ioredis";
+import { readFile } from "fs/promises";
 import {
   initModels,
   maker_transaction,
   transaction,
 } from "./models/init-models";
 import { Config, IMarket } from "./types";
-import mainChainConfigs from "./config/chains.json";
-import testChainConfigs from "./config/testnet.json";
+
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
+import { convertChainLPToOldLP } from "./utils";
+import { TCPInject } from "./service/tcpInject";
+import { chains } from "orbiter-chaincore";
+
+export const fetchLpList = async () => {
+  const endpoint =
+    "http://ec2-54-178-23-104.ap-northeast-1.compute.amazonaws.com:8000/subgraphs/name/orbiter-subgraph";
+  const headers = {
+    "content-type": "application/json",
+    // "Authorization": "<token>"
+  };
+  const graphqlQuery = {
+    operationName: "fetchLpList",
+    query: `query fetchLpList {
+        lpEntities(where: {stopTime: null}) {
+          id
+          createdAt
+          maxPrice
+          minPrice
+          sourcePresion
+          destPresion
+          tradingFee
+          gasFee
+          startTime
+          stopTime
+          maker {
+            id
+            owner
+          }
+          pair {
+            id
+            sourceChain
+            destChain
+            sourceToken
+            destToken
+            ebcId
+          }
+        }
+      }`,
+    variables: {},
+  };
+
+  const options = {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(graphqlQuery),
+  };
+
+  const response = await fetch(endpoint, options);
+  const data = await response.json();
+  return data.data["lpEntities"];
+};
 
 export class Context {
   public models!: {
@@ -56,15 +108,15 @@ export class Context {
       this.logger.error("sequelize sync error:", error);
     });
   }
-  private initChainConfigs() {
-    const NODE_ENV = process.env.NODE_ENV;
-    if (NODE_ENV === "prod") {
-      this.logger.info("Start APP Read Chain Config:[Mainnet]");
-      this.config.chains = <any>mainChainConfigs;
-    } else {
-      this.logger.info("Starp APP Read Chain Config:[Testnet]");
-      this.config.chains = <any>testChainConfigs;
-    }
+  private async initChainConfigs() {
+    const result = await readFile(
+      `./src/config/${
+        process.env.NODE_ENV === "prod" ? "chains" : "testnet"
+      }.json`,
+    );
+    const configs = JSON.parse(result.toString());
+    this.config.chains = configs;
+    return configs;
   }
   private initLogger() {
     this.logger = LoggerService.createLogger({
@@ -79,12 +131,34 @@ export class Context {
       db: Number(REDIS_DB || 0), // Defaults to 0
     });
   }
+  public async fetchLP(): Promise<void> {
+    const lpList = await fetchLpList();
+    if (!(lpList && Array.isArray(lpList))) {
+      this.logger.error("Get LP List Fail:");
+      return;
+    }
+    const newLPList = convertChainLPToOldLP(lpList);
+    if (newLPList.length > 0) {
+      this.makerConfigs = newLPList;
+    }
+  }
+  async init() {
+    await this.initChainConfigs();
+    chains.fill(this.config.chains);
+    // Update LP regularly
+    await this.fetchLP();
+    setInterval(() => {
+      this.fetchLP().catch(error => {
+        this.logger.error("fetchLP error:", error);
+      });
+    }, 1000 * 10);
+  }
   constructor() {
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
     this.initRedis();
     this.initDB();
-    this.initChainConfigs();
+    new TCPInject(this);
   }
 }

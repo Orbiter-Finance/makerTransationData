@@ -234,6 +234,7 @@ export async function bulkCreateTransaction(
         tx.from = (makerItem && makerItem.sender) || "";
       }
     }
+
     const txData = {
       hash: tx.hash,
       nonce: String(tx.nonce),
@@ -254,7 +255,7 @@ export async function bulkCreateTransaction(
       feeToken: tx.feeToken,
       chainId: Number(chainConfig.internalId),
       source: tx.source,
-      extra: tx.extra,
+      extra: tx.extra || {},
       memo,
       replyAccount: "",
       replySender: "",
@@ -319,8 +320,24 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
+    if (txData.side == 0) {
+      // calc response amount
+      try {
+        txData.extra["respAmount"] = calcMakerSendAmount(
+          ctx.makerConfigs,
+          txData as any,
+        );
+      } catch (error) {
+        ctx.logger.error(
+          "bulkCreateTransaction calcMakerSendAmount error:",
+          error,
+        );
+      }
+    }
     txsList.push(txData);
   }
+  // calc response amount
+
   try {
     await ctx.models.transaction.bulkCreate(<any>txsList, {
       // returning: true,

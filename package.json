@@ -45,6 +45,8 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
+    "@types/koa": "^2.13.5",
+    "@types/koa-router": "^7.4.4",
     "bignumber.js": "^9.0.2",
     "chalk": "^4.1.2",
     "dayjs": "^1.11.4",
@@ -55,6 +57,9 @@
     "inquirer": "^8.2.4",
     "ioredis": "^5.2.0",
     "keccak256": "^1.0.6",
+    "koa": "^2.13.4",
+    "koa-body": "^5.0.0",
+    "koa-router": "^12.0.0",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.2.32",
     "mysql2": "^2.3.3",

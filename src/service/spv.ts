@@ -10,12 +10,6 @@ import SPVAbi from "../abi/spv.json";
 import { orderBy } from "lodash";
 import { calcMakerSendAmount } from "./transaction";
 export class SPV {
-  private userTxTree: MerkleTree = new MerkleTree([], {
-    sort: false,
-  });
-  private makerTxTree: MerkleTree = new MerkleTree([], {
-    sort: false,
-  });
   private maxTxId = {
     user: 0,
     maker: 0,
@@ -27,22 +21,18 @@ export class SPV {
       this.rpcPovider = new providers.JsonRpcProvider(chain.rpc[0]);
     }
   }
-  public calculateLeaf(tx: transactionAttributes) {
-    const responseAmount = calcMakerSendAmount(this.ctx.makerConfigs, tx);
-    const extra: any = tx.extra || {};
-    const ebcid = extra.ebcId || 0;
-    const leaf = {
-      chain: tx.chainId,
-      id: tx.hash,
-      from: tx.from.toLowerCase(),
-      to: tx.to.toLowerCase(),
-      nonce: tx.nonce,
-      value: tx.value,
-      token: tx.tokenAddress,
-      timestamp: tx.timestamp,
-      responseAmount: responseAmount,
-      ebcid,
-    };
+  public static getTreeTxHash(
+    chainId: number,
+    hash: string,
+    from: string,
+    to: string,
+    nonce: string,
+    value: string,
+    token: string,
+    timestamp: number,
+    respAmount: string,
+    ebcId: number,
+  ) {
     const hex = utils.solidityKeccak256(
       [
         "uint256",
@@ -57,29 +47,62 @@ export class SPV {
         "uint256",
       ],
       [
-        leaf.chain,
-        leaf.id,
-        leaf.from,
-        leaf.to,
-        leaf.nonce,
-        leaf.value,
-        leaf.token,
-        leaf.timestamp,
-        leaf.responseAmount,
-        leaf.ebcid,
+        chainId,
+        hash,
+        from,
+        to,
+        nonce,
+        value,
+        token,
+        timestamp,
+        respAmount,
+        ebcId,
       ],
     );
-
-    return { hex, leaf };
+    return hex;
+  }
+  private async calculateLeaf(tx: transactionAttributes) {
+    let responseAmount = tx.value;
+    if (tx.side === 0) {
+      const makerConfigs = this.ctx.makerConfigs;
+      responseAmount = String(await calcMakerSendAmount(makerConfigs, tx));
+    }
+    const extra: any = tx.extra || {};
+    const ebcid = extra.ebcId || 0;
+    const leaf = {
+      chain: tx.chainId,
+      id: tx.hash,
+      from: tx.from.toLowerCase(),
+      to: tx.to.toLowerCase(),
+      nonce: tx.nonce,
+      value: tx.value,
+      token: tx.tokenAddress,
+      timestamp: dayjs(tx.timestamp).unix(),
+      responseAmount: responseAmount,
+      ebcid,
+    };
+    const hash = SPV.getTreeTxHash(
+      leaf.chain,
+      leaf.id,
+      leaf.from,
+      leaf.to,
+      leaf.nonce,
+      leaf.value,
+      leaf.token,
+      leaf.timestamp,
+      leaf.responseAmount,
+      leaf.ebcid,
+    );
+    return { hex: hash, leaf };
   }
   public async initTree() {
     const userTxList = await this.getUserNotRefundedTransactionList();
-    this.userTxTree = new MerkleTree([], keccak256, {
+    this.ctx.spv.userTxTree = new MerkleTree([], keccak256, {
       sort: false,
     });
     await this.updateUserTxTree(userTxList);
     const makerTxList = await this.getMakerDelayTransactionList();
-    this.makerTxTree = new MerkleTree([], keccak256, {
+    this.ctx.spv.makerTxTree = new MerkleTree([], keccak256, {
       sort: false,
     });
     await this.updateMakerTxTree(makerTxList);
@@ -88,18 +111,18 @@ export class SPV {
   public async updateMakerTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
     for (const tx of txList) {
-      const { hex } = this.calculateLeaf(tx);
-      if (this.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
+      const { hex } = await this.calculateLeaf(tx);
+      if (this.ctx.spv.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
         if (tx.id > this.maxTxId.maker) {
           this.maxTxId.maker = tx.id;
         }
-        this.makerTxTree.addLeaf(Buffer.from(hex));
+        this.ctx.spv.makerTxTree.addLeaf(Buffer.from(hex));
       }
     }
     //
-    console.debug("makerTxTree:\n", this.makerTxTree.toString());
+    console.debug("makerTxTree:\n", this.ctx.spv.makerTxTree.toString());
     if (txList.length > 0) {
-      const nowRoot = this.makerTxTree.getHexRoot();
+      const nowRoot = this.ctx.spv.makerTxTree.getHexRoot();
       const onChainRoot = await this.getMakerTreeRoot();
       if (onChainRoot != nowRoot) {
         await this.setMakerTxTreeRoot(nowRoot);
@@ -109,18 +132,18 @@ export class SPV {
   public async updateUserTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
     for (const tx of txList) {
-      const { hex } = this.calculateLeaf(tx);
-      if (this.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
+      const { hex } = await this.calculateLeaf(tx);
+      if (this.ctx.spv.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
         if (tx.id > this.maxTxId.user) {
           this.maxTxId.user = tx.id;
         }
-        this.userTxTree.addLeaf(Buffer.from(hex));
+        this.ctx.spv.userTxTree.addLeaf(Buffer.from(hex));
       }
     }
     //
-    console.debug("userTxTree:\n", this.userTxTree.toString());
+    console.debug("userTxTree:\n", this.ctx.spv.userTxTree.toString());
     if (txList.length > 0) {
-      const nowRoot = this.userTxTree.getHexRoot();
+      const nowRoot = this.ctx.spv.userTxTree.getHexRoot();
       const onChainRoot = await this.getUserTreeRoot();
       if (onChainRoot != nowRoot) {
         await this.setUserTxTreeRoot(nowRoot);

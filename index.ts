@@ -1,8 +1,8 @@
 import { Watch } from "./src/service/watch";
 import "dotenv/config";
-// import { makerList, makerListHistory } from "./src/maker";
 import { SPV } from "./src/service/spv";
 import { Context } from "./src/context";
+import { createServer } from "./src/server";
 export class Application {
   public ctx: Context = new Context();
 
@@ -10,6 +10,7 @@ export class Application {
     await this.ctx.init();
     const watch = new Watch(this.ctx);
     watch.start();
+    createServer(this.ctx);
     if (process.argv.includes("--spv")) {
       const spvService = new SPV(this.ctx, 1337);
       spvService

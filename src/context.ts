@@ -13,55 +13,7 @@ import { Logger } from "winston";
 import { convertChainLPToOldLP } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
-
-export const fetchLpList = async () => {
-  const endpoint =
-    "http://ec2-54-178-23-104.ap-northeast-1.compute.amazonaws.com:8000/subgraphs/name/orbiter-subgraph";
-  const headers = {
-    "content-type": "application/json",
-    // "Authorization": "<token>"
-  };
-  const graphqlQuery = {
-    operationName: "fetchLpList",
-    query: `query fetchLpList {
-        lpEntities(where: {stopTime: null}) {
-          id
-          createdAt
-          maxPrice
-          minPrice
-          sourcePresion
-          destPresion
-          tradingFee
-          gasFee
-          startTime
-          stopTime
-          maker {
-            id
-            owner
-          }
-          pair {
-            id
-            sourceChain
-            destChain
-            sourceToken
-            destToken
-            ebcId
-          }
-        }
-      }`,
-    variables: {},
-  };
-
-  const options = {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(graphqlQuery),
-  };
-
-  const response = await fetch(endpoint, options);
-  const data = await response.json();
-  return data.data["lpEntities"];
-};
+import MerkleTree from "merkletreejs";
 
 export class Context {
   public models!: {
@@ -74,6 +26,10 @@ export class Context {
   public instanceId: number;
   public instanceCount: number;
   public makerConfigs: Array<IMarket> = [];
+  public spv = {
+    userTxTree: new MerkleTree([]),
+    makerTxTree: new MerkleTree([]),
+  };
   public config: Config = {
     chains: [],
     makerTransferTimeout: 60,
@@ -162,3 +118,52 @@ export class Context {
     new TCPInject(this);
   }
 }
+
+export const fetchLpList = async () => {
+  const endpoint =
+    "http://ec2-54-178-23-104.ap-northeast-1.compute.amazonaws.com:8000/subgraphs/name/orbiter-subgraph";
+  const headers = {
+    "content-type": "application/json",
+    // "Authorization": "<token>"
+  };
+  const graphqlQuery = {
+    operationName: "fetchLpList",
+    query: `query fetchLpList {
+        lpEntities(where: {stopTime: null}) {
+          id
+          createdAt
+          maxPrice
+          minPrice
+          sourcePresion
+          destPresion
+          tradingFee
+          gasFee
+          startTime
+          stopTime
+          maker {
+            id
+            owner
+          }
+          pair {
+            id
+            sourceChain
+            destChain
+            sourceToken
+            destToken
+            ebcId
+          }
+        }
+      }`,
+    variables: {},
+  };
+
+  const options = {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(graphqlQuery),
+  };
+
+  const response = await fetch(endpoint, options);
+  const data = await response.json();
+  return data.data["lpEntities"];
+};

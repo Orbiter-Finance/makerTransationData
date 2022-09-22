@@ -5,11 +5,10 @@ import {
   transaction,
 } from "./models/init-models";
 import { Config, IMarket } from "./types";
-import mainChainConfigs from "./config/chains.json";
-import testChainConfigs from "./config/testnet.json";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
+import { readFile } from "fs/promises";
 
 export class Context {
   public models!: {
@@ -56,15 +55,15 @@ export class Context {
       this.logger.error("sequelize sync error:", error);
     });
   }
-  private initChainConfigs() {
-    const NODE_ENV = process.env.NODE_ENV;
-    if (NODE_ENV === "prod") {
-      this.logger.info("Start APP Read Chain Config:[Mainnet]");
-      this.config.chains = <any>mainChainConfigs;
-    } else {
-      this.logger.info("Starp APP Read Chain Config:[Testnet]");
-      this.config.chains = <any>testChainConfigs;
-    }
+  private async initChainConfigs() {
+    const result = await readFile(
+      `./src/config/${
+        process.env.NODE_ENV === "prod" ? "chains" : "testnet"
+      }.json`,
+    );
+    const configs = JSON.parse(result.toString());
+    this.config.chains = configs;
+    return configs;
   }
   private initLogger() {
     this.logger = LoggerService.createLogger({
@@ -79,12 +78,14 @@ export class Context {
       db: Number(REDIS_DB || 0), // Defaults to 0
     });
   }
+  async init() {
+    await this.initChainConfigs();
+  }
   constructor() {
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
     this.initRedis();
     this.initDB();
-    this.initChainConfigs();
   }
 }

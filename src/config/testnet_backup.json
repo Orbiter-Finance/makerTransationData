@@ -1,34 +1,35 @@
 [
   {
     "api": {
-      "url": "https://api-rinkeby.etherscan.io/api",
+      "url": "https://eth-goerli.g.alchemyapi.io/v2",
       "key": "{You Key}"
     },
     "chainId": "4",
     "networkId": "4",
     "internalId": "5",
-    "name": "Ethereum Testnet Rinkeby",
+    "name": "Ethereum Testnet Goerli",
     "nativeCurrency": {
       "name": "Ether",
       "symbol": "ETH",
       "decimals": 18,
       "address": "0x0000000000000000000000000000000000000000"
     },
-    "rpc": ["wss://eth-rinkeby.alchemyapi.io/v2/{You Key}"],
-    "watch": ["rpc", "api"],
-    "contracts": ["0x783703C20dF627893952d59DF40f556A172d1719"],
+    "rpc": [
+      "wss://eth-goerli.g.alchemyapi.io/v2/{You Key}"
+    ],
+    "watch": [
+      "rpc",
+      "api"
+    ],
+    "contracts": [
+      "0x783703C20dF627893952d59DF40f556A172d1719"
+    ],
     "tokens": [
-      {
-        "name": "Rinkeby BNB",
-        "symbol": "BNB",
-        "decimals": 18,
-        "address": "0x5a5D3Eb7265854902460523340a75148AAD7fcF1"
-      },
       {
         "name": "USD Coin",
         "symbol": "USDC",
         "decimals": 6,
-        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        "address": "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926"
       }
     ]
   },
@@ -171,11 +172,11 @@
   },
   {
     "api": {
-      "url": "https://api-kovan-optimistic.etherscan.io/api",
+      "url": "https://blockscout.com/optimism/goerli/api",
       "key": "{You Key}"
     },
-    "chainId": "69",
-    "networkId": "69",
+    "chainId": "420",
+    "networkId": "420",
     "internalId": "77",
     "name": "Optimism Kovan Testnet",
     "nativeCurrency": {
@@ -184,7 +185,7 @@
       "decimals": 18,
       "address": "0x0000000000000000000000000000000000000000"
     },
-    "rpc": ["wss://opt-kovan.g.alchemy.com/v2/{You Key}"],
+    "rpc": ["https://goerli.optimism.io/"],
     "watch": ["api", "rpc"],
     "contracts": ["0x2200a79aDdFE2EFd7bDe34300f4C8FE902E31d39"],
     "tokens": []

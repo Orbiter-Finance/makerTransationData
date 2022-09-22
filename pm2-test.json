@@ -18,7 +18,7 @@
       "env": {
         "RUNTIME_DIR": "/home/makerTransationData/runtime/",
         "DB_HOST": "db",
-        "DB_NAME": "orbiter-new",
+        "DB_NAME": "orbiter",
         "DB_PORT": 3306,
         "DB_USER": "root",
         "DB_PASS": "123456",

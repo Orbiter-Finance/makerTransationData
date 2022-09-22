@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  db:
+    container_name: TxDBService
+    image: mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - './mysql/conf.d:/etc/mysql/conf.d'
+      - ./docker-entrypoint-initdb.d/:/home/docker-entrypoint-initdb.d/
+    # command: --init-file /home/docker-entrypoint-initdb.d/init.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASS}'
+      MYSQL_DATABASE: '${DB_NAME}'      

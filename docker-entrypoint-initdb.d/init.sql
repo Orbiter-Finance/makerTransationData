@@ -1,9 +1,7 @@
-create database if not exists orbiter_data default character set UTF8mb4 collate utf8mb4_unicode_ci;
-USE orbiter_data;
+-- create database if not exists orbiter_data default character set UTF8mb4 collate utf8mb4_unicode_ci;
+-- USE orbiter_data;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
-
--- use OrbiterTxData;
 -- ----------------------------
 -- Table structure for maker_transaction
 -- ----------------------------

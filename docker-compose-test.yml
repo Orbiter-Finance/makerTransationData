@@ -10,6 +10,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=123456 # root用户的密码
       - TZ=Asia/Shanghai
+      - MYSQL_DATABASE=orbiter
   redis:
     image: redis:latest
     container_name: data-redis

@@ -9,6 +9,7 @@ import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
 import { readFile } from "fs/promises";
+import path from "path";
 
 export class Context {
   public models!: {
@@ -56,11 +57,11 @@ export class Context {
     });
   }
   private async initChainConfigs() {
-    const result = await readFile(
-      `./src/config/${
-        process.env.NODE_ENV === "prod" ? "chains" : "testnet"
-      }.json`,
+    const configPath = path.join(
+      __dirname,
+      `config/${process.env.NODE_ENV === "prod" ? "chains" : "testnet"}.json`,
     );
+    const result = await readFile(configPath);
     const configs = JSON.parse(result.toString());
     this.config.chains = configs;
     return configs;

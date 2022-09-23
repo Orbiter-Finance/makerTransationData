@@ -31,7 +31,7 @@ export class Context {
           "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
       },
       "44": {
-        "0x8a3214f28946a797088944396c476f014f88dd37":
+        "0x0043d60e87c5dd08c86c3123340705a1556c4719":
           "0x033b88fc03a2ccb1433d6c70b73250d0513c6ee17a7ab61c5af0fbe16bd17a6e",
       },
     },
@@ -39,6 +39,7 @@ export class Context {
   private initDB() {
     const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, DEBUG, DB_TIMEZONE } =
       <any>process.env;
+
     this.sequelize = new Sequelize(
       DB_NAME || "orbiter",
       String(DB_USER),

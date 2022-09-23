@@ -231,12 +231,12 @@ export class transaction
             using: "BTREE",
             fields: [{ name: "id" }, { name: "timestamp" }],
           },
-          // {
-          //   name: "hash",
-          //   unique: true,
-          //   using: "BTREE",
-          //   fields: [{ name: "chainId" }, { name: "hash" }],
-          // },
+          {
+            name: "hash",
+            unique: true,
+            using: "BTREE",
+            fields: [{ name: "chainId" }, { name: "hash" }],
+          },
           {
             name: "symbol",
             using: "BTREE",

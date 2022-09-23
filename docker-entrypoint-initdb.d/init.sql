@@ -161,4 +161,3 @@ BEGIN
 ;;
 delimiter ;
 SET FOREIGN_KEY_CHECKS = 1;
-call sp_add_partitio_transaction();

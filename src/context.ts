@@ -26,6 +26,7 @@ export class Context {
   public instanceId: number;
   public instanceCount: number;
   public makerConfigs: Array<IMarket> = [];
+  public NODE_ENV: string;
   public config: Config = {
     chains: [],
     subgraphEndpoint: "",
@@ -55,7 +56,7 @@ export class Context {
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
         timezone: DB_TIMEZONE || "+00:00",
-        logging: process.env["NODE_ENV"] != "prod",
+        logging: this.NODE_ENV != "prod",
       },
     );
     this.models = initModels(this.sequelize);
@@ -113,6 +114,7 @@ export class Context {
     }
   }
   constructor() {
+    this.NODE_ENV = process.env["NODE_ENV"] || "dev";
     this.config.subgraphEndpoint = process.env["SUBGRAPHS"] || "";
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);

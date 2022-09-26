@@ -13,7 +13,6 @@ import { Logger } from "winston";
 import { convertChainLPToOldLP, convertMarketListToFile } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
-import MerkleTree from "merkletreejs";
 import { makerList, makerListHistory } from "./maker";
 
 export class Context {
@@ -27,13 +26,10 @@ export class Context {
   public instanceId: number;
   public instanceCount: number;
   public makerConfigs: Array<IMarket> = [];
-  public spv = {
-    userTxTree: new MerkleTree([]),
-    makerTxTree: new MerkleTree([]),
-  };
   public config: Config = {
     chains: [],
-    makerTransferTimeout: 60,
+    subgraphEndpoint: "",
+    makerTransferTimeout: 1, // min
     L1L2Mapping: {
       "4": {
         "0x80c67432656d59144ceff962e8faf8926599bcf8":
@@ -46,8 +42,9 @@ export class Context {
     },
   };
   private initDB() {
-    const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, DEBUG, DB_TIMEZONE } =
-      <any>process.env;
+    const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, DB_TIMEZONE } = <any>(
+      process.env
+    );
 
     this.sequelize = new Sequelize(
       DB_NAME || "orbiter",
@@ -58,7 +55,7 @@ export class Context {
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
         timezone: DB_TIMEZONE || "+00:00",
-        // logging: false,
+        logging: process.env["NODE_ENV"] != "prod",
       },
     );
     this.models = initModels(this.sequelize);
@@ -90,7 +87,7 @@ export class Context {
     });
   }
   public async fetchLP(): Promise<void> {
-    const lpList = await fetchLpList();
+    const lpList = await fetchLpList(this.config.subgraphEndpoint);
     if (!(lpList && Array.isArray(lpList))) {
       this.logger.error("Get LP List Fail:");
       return;
@@ -116,6 +113,7 @@ export class Context {
     }
   }
   constructor() {
+    this.config.subgraphEndpoint = process.env["SUBGRAPHS"] || "";
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
@@ -136,9 +134,7 @@ export async function fetchFileMakerList(ctx: Context) {
   );
   ctx.makerConfigs.push(...makerConfigsHistory);
 }
-export const fetchLpList = async () => {
-  const endpoint =
-    "http://ec2-54-178-23-104.ap-northeast-1.compute.amazonaws.com:8000/subgraphs/name/orbiter-subgraph";
+export const fetchLpList = async (endpoint: string) => {
   const headers = {
     "content-type": "application/json",
     // "Authorization": "<token>"

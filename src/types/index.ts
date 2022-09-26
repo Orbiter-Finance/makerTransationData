@@ -22,6 +22,7 @@ export interface Config {
       [key: string]: string;
     };
   };
+  subgraphEndpoint: string;
   makerTransferTimeout: number;
   chains: Array<any>;
 }

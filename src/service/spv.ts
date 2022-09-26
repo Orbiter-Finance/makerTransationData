@@ -10,13 +10,15 @@ import SPVAbi from "../abi/spv.json";
 import { orderBy } from "lodash";
 import { calcMakerSendAmount } from "./transaction";
 export class SPV {
-  private maxTxId = {
-    user: 0,
-    maker: 0,
-  };
   private rpcPovider!: providers.JsonRpcProvider;
-  constructor(private readonly ctx: Context, private chainId: number) {
-    const chain = chains.getChainByChainId(String(chainId));
+  public static tree: {
+    [key: string]: {
+      uncollectedPayment: MerkleTree;
+      delayedPayment: MerkleTree;
+    };
+  } = {};
+  constructor(private readonly ctx: Context, private contractChainId: number) {
+    const chain = chains.getChainByChainId(String(contractChainId));
     if (chain) {
       this.rpcPovider = new providers.JsonRpcProvider(chain.rpc[0]);
     }
@@ -61,6 +63,77 @@ export class SPV {
     );
     return hex;
   }
+  public async start() {
+    // const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
+    const chainGroup = {
+      "2": [],
+    };
+    for (const chainId in chainGroup) {
+      const tree = {
+        uncollectedPayment: new MerkleTree([], keccak256, {
+          sort: false,
+        }),
+        delayedPayment: new MerkleTree([], keccak256, {
+          sort: false,
+        }),
+      };
+      SPV.tree[chainId] = tree;
+      const spvByChain = new ChainSPVTree(
+        this.ctx,
+        Number(chainId),
+        this.rpcPovider,
+        tree,
+      );
+      spvByChain.initTree().catch(error => {
+        this.ctx.logger.error(`${chainId} initTree error:`, error);
+      });
+    }
+  }
+}
+
+export class ChainSPVTree {
+  public tree: {
+    userTxTree: MerkleTree;
+    makerTxTree: MerkleTree;
+  };
+  private maxTxId = {
+    user: 0,
+    maker: 0,
+  };
+  constructor(
+    private readonly ctx: Context,
+    private readonly chainId: number,
+    private readonly rpcPovider: providers.JsonRpcProvider,
+    tree: any,
+  ) {
+    this.tree = {
+      makerTxTree: tree["delayedPayment"],
+      userTxTree: tree["uncollectedPayment"],
+    };
+  }
+  public async initTree() {
+    // Timer refresh
+    const refresh = () => {
+      this.getUserNotRefundedTransactionList()
+        .then(txList => {
+          txList.length > 0 && this.updateUserTxTree(txList);
+        })
+        .catch(error => {
+          this.ctx.logger.error(`checkTree User error:`, error);
+        });
+      this.getMakerDelayTransactionList()
+        .then(txList => {
+          txList.length > 0 && this.updateMakerTxTree(txList);
+        })
+        .catch(error => {
+          this.ctx.logger.error(`checkTree Maker error:`, error);
+        });
+    };
+    refresh();
+    setInterval(refresh, 1000 * 60);
+    return true;
+  }
+
   private async calculateLeaf(tx: transactionAttributes) {
     let responseAmount = tx.value;
     if (tx.side === 0) {
@@ -95,35 +168,27 @@ export class SPV {
     );
     return { hex: hash, leaf };
   }
-  public async initTree() {
-    const userTxList = await this.getUserNotRefundedTransactionList();
-    this.ctx.spv.userTxTree = new MerkleTree([], keccak256, {
-      sort: false,
-    });
-    await this.updateUserTxTree(userTxList);
-    const makerTxList = await this.getMakerDelayTransactionList();
-    this.ctx.spv.makerTxTree = new MerkleTree([], keccak256, {
-      sort: false,
-    });
-    await this.updateMakerTxTree(makerTxList);
-    return true;
-  }
+
   public async updateMakerTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
     for (const tx of txList) {
       const { hex } = await this.calculateLeaf(tx);
-      if (this.ctx.spv.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
+      if (this.tree.makerTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
         if (tx.id > this.maxTxId.maker) {
           this.maxTxId.maker = tx.id;
         }
-        this.ctx.spv.makerTxTree.addLeaf(Buffer.from(hex));
+        this.tree.makerTxTree.addLeaf(Buffer.from(hex));
       }
     }
     //
-    console.debug("makerTxTree:\n", this.ctx.spv.makerTxTree.toString());
     if (txList.length > 0) {
-      const nowRoot = this.ctx.spv.makerTxTree.getHexRoot();
+      const nowRoot = this.tree.makerTxTree.getHexRoot();
       const onChainRoot = await this.getMakerTreeRoot();
+      console.debug(
+        "makerTxTree:\n",
+        this.tree.makerTxTree.toString(),
+        `\ndiff:${onChainRoot}/${nowRoot}`,
+      );
       if (onChainRoot != nowRoot) {
         await this.setMakerTxTreeRoot(nowRoot);
       }
@@ -133,42 +198,27 @@ export class SPV {
     txList = orderBy(txList, ["id"], ["asc"]);
     for (const tx of txList) {
       const { hex } = await this.calculateLeaf(tx);
-      if (this.ctx.spv.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
+      if (this.tree.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
         if (tx.id > this.maxTxId.user) {
           this.maxTxId.user = tx.id;
         }
-        this.ctx.spv.userTxTree.addLeaf(Buffer.from(hex));
+        this.tree.userTxTree.addLeaf(Buffer.from(hex));
       }
     }
     //
-    console.debug("userTxTree:\n", this.ctx.spv.userTxTree.toString());
     if (txList.length > 0) {
-      const nowRoot = this.ctx.spv.userTxTree.getHexRoot();
+      const nowRoot = this.tree.userTxTree.getHexRoot();
       const onChainRoot = await this.getUserTreeRoot();
+      console.debug(
+        "userTxTree:\n",
+        this.tree.userTxTree.toString(),
+        `\ndiff:${onChainRoot}/${nowRoot}`,
+      );
       if (onChainRoot != nowRoot) {
         await this.setUserTxTreeRoot(nowRoot);
       }
     }
   }
-  public checkTree() {
-    setInterval(() => {
-      this.getUserNotRefundedTransactionList()
-        .then(txList => {
-          txList.length > 0 && this.updateUserTxTree(txList);
-        })
-        .catch(error => {
-          this.ctx.logger.error(`checkTree User error:`, error);
-        });
-      this.getMakerDelayTransactionList()
-        .then(txList => {
-          txList.length > 0 && this.updateMakerTxTree(txList);
-        })
-        .catch(error => {
-          this.ctx.logger.error(`checkTree Maker error:`, error);
-        });
-    }, 1000 * 60);
-  }
-
   public async getUserNotRefundedTransactionList(): Promise<
     Array<transactionAttributes>
   > {
@@ -246,8 +296,22 @@ export class SPV {
     }
     const wallet = new ethers.Wallet(SPV_WALLET, this.rpcPovider);
     const spvContract = new Contract(SPV_CONTRACT, SPVAbi, wallet);
-    const tx = await spvContract.setUserTxTreeRoot(this.chainId, root);
-    return tx;
+    try {
+      const params: any = {};
+      if (process.env["GAS_LIMIT"])
+        params["gasLimit"] = Number(process.env["GAS_LIMIT"]);
+      const tx = await spvContract.setUserTxTreeRoot(
+        this.chainId,
+        root,
+        params,
+      );
+      this.ctx.logger.info(
+        `${this.chainId} setUserTxTreeRoot success:${tx.hash}`,
+      );
+      return tx;
+    } catch (error) {
+      this.ctx.logger.error(`${this.chainId} setUserTxTreeRoot error:`, error);
+    }
   }
   public async setMakerTxTreeRoot(root: string) {
     const { SPV_CONTRACT, SPV_WALLET } = process.env;
@@ -259,8 +323,22 @@ export class SPV {
     }
     const wallet = new ethers.Wallet(SPV_WALLET, this.rpcPovider);
     const spvContract = new Contract(SPV_CONTRACT, SPVAbi, wallet);
-    const tx = await spvContract.setMakerTxTreeRoot(this.chainId, root);
-    return tx;
+    try {
+      const params: any = {};
+      if (process.env["GAS_LIMIT"])
+        params["gasLimit"] = Number(process.env["GAS_LIMIT"]);
+      const tx = await spvContract.setMakerTxTreeRoot(
+        this.chainId,
+        root,
+        params,
+      );
+      this.ctx.logger.info(
+        `${this.chainId} setMakerTxTreeRoot success:${tx.hash}`,
+      );
+      return tx;
+    } catch (error) {
+      this.ctx.logger.error(`${this.chainId} setMakerTxTreeRoot error:`, error);
+    }
   }
   public async getUserTreeRoot() {
     const { SPV_CONTRACT, SPV_WALLET } = process.env;

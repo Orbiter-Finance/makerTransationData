@@ -12,14 +12,9 @@ export class Application {
     createServer(this.ctx);
     if (process.argv.includes("--spv")) {
       const spvService = new SPV(this.ctx, 1337);
-      spvService
-        .initTree()
-        .then(() => {
-          spvService.checkTree();
-        })
-        .catch(error => {
-          this.ctx.logger.error("SPV init tree error:", error);
-        });
+      spvService.start().catch(error => {
+        this.ctx.logger.error("SPV init tree error:", error);
+      });
     }
     // watch
     //   .readDBMatch("2022-08-25 00:47:33", "2022-08-31 00:47:33")

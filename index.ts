@@ -5,7 +5,6 @@ import { Context } from "./src/context";
 import { createServer } from "./src/server";
 export class Application {
   public ctx: Context = new Context();
-
   async bootstrap() {
     await this.ctx.init();
     const watch = new Watch(this.ctx);

@@ -10,10 +10,11 @@ import { Config, IMarket } from "./types";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
-import { convertChainLPToOldLP } from "./utils";
+import { convertChainLPToOldLP, convertMarketListToFile } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import MerkleTree from "merkletreejs";
+import { makerList, makerListHistory } from "./maker";
 
 export class Context {
   public models!: {
@@ -39,7 +40,7 @@ export class Context {
           "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
       },
       "44": {
-        "0x8a3214f28946a797088944396c476f014f88dd37":
+        "0x0043d60e87c5dd08c86c3123340705a1556c4719":
           "0x033b88fc03a2ccb1433d6c70b73250d0513c6ee17a7ab61c5af0fbe16bd17a6e",
       },
     },
@@ -47,6 +48,7 @@ export class Context {
   private initDB() {
     const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, DEBUG, DB_TIMEZONE } =
       <any>process.env;
+
     this.sequelize = new Sequelize(
       DB_NAME || "orbiter",
       String(DB_USER),
@@ -102,12 +104,16 @@ export class Context {
     await this.initChainConfigs();
     chains.fill(this.config.chains);
     // Update LP regularly
-    await this.fetchLP();
-    setInterval(() => {
-      this.fetchLP().catch(error => {
-        this.logger.error("fetchLP error:", error);
-      });
-    }, 1000 * 10);
+    if (process.argv.includes("--spv")) {
+      await this.fetchLP();
+      setInterval(() => {
+        this.fetchLP().catch(error => {
+          this.logger.error("fetchLP error:", error);
+        });
+      }, 1000 * 10);
+    } else {
+      await fetchFileMakerList(this);
+    }
   }
   constructor() {
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
@@ -118,7 +124,18 @@ export class Context {
     new TCPInject(this);
   }
 }
-
+export async function fetchFileMakerList(ctx: Context) {
+  // -------------
+  ctx.makerConfigs = await convertMarketListToFile(
+    makerList,
+    ctx.config.L1L2Mapping,
+  );
+  const makerConfigsHistory = await convertMarketListToFile(
+    makerListHistory,
+    ctx.config.L1L2Mapping,
+  );
+  ctx.makerConfigs.push(...makerConfigsHistory);
+}
 export const fetchLpList = async () => {
   const endpoint =
     "http://ec2-54-178-23-104.ap-northeast-1.compute.amazonaws.com:8000/subgraphs/name/orbiter-subgraph";

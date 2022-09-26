@@ -15,6 +15,7 @@ local.*
 .vscode/
 cache/
 runtime/
+src/maker.ts
 src/config/chains.json
 src/config/testnet.json
 pm2.json

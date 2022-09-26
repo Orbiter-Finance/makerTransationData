@@ -6,7 +6,7 @@
       "script": "server.js",
       "cwd": "./cmd/",
       "env": {
-        "NODE_ENV": "prod"
+        "NODE_ENV": "test"
       }
     },
     {
@@ -17,11 +17,11 @@
       "cwd": "./dist/",
       "env": {
         "RUNTIME_DIR": "/home/makerTransationData",
-        "DB_HOST": "XXXX",
-        "DB_NAME": "orbiterTransaction",
+        "DB_HOST": "ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com",
+        "DB_NAME": "orbiter-data",
         "DB_USER": "orbiter",
-        "DB_PASS": "XXXXXXXX",
-        "NODE_ENV": "prod",
+        "DB_PASS": "Orbiter2022!@#",
+        "NODE_ENV": "test",
         "INSTANCES": 4
       }
     }

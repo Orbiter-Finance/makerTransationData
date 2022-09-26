@@ -86,7 +86,7 @@ export class Context {
     this.redis = new Redis({
       port: Number(REDIS_PORT || 6379), // Redis port
       host: REDIS_HOST || "127.0.0.1", // Redis host
-      db: Number(REDIS_DB || 0), // Defaults to 0
+      db: Number(REDIS_DB || this.instanceId), // Defaults to 0
     });
   }
   public async fetchLP(): Promise<void> {

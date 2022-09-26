@@ -73,10 +73,9 @@ export class Watch {
         this.initUnmatchedTransaction().catch(error => {
           this.ctx.logger.error("initUnmatchedTransaction error:", error);
         });
-      this.ctx.instanceId === 0 &&
-        this.readQueneMatch().catch(error => {
-          this.ctx.logger.error("readQueneMatch error:", error);
-        });
+      this.readQueneMatch().catch(error => {
+        this.ctx.logger.error("readQueneMatch error:", error);
+      });
     }
   }
   public async readDBMatch(

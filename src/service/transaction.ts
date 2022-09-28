@@ -317,6 +317,7 @@ export async function bulkCreateTransaction(
         // ebc
         txData.extra["ebcId"] = market.ebcId;
         txData.replySender = market.sender;
+
         // calc response amount
         try {
           txData.extra["respAmount"] = calcMakerSendAmount(
@@ -362,6 +363,8 @@ export async function bulkCreateTransaction(
         "replyAccount",
         "replySender",
         "side",
+        "lpId",
+        "makerId",
       ],
     });
     return txsList;

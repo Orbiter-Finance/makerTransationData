@@ -188,6 +188,7 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
       errmsg: "non-existent",
     });
   }
+
   const proof = uncollectedPayment.getHexProof(Buffer.from(hash));
   ctx.body = {
     errno: 0,

@@ -74,7 +74,7 @@ export class Context {
   }
   private initLogger() {
     this.logger = LoggerService.createLogger({
-      dir: `${process.env.RUNTIME_DIR || ""} / logs${this.instanceId}`,
+      dir: `${process.env.RUNTIME_DIR || ""}/logs${this.instanceId}`,
     });
   }
   private initRedis() {

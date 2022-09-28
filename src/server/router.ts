@@ -6,9 +6,14 @@ const router = new Router();
 router.get("/", ctx => {
   ctx.body = "welcome";
 });
-router.get("/getDelayTransferProof", controllers.getDelayTransferProof);
+
 router.get(
-  "/getUncollectedPaymentProof",
+  "/wallet/getTransferTransactions/:type",
+  controllers.getTransferTransactions,
+);
+router.get("/wallet/getDelayTransferProof", controllers.getDelayTransferProof);
+router.get(
+  "/wallet/getUncollectedPaymentProof",
   controllers.getUncollectedPaymentProof,
 );
 // router.get('/getUncollectedPaymentProof', (ctx) => {

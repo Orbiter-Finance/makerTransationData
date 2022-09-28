@@ -33,6 +33,7 @@ export class Watch {
     const ctx = this.ctx;
     try {
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
+      console.log(chainGroup, "=chainGroup");
 
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {

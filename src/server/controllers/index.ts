@@ -3,6 +3,68 @@ import { isEmpty } from "orbiter-chaincore/src/utils/core";
 import { Context } from "../../context";
 import Router from "koa-router";
 import dayjs from "dayjs";
+import { Op } from "sequelize";
+
+export async function getTransferTransactions(ctx: Router.RouterContext) {
+  const queryType = ctx.params["type"] || "all";
+  const spvCtx = ctx.state["spvCtx"] as Context;
+  const query = ctx.request.query;
+  const page = Number(query["page"]) || 1;
+  const pageSize = Number(query["pageSize"]) || 10;
+  const filterAddress = query["replyAccount"];
+  const where: any = {
+    replyAccount: filterAddress,
+  };
+  if (isEmpty(query) || isEmpty(query["replyAccount"])) {
+    return (ctx.body = {
+      errno: 1000,
+      errmsg: "Missing parameter",
+    });
+  }
+  if (query["status"]) {
+    where["status"] = Number(query["status"]);
+  }
+  switch (queryType) {
+    case "in":
+      where["to"] = filterAddress;
+      break;
+    case "out":
+      where["from"] = filterAddress;
+      break;
+    case "appealable":
+      where["from"] = filterAddress;
+      where["side"] = 0;
+      where["status"] = 1;
+      where["timestamp"] = {
+        [Op.lte]: dayjs()
+          .subtract(spvCtx.config.makerTransferTimeout, "m")
+          .toDate(),
+      };
+      break;
+  }
+  const result: any =
+    (await spvCtx.models.transaction.findAndCountAll({
+      attributes: [
+        "hash",
+        "from",
+        "to",
+        "chainId",
+        "symbol",
+        "status",
+        "timestamp",
+        "side",
+      ],
+      limit: pageSize,
+      offset: pageSize * (page - 1),
+      where,
+    })) || {};
+  result["page"] = page;
+  result["pageSize"] = pageSize;
+  ctx.body = {
+    errno: 0,
+    data: result,
+  };
+}
 export async function getDelayTransferProof(ctx: Router.RouterContext) {
   const query = ctx.request.query;
   if (isEmpty(query) || isEmpty(query["chainId"]) || isEmpty(query["txid"])) {

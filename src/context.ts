@@ -27,10 +27,11 @@ export class Context {
   public instanceCount: number;
   public makerConfigs: Array<IMarket> = [];
   public NODE_ENV: string;
+  public isSpv: boolean;
   public config: Config = {
     chains: [],
     subgraphEndpoint: "",
-    makerTransferTimeout: 1, // min
+    makerTransferTimeout: 10, // min
     L1L2Mapping: {
       "4": {
         "0x80c67432656d59144ceff962e8faf8926599bcf8":
@@ -65,18 +66,15 @@ export class Context {
     });
   }
   private async initChainConfigs() {
-    const result = await readFile(
-      `./src/config/${
-        process.env.NODE_ENV === "prod" ? "chains" : "testnet"
-      }.json`,
-    );
+    const file = `${this.NODE_ENV === "prod" ? "chains" : "testnet"}.json`;
+    const result = await readFile(`./src/config/${file}`);
     const configs = JSON.parse(result.toString());
     this.config.chains = configs;
     return configs;
   }
   private initLogger() {
     this.logger = LoggerService.createLogger({
-      dir: `${process.env.RUNTIME_DIR || ""}/logs${this.instanceId}`,
+      dir: `${process.env.RUNTIME_DIR || ""} / logs${this.instanceId}`,
     });
   }
   private initRedis() {
@@ -102,19 +100,24 @@ export class Context {
     await this.initChainConfigs();
     chains.fill(this.config.chains);
     // Update LP regularly
-    if (process.argv.includes("--spv")) {
-      await this.fetchLP();
-      setInterval(() => {
-        this.fetchLP().catch(error => {
-          this.logger.error("fetchLP error:", error);
-        });
-      }, 1000 * 10);
+    if (this.isSpv) {
+      try {
+        await this.fetchLP();
+      } catch (error) {
+        this.logger.error("init LP error", error);
+      }
+      // setInterval(() => {
+      //   this.fetchLP().catch(error => {
+      //     this.logger.error("fetchLP error:", error);
+      //   });
+      // }, 1000 * 10);
     } else {
       await fetchFileMakerList(this);
     }
   }
   constructor() {
     this.NODE_ENV = process.env["NODE_ENV"] || "dev";
+    this.isSpv = process.env["IS_SPV"] === "1";
     this.config.subgraphEndpoint = process.env["SUBGRAPHS"] || "";
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);
@@ -144,31 +147,31 @@ export const fetchLpList = async (endpoint: string) => {
   const graphqlQuery = {
     operationName: "fetchLpList",
     query: `query fetchLpList {
-        lpEntities(where: {stopTime: null}) {
-          id
-          createdAt
-          maxPrice
-          minPrice
-          sourcePresion
-          destPresion
-          tradingFee
-          gasFee
-          startTime
-          stopTime
+      lpEntities(where: { stopTime: null }) {
+        id
+        createdAt
+        maxPrice
+        minPrice
+        sourcePresion
+        destPresion
+        tradingFee
+        gasFee
+        startTime
+        stopTime
           maker {
-            id
-            owner
-          }
-          pair {
-            id
-            sourceChain
-            destChain
-            sourceToken
-            destToken
-            ebcId
-          }
+          id
+          owner
         }
-      }`,
+          pair {
+          id
+          sourceChain
+          destChain
+          sourceToken
+          destToken
+          ebcId
+        }
+      }
+    }`,
     variables: {},
   };
 

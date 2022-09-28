@@ -7,10 +7,10 @@ export class Application {
   public ctx: Context = new Context();
   async bootstrap() {
     await this.ctx.init();
+    createServer(this.ctx);
     const watch = new Watch(this.ctx);
     watch.start();
-    createServer(this.ctx);
-    if (process.argv.includes("--spv")) {
+    if (this.ctx.isSpv) {
       const spvService = new SPV(this.ctx, Number(process.env["SPV_CHAIN"]));
       spvService.start().catch(error => {
         this.ctx.logger.error("SPV init tree error:", error);

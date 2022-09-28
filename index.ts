@@ -11,7 +11,7 @@ export class Application {
     watch.start();
     createServer(this.ctx);
     if (process.argv.includes("--spv")) {
-      const spvService = new SPV(this.ctx, this.ctx.NODE_ENV == "prod" ? 1 : 5);
+      const spvService = new SPV(this.ctx, Number(process.env["SPV_CHAIN"]));
       spvService.start().catch(error => {
         this.ctx.logger.error("SPV init tree error:", error);
       });

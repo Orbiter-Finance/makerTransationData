@@ -9,6 +9,7 @@ import { Context } from "../context";
 import SPVAbi from "../abi/spv.json";
 import { orderBy } from "lodash";
 import { calcMakerSendAmount } from "./transaction";
+import { groupWatchAddressByChain } from "../utils";
 export class SPV {
   private rpcPovider!: providers.JsonRpcProvider;
   public static tree: {
@@ -64,10 +65,7 @@ export class SPV {
     return hex;
   }
   public async start() {
-    // const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
-    const chainGroup = {
-      "2": [],
-    };
+    const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
     for (const chainId in chainGroup) {
       const tree = {
         uncollectedPayment: new MerkleTree([], keccak256, {

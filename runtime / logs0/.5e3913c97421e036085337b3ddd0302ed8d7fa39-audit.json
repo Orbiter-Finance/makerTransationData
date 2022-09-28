@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/kakui/projects/makerTransationData/runtime / logs0/.5e3913c97421e036085337b3ddd0302ed8d7fa39-audit.json",
+    "files": [
+        {
+            "date": 1664360646589,
+            "name": "/Users/kakui/projects/makerTransationData/runtime / logs0/error-2022-09-28.log",
+            "hash": "15fbef29858fa59d078474a67db97fb04d4468eac72dc7f1444056e84076af8a"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -92,6 +92,7 @@ export class Context {
       return;
     }
     const newLPList = convertChainLPToOldLP(lpList);
+
     if (newLPList.length > 0) {
       this.makerConfigs = newLPList;
     }

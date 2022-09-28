@@ -172,6 +172,13 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
     respAmount,
     ebcid,
   );
+  if (!SPV.tree[String(query["chainId"])]) {
+    return (ctx.body = {
+      errno: 0,
+      data: [],
+      errmsg: "non-existent",
+    });
+  }
   const uncollectedPayment =
     SPV.tree[String(query["chainId"])].uncollectedPayment;
   if (!uncollectedPayment) {

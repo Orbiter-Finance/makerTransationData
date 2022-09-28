@@ -44,20 +44,31 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
   }
   const result: any =
     (await spvCtx.models.transaction.findAndCountAll({
+      raw: true,
       attributes: [
         "hash",
         "from",
         "to",
         "chainId",
         "symbol",
+        "value",
         "status",
+        "nonce",
         "timestamp",
-        "side",
+        "makerId",
+        "lpId",
+        "tokenAddress",
+        "extra",
       ],
       limit: pageSize,
       offset: pageSize * (page - 1),
       where,
     })) || {};
+  for (const row of result.rows) {
+    row.ebcId = 1;
+    row.expectValue = row.value;
+    delete row.extra;
+  }
   result["page"] = page;
   result["pageSize"] = pageSize;
   ctx.body = {

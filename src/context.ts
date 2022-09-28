@@ -85,8 +85,8 @@ export class Context {
       db: Number(REDIS_DB || this.instanceId), // Defaults to 0
     });
   }
-  public async fetchLP(): Promise<void> {
-    const lpList = await fetchLpList(this.config.subgraphEndpoint);
+  public async fromSubgraphFetchLp(): Promise<void> {
+    const lpList = await fecthSubgraphFetchLp(this.config.subgraphEndpoint);
     if (!(lpList && Array.isArray(lpList))) {
       this.logger.error("Get LP List Fail:");
       return;
@@ -102,7 +102,7 @@ export class Context {
     // Update LP regularly
     if (this.isSpv) {
       try {
-        await this.fetchLP();
+        await this.fromSubgraphFetchLp();
       } catch (error) {
         this.logger.error("init LP error", error);
       }
@@ -139,7 +139,7 @@ export async function fetchFileMakerList(ctx: Context) {
   );
   ctx.makerConfigs.push(...makerConfigsHistory);
 }
-export const fetchLpList = async (endpoint: string) => {
+export const fecthSubgraphFetchLp = async (endpoint: string) => {
   const headers = {
     "content-type": "application/json",
     // "Authorization": "<token>"

@@ -1,6 +1,0 @@
-[2022-09-28 16:24:41 - Application] [info] Start Subscribe ChainId: 5, instanceId:0, instances:1 
-[2022-09-28 16:24:41 - Application] [info] Start Subscribe ChainId: 33, instanceId:0, instances:1 
-[2022-09-28 16:24:41 - Application] [info] Start Subscribe ChainId: 516, instanceId:0, instances:1 
-[2022-09-28 16:24:41 - Application] [info] Start Subscribe ChainId: 1337, instanceId:0, instances:1 
-[2022-09-28 16:24:47 - Application] [error] 0x1bd30f8e0a2e31d2f44790ebde6e936624adeab0b13e1be4edeb610f99ed1b18 Tx 0xc4fbb0983834a67541a79d996ab73725105381ca Token Not Found 
-[2022-09-28 16:24:47 - Application] [info] Received subscription transaction,instanceId:0, instances:1 

@@ -260,6 +260,8 @@ export async function bulkCreateTransaction(
       replyAccount: "",
       replySender: "",
       side: 0,
+      makerId: "",
+      lpId: "",
     };
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
@@ -310,7 +312,23 @@ export async function bulkCreateTransaction(
       if (!market) {
         txData.status = 3;
       } else {
+        txData.lpId = market.id;
+        txData.makerId = market.makerId;
+        // ebc
+        txData.extra["ebcId"] = market.ebcId;
         txData.replySender = market.sender;
+        // calc response amount
+        try {
+          txData.extra["respAmount"] = calcMakerSendAmount(
+            ctx.makerConfigs,
+            txData as any,
+          );
+        } catch (error) {
+          ctx.logger.error(
+            "bulkCreateTransaction calcMakerSendAmount error:",
+            error,
+          );
+        }
       }
     }
 
@@ -319,20 +337,6 @@ export async function bulkCreateTransaction(
       txData.status === TransactionStatus.PENDING
     ) {
       txData.status = TransactionStatus.COMPLETE;
-    }
-    if (txData.side == 0) {
-      // calc response amount
-      try {
-        txData.extra["respAmount"] = calcMakerSendAmount(
-          ctx.makerConfigs,
-          txData as any,
-        );
-      } catch (error) {
-        ctx.logger.error(
-          "bulkCreateTransaction calcMakerSendAmount error:",
-          error,
-        );
-      }
     }
     txsList.push(txData);
   }

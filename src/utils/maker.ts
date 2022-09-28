@@ -28,6 +28,7 @@ export async function convertMarketListToFile(
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   return oldLpList.map(row => {
     const pair = row["pair"];
+    const maker = row["maker"];
     const fromChain = chains.getChainByInternalId(pair.sourceChain);
     const fromToken = fromChain.tokens.find(row =>
       equals(row.address, pair.sourceToken),
@@ -36,8 +37,8 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
     const toToken = toChain.tokens.find(row =>
       equals(row.address, pair.destToken),
     );
-    const recipientAddress = row["maker"]["owner"];
-    const senderAddress = row["maker"]["owner"];
+    const recipientAddress = maker["owner"];
+    const senderAddress = maker["owner"];
     const fromChainId = pair.sourceChain;
     const toChainId = pair.destChain;
     const minPrice = new BigNumber(
@@ -51,8 +52,11 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
       Number(row["stopTime"] || dayjs().unix()),
     ];
     return {
+      id: row["id"],
       recipient: recipientAddress,
       sender: senderAddress,
+      makerId: maker.id,
+      ebcId: pair["ebcId"],
       fromChain: {
         id: fromChainId,
         name: fromChain.name,
@@ -116,6 +120,9 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
 export function convertPool(pool: any): Array<IMarket> {
   return [
     {
+      id: "",
+      makerId: "",
+      ebcId: "",
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
       fromChain: {
@@ -154,6 +161,9 @@ export function convertPool(pool: any): Array<IMarket> {
       },
     },
     {
+      id: "",
+      makerId: "",
+      ebcId: "",
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
       fromChain: {

@@ -1,4 +1,7 @@
 export interface IMarket {
+  id: string;
+  makerId: string;
+  ebcId: string;
   recipient: string;
   sender: string;
   fromChain: {

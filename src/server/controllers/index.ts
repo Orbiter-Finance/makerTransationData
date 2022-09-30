@@ -122,7 +122,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   }
 
   const toChain = Number(fromTx?.memo);
-  const tx = await spvCtx.models.transaction.findOne({
+  const txTx = await spvCtx.models.transaction.findOne({
     raw: true,
     where: {
       chainId: Number(toChain),
@@ -130,10 +130,10 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
       hash: toTxId,
     },
   });
-  if (isEmpty(tx) || !tx) {
+  if (isEmpty(txTx) || !txTx) {
     return (ctx.body = {
       errno: 1000,
-      data: tx,
+      data: txTx,
       errmsg: "To Transaction does not exist",
     });
   }
@@ -142,18 +142,18 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
     attributes: ["id"],
     where: {
       inId: fromTx.id,
-      outId: tx.id,
+      outId: txTx.id,
     },
   });
   if (!mtTx || isEmpty(mtTx)) {
     return (ctx.body = {
       errno: 1000,
-      data: tx,
+      data: txTx,
       errmsg: "Collection records do not match",
     });
   }
   // expectValue = tx.value
-  const { hex } = await SPV.calculateLeaf(tx);
+  const { hex } = await SPV.calculateLeaf(txTx);
   const delayedPayment = SPV.tree[String(toChain)].delayedPayment;
   if (!delayedPayment) {
     return (ctx.body = {
@@ -163,9 +163,28 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
     });
   }
   const proof = delayedPayment.getHexProof(hex);
+  // const extra:any = txTx.extra || {};
   ctx.body = {
     errno: 0,
-    data: proof,
+    data: {
+      tx: {
+        hash: txTx.id,
+        from: txTx.from,
+        to: txTx.to,
+        chainId: txTx.chainId,
+        symbol: txTx.symbol,
+        value: txTx.value,
+        side: txTx.side,
+        status: txTx.status,
+        nonce: txTx.nonce,
+        tokenAddress: txTx.tokenAddress,
+        timestamp: txTx.timestamp,
+        // "makerId": txTx.makerId,
+        // "lpId": txTx.lpId,
+        // "ebcId": extra['ebcId'],
+      },
+      proof,
+    },
     errmsg: "",
   };
 }

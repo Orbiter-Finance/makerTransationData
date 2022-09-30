@@ -168,7 +168,8 @@ export class transaction
         status: {
           type: DataTypes.BOOLEAN,
           allowNull: false,
-          comment: "status:0=PENDING,1=COMPLETE,2=FAIL",
+          comment:
+            "status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,99= MatchSuccess,98=makerDelayTransfer",
         },
         tokenAddress: {
           type: DataTypes.STRING(255),

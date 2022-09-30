@@ -320,7 +320,7 @@ export async function bulkCreateTransaction(
 
         // calc response amount
         try {
-          txData.extra["respAmount"] = calcMakerSendAmount(
+          txData.extra["expectValue"] = await calcMakerSendAmount(
             ctx.makerConfigs,
             txData as any,
           );

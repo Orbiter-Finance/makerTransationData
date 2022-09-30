@@ -52,6 +52,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
         "chainId",
         "symbol",
         "value",
+        "side",
         "status",
         "nonce",
         "timestamp",
@@ -65,8 +66,12 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
       where,
     })) || {};
   for (const row of result.rows) {
-    row.ebcId = 1;
-    row.expectValue = row.value;
+    row.ebcId = row.extra.ebcId;
+    row.expectValue = row.extra.expectValue;
+    row.expectSafetyCode = 0;
+    if (row.side === 0) {
+      row.expectSafetyCode = row.nonce;
+    }
     delete row.extra;
   }
   result["page"] = page;
@@ -78,53 +83,86 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
 }
 export async function getDelayTransferProof(ctx: Router.RouterContext) {
   const query = ctx.request.query;
-  if (isEmpty(query) || isEmpty(query["chainId"]) || isEmpty(query["txid"])) {
+  const fromChain = query["fromChain"];
+  const fromTxId = query["fromTxId"];
+  const toTxId = query["toTxId"];
+  if (
+    isEmpty(query) ||
+    isEmpty(fromChain) ||
+    isEmpty(fromTxId) ||
+    isEmpty(toTxId)
+  ) {
     return (ctx.body = {
       errno: 1000,
       errmsg: "Missing parameter chainId or txid",
     });
   }
   const spvCtx = ctx.state["spvCtx"] as Context;
+  // valid is exists
+  const fromTx = await spvCtx.models.transaction.findOne({
+    attributes: ["id", "hash", "chainId", "memo", "side", "status"],
+    where: {
+      chainId: Number(fromChain),
+      side: 0,
+      status: 98,
+      hash: fromTxId,
+    },
+  });
+  if (isEmpty(fromTx) || !fromTx) {
+    return (ctx.body = {
+      errno: 1000,
+      errmsg: "From Transaction does not exist",
+    });
+  }
+  if (fromTx.status != 98) {
+    return (ctx.body = {
+      errno: 1000,
+      errmsg: "Incorrect transaction status",
+    });
+  }
+
+  const toChain = Number(fromTx?.memo);
   const tx = await spvCtx.models.transaction.findOne({
     raw: true,
     where: {
-      chainId: Number(query["chainId"]),
+      chainId: Number(toChain),
       side: 1,
-      hash: query["txid"],
+      hash: toTxId,
     },
   });
   if (isEmpty(tx) || !tx) {
     return (ctx.body = {
       errno: 1000,
       data: tx,
-      errmsg: `${query["txid"]} Tx Not Found`,
+      errmsg: "To Transaction does not exist",
     });
   }
-  const extra: any = tx.extra || {};
-  const ebcid = extra.ebcId || 0;
-  const respAmount = tx.value;
-  // respAmount = tx.value
-  const hash = SPV.getTreeTxHash(
-    tx.chainId,
-    tx.hash,
-    tx.from,
-    tx.to,
-    tx.nonce,
-    tx.value,
-    tx.tokenAddress,
-    dayjs(tx.timestamp).unix(),
-    respAmount,
-    ebcid,
-  );
-  const delayedPayment = SPV.tree[String(query["chainId"])].delayedPayment;
+  // get
+  const mtTx = await spvCtx.models.maker_transaction.findOne({
+    attributes: ["id"],
+    where: {
+      inId: fromTx.id,
+      outId: tx.id,
+    },
+  });
+  if (!mtTx || isEmpty(mtTx)) {
+    return (ctx.body = {
+      errno: 1000,
+      data: tx,
+      errmsg: "Collection records do not match",
+    });
+  }
+  // expectValue = tx.value
+  const { hex } = await SPV.calculateLeaf(tx);
+  const delayedPayment = SPV.tree[String(toChain)].delayedPayment;
   if (!delayedPayment) {
     return (ctx.body = {
       errno: 0,
       data: [],
-      errmsg: "non-existent",
+      errmsg: "proof non-existent",
     });
   }
-  const proof = delayedPayment.getHexProof(Buffer.from(hash));
+  const proof = delayedPayment.getHexProof(hex);
   ctx.body = {
     errno: 0,
     data: proof,
@@ -156,27 +194,13 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
       errmsg: `${query["txid"]} Tx Not Found`,
     });
   }
-  const extra: any = tx.extra || {};
-  const ebcid = extra.ebcId || 0;
-  const respAmount = tx.value;
-  // respAmount = tx.value
-  const hash = SPV.getTreeTxHash(
-    tx.chainId,
-    tx.hash,
-    tx.from,
-    tx.to,
-    tx.nonce,
-    tx.value,
-    tx.tokenAddress,
-    dayjs(tx.timestamp).unix(),
-    respAmount,
-    ebcid,
-  );
+  // expectValue = tx.value
+  const { hex } = await SPV.calculateLeaf(tx);
   if (!SPV.tree[String(query["chainId"])]) {
     return (ctx.body = {
       errno: 0,
       data: [],
-      errmsg: "non-existent",
+      errmsg: "proof non-existent",
     });
   }
   const uncollectedPayment =
@@ -188,8 +212,8 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
       errmsg: "non-existent",
     });
   }
-
-  const proof = uncollectedPayment.getHexProof(Buffer.from(hash));
+  console.log(uncollectedPayment.getHexLeaves(), "==");
+  const proof = uncollectedPayment.getHexProof(hex);
   ctx.body = {
     errno: 0,
     data: proof,

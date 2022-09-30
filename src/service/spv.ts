@@ -8,7 +8,6 @@ import { Op } from "sequelize";
 import { Context } from "../context";
 import SPVAbi from "../abi/spv.json";
 import { orderBy } from "lodash";
-import { calcMakerSendAmount } from "./transaction";
 import { groupWatchAddressByChain } from "../utils";
 export class SPV {
   private rpcPovider!: providers.JsonRpcProvider;
@@ -24,20 +23,48 @@ export class SPV {
       this.rpcPovider = new providers.JsonRpcProvider(chain.rpc[0]);
     }
   }
-  public static getTreeTxHash(
-    chainId: number,
-    hash: string,
-    from: string,
-    to: string,
-    nonce: string,
-    value: string,
-    token: string,
-    timestamp: number,
-    respAmount: string,
-    ebcId: number,
-  ) {
+
+  public static async calculateLeaf(tx: transactionAttributes) {
+    let expectValue = 0;
+    let expectSafetyCode = 0;
+    const extra: any = tx.extra || {};
+    if (tx.side === 0 && extra) {
+      // user
+      expectValue = extra.expectValue;
+      expectSafetyCode = Number(tx.nonce);
+    }
+    const ebcid = extra.ebcId || 0;
+    const leaf = {
+      lpId: tx.lpId,
+      chain: tx.chainId,
+      id: tx.hash,
+      from: tx.from.toLowerCase(),
+      to: tx.to.toLowerCase(),
+      nonce: tx.nonce,
+      value: tx.value,
+      token: tx.tokenAddress,
+      timestamp: dayjs(tx.timestamp).unix(),
+      expectValue,
+      expectSafetyCode,
+      ebcid,
+    };
+    const args = [
+      String(leaf.lpId),
+      leaf.chain,
+      leaf.id,
+      leaf.from,
+      leaf.to,
+      Number(leaf.nonce),
+      leaf.value,
+      leaf.token,
+      leaf.timestamp,
+      leaf.expectValue,
+      leaf.expectSafetyCode,
+      Number(leaf.ebcid),
+    ];
     const hex = utils.solidityKeccak256(
       [
+        "bytes32",
         "uint256",
         "bytes32",
         "address",
@@ -48,31 +75,21 @@ export class SPV {
         "uint256",
         "uint256",
         "uint256",
+        "uint256",
       ],
-      [
-        chainId,
-        hash,
-        from,
-        to,
-        nonce,
-        value,
-        token,
-        timestamp,
-        respAmount,
-        ebcId,
-      ],
+      args,
     );
-    return hex;
+    return { hex, leaf };
   }
   public async start() {
     const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
     for (const chainId in chainGroup) {
       const tree = {
         uncollectedPayment: new MerkleTree([], keccak256, {
-          sort: false,
+          sort: true,
         }),
         delayedPayment: new MerkleTree([], keccak256, {
-          sort: false,
+          sort: true,
         }),
       };
       SPV.tree[chainId] = tree;
@@ -132,50 +149,16 @@ export class ChainSPVTree {
     return true;
   }
 
-  private async calculateLeaf(tx: transactionAttributes) {
-    let responseAmount = tx.value;
-    if (tx.side === 0) {
-      const makerConfigs = this.ctx.makerConfigs;
-      responseAmount = String(await calcMakerSendAmount(makerConfigs, tx));
-    }
-    const extra: any = tx.extra || {};
-    const ebcid = extra.ebcId || 0;
-    const leaf = {
-      chain: tx.chainId,
-      id: tx.hash,
-      from: tx.from.toLowerCase(),
-      to: tx.to.toLowerCase(),
-      nonce: tx.nonce,
-      value: tx.value,
-      token: tx.tokenAddress,
-      timestamp: dayjs(tx.timestamp).unix(),
-      responseAmount: responseAmount,
-      ebcid,
-    };
-    const hash = SPV.getTreeTxHash(
-      leaf.chain,
-      leaf.id,
-      leaf.from,
-      leaf.to,
-      leaf.nonce,
-      leaf.value,
-      leaf.token,
-      leaf.timestamp,
-      leaf.responseAmount,
-      leaf.ebcid,
-    );
-    return { hex: hash, leaf };
-  }
-
   public async updateMakerTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
     for (const tx of txList) {
-      const { hex } = await this.calculateLeaf(tx);
+      const { hex } = await SPV.calculateLeaf(tx);
       if (this.tree.makerTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
         if (tx.id > this.maxTxId.maker) {
           this.maxTxId.maker = tx.id;
         }
-        this.tree.makerTxTree.addLeaf(Buffer.from(hex));
+        this.tree.makerTxTree.addLeaf(<any>hex);
+        // this.tree.makerTxTree.addLeaf(Buffer.from(hex));
       }
     }
     //
@@ -195,12 +178,12 @@ export class ChainSPVTree {
   public async updateUserTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
     for (const tx of txList) {
-      const { hex } = await this.calculateLeaf(tx);
+      const { hex } = await SPV.calculateLeaf(tx);
       if (this.tree.userTxTree.getLeafIndex(Buffer.from(hex)) < 0) {
         if (tx.id > this.maxTxId.user) {
           this.maxTxId.user = tx.id;
         }
-        this.tree.userTxTree.addLeaf(Buffer.from(hex));
+        this.tree.userTxTree.addLeaf(hex as any);
       }
     }
     //
@@ -241,8 +224,11 @@ export class ChainSPVTree {
         "to",
         "value",
         "nonce",
+        "side",
+        "memo",
         "tokenAddress",
         "symbol",
+        "lpId",
         "chainId",
         "timestamp",
         "extra",
@@ -273,8 +259,11 @@ export class ChainSPVTree {
         "to",
         "value",
         "nonce",
+        "memo",
+        "side",
         "tokenAddress",
         "symbol",
+        "lpId",
         "chainId",
         "timestamp",
         "extra",

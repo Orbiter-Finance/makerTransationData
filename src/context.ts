@@ -107,11 +107,11 @@ export class Context {
       } catch (error) {
         this.logger.error("init LP error", error);
       }
-      // setInterval(() => {
-      //   this.fetchLP().catch(error => {
-      //     this.logger.error("fetchLP error:", error);
-      //   });
-      // }, 1000 * 10);
+      setInterval(() => {
+        this.fromSubgraphFetchLp().catch(error => {
+          this.logger.error("fetchLP error:", error);
+        });
+      }, 1000 * 10);
     } else {
       await fetchFileMakerList(this);
     }

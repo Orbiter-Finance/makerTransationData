@@ -139,12 +139,11 @@ export async function fetchFileMakerList(ctx: Context) {
 export const fecthSubgraphFetchLp = async (endpoint: string) => {
   const headers = {
     "content-type": "application/json",
-    // "Authorization": "<token>"
   };
   const graphqlQuery = {
     operationName: "fetchLpList",
     query: `query fetchLpList {
-      lpEntities(where: { stopTime: null }) {
+      lpEntities(where: { status: 1 }) {
         id
         createdAt
         maxPrice
@@ -180,7 +179,6 @@ export const fecthSubgraphFetchLp = async (endpoint: string) => {
 
   const response = await fetch(endpoint, options);
   const data = await response.json();
-
   //
   const lpEntities = data.data["lpEntities"];
   if (!(lpEntities && Array.isArray(lpEntities))) {

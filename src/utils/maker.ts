@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import { BigNumber } from "bignumber.js";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
@@ -49,7 +48,7 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
     ).toNumber();
     const times = [
       Number(row["startTime"]),
-      Number(row["stopTime"] || dayjs().unix()),
+      Number(row["stopTime"] || 9999999999),
     ];
     return {
       id: row["id"],

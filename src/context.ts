@@ -85,32 +85,28 @@ export class Context {
       db: Number(REDIS_DB || this.instanceId), // Defaults to 0
     });
   }
-  public async fromSubgraphFetchLp(): Promise<void> {
-    const lpList = await fecthSubgraphFetchLp(this.config.subgraphEndpoint);
-    if (!(lpList && Array.isArray(lpList))) {
-      this.logger.error("Get LP List Fail:");
-      return;
-    }
-    const newLPList = convertChainLPToOldLP(lpList);
-
-    if (newLPList.length > 0) {
-      this.makerConfigs = newLPList;
-    }
-  }
   async init() {
     await this.initChainConfigs();
     chains.fill(this.config.chains);
     // Update LP regularly
     if (this.isSpv) {
       try {
-        await this.fromSubgraphFetchLp();
+        this.makerConfigs = await fecthSubgraphFetchLp(
+          this.config.subgraphEndpoint,
+        );
       } catch (error) {
         this.logger.error("init LP error", error);
       }
       setInterval(() => {
-        this.fromSubgraphFetchLp().catch(error => {
-          this.logger.error("fetchLP error:", error);
-        });
+        fecthSubgraphFetchLp(this.config.subgraphEndpoint)
+          .then(result => {
+            if (result && result.length > 0) {
+              this.makerConfigs = result;
+            }
+          })
+          .catch(error => {
+            this.logger.error("setInterval fetchLP error:", error);
+          });
       }, 1000 * 10);
     } else {
       await fetchFileMakerList(this);
@@ -184,5 +180,12 @@ export const fecthSubgraphFetchLp = async (endpoint: string) => {
 
   const response = await fetch(endpoint, options);
   const data = await response.json();
-  return data.data["lpEntities"];
+
+  //
+  const lpEntities = data.data["lpEntities"];
+  if (!(lpEntities && Array.isArray(lpEntities))) {
+    throw new Error("Get LP List Fail");
+  }
+  const convertData = convertChainLPToOldLP(lpEntities);
+  return convertData;
 };

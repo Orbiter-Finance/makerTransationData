@@ -26,13 +26,16 @@ export class SPV {
   }
 
   public static async calculateLeaf(tx: transactionAttributes) {
-    let expectValue = 0;
+    let expectValue = "0";
     let expectSafetyCode = 0;
     const extra: any = tx.extra || {};
     if (tx.side === 0 && extra) {
       // user
       expectValue = extra.expectValue;
       expectSafetyCode = Number(tx.nonce);
+    } else if (tx.side === 1) {
+      expectValue = tx.value;
+      expectSafetyCode = Number(tx.memo);
     }
     const ebcid = extra.ebcId || 0;
     const leaf = {
@@ -47,7 +50,7 @@ export class SPV {
       timestamp: dayjs(tx.timestamp).unix(),
       expectValue,
       expectSafetyCode,
-      ebcid,
+      ebcId: ebcid,
     };
     const args = [
       String(leaf.lpId),
@@ -61,7 +64,7 @@ export class SPV {
       leaf.timestamp,
       leaf.expectValue,
       leaf.expectSafetyCode,
-      Number(leaf.ebcid),
+      Number(leaf.ebcId),
     ];
     if (isEmpty(args[0])) {
       throw new Error("Missing parameter LPID");
@@ -89,7 +92,10 @@ export class SPV {
     const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
     for (const chainId in chainGroup) {
       const defaultLeafs = [
-        Buffer.from("0000000000000000000000000000000000000000", "hex"),
+        Buffer.from(
+          "0000000000000000000000000000000000000000000000000000000000000000",
+          "hex",
+        ),
       ];
       const tree = {
         uncollectedPayment: new MerkleTree(defaultLeafs, keccak256, {
@@ -99,7 +105,6 @@ export class SPV {
           sort: true,
         }),
       };
-      console.log(tree.delayedPayment.toString(), "=========");
       SPV.tree[chainId] = tree;
       const spvByChain = new ChainSPVTree(
         this.ctx,
@@ -220,6 +225,7 @@ export class ChainSPVTree {
       },
       timestamp: {
         [Op.lte]: dayjs()
+          .subtract(1, "s")
           .subtract(this.ctx.config.makerTransferTimeout, "m")
           .toDate(),
       },

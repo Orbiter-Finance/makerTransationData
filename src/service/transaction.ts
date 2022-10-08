@@ -217,14 +217,15 @@ export async function bulkCreateTransaction(
     //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
     // );
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
-    if (["9", "99"].includes(chainConfig.internalId) && tx.extra) {
-      memo = String(tx.extra.memo % 9000);
+    const txExtra = tx.extra || {};
+    if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
+      memo = String(txExtra.memo % 9000);
     } else if (
       ["11", "511"].includes(chainConfig.internalId) &&
-      tx.extra["type"] === "TRANSFER_OUT"
+      txExtra["type"] === "TRANSFER_OUT"
     ) {
       if (!tx.to) {
-        tx.to = dydx.getEthereumAddressFromClientId(tx.extra["clientId"]);
+        tx.to = dydx.getEthereumAddressFromClientId(txExtra["clientId"]);
       }
       // makerAddress
       if (!tx.from) {
@@ -235,7 +236,6 @@ export async function bulkCreateTransaction(
         tx.from = (makerItem && makerItem.sender) || "";
       }
     }
-
     const txData = {
       hash: tx.hash,
       nonce: String(tx.nonce),
@@ -256,13 +256,17 @@ export async function bulkCreateTransaction(
       feeToken: tx.feeToken,
       chainId: Number(chainConfig.internalId),
       source: tx.source,
-      extra: tx.extra || {},
+      extra: {},
       memo,
       replyAccount: "",
       replySender: "",
       side: 0,
       makerId: "",
       lpId: "",
+    };
+    const saveExtra: any = {
+      expectValue: 0,
+      ebcId: 0,
     };
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
@@ -284,16 +288,17 @@ export async function bulkCreateTransaction(
       let toChainId = Number(
         getAmountFlag(Number(fromChainId), String(txData.value)),
       );
-      if ([9, 99].includes(fromChainId) && txData.extra) {
-        toChainId = Number(txData.extra.memo) % 9000;
+      if ([9, 99].includes(fromChainId) && txExtra) {
+        toChainId = Number(txExtra.memo) % 9000;
       }
       txData.replyAccount = txData.from;
       if ([44, 4, 11, 511].includes(fromChainId)) {
         // dydx contract send
         // starknet contract send
-        txData.replyAccount = txData.extra["ext"] || "";
+        txData.replyAccount = txExtra["ext"] || "";
       } else if ([44, 4, 11, 511].includes(toChainId)) {
-        const ext = txData.extra["ext"] || "";
+        const ext = txExtra["ext"] || "";
+        saveExtra["ext"] = ext;
         // 11,511 0x02 first
         // 4, 44 0x03 first
         txData.replyAccount = `0x${ext.substring(4)}`;
@@ -316,12 +321,12 @@ export async function bulkCreateTransaction(
         txData.lpId = market.id;
         txData.makerId = market.makerId;
         // ebc
-        txData.extra["ebcId"] = market.ebcId;
+        saveExtra["ebcId"] = market.ebcId;
         txData.replySender = market.sender;
 
         // calc response amount
         try {
-          txData.extra["expectValue"] = await calcMakerSendAmount(
+          saveExtra["expectValue"] = await calcMakerSendAmount(
             ctx.makerConfigs,
             txData as any,
           );
@@ -340,6 +345,7 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
+    txData.extra = saveExtra;
     txsList.push(txData);
   }
   // calc response amount

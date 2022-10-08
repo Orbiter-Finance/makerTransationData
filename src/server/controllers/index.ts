@@ -37,6 +37,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
       where["status"] = 1;
       where["timestamp"] = {
         [Op.lte]: dayjs()
+          .subtract(1, "s")
           .subtract(spvCtx.config.makerTransferTimeout, "m")
           .toDate(),
       };
@@ -54,6 +55,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
         "value",
         "side",
         "status",
+        "memo",
         "nonce",
         "timestamp",
         "makerId",
@@ -100,24 +102,6 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   const spvCtx = ctx.state["spvCtx"] as Context;
   // valid is exists
   const fromTx = await spvCtx.models.transaction.findOne({
-    attributes: [
-      "id",
-      "hash",
-      "from",
-      "to",
-      "chainId",
-      "symbol",
-      "value",
-      "side",
-      "status",
-      "memo",
-      "nonce",
-      "timestamp",
-      "makerId",
-      "lpId",
-      "tokenAddress",
-      "extra",
-    ],
     raw: true,
     where: {
       chainId: Number(fromChain),
@@ -141,7 +125,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   }
 
   const toChain = Number(fromTx?.memo);
-  const txTx = await spvCtx.models.transaction.findOne({
+  const toTx = await spvCtx.models.transaction.findOne({
     raw: true,
     where: {
       chainId: Number(toChain),
@@ -149,30 +133,36 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
       hash: toTxId,
     },
   });
-  if (isEmpty(txTx) || !txTx) {
+  if (isEmpty(toTx) || !toTx) {
     return (ctx.body = {
       errno: 1000,
-      data: txTx,
+      data: toTx,
       errmsg: "To Transaction does not exist",
     });
   }
+
   // get
   const mtTx = await spvCtx.models.maker_transaction.findOne({
     attributes: ["id"],
     where: {
       inId: fromTx.id,
-      outId: txTx.id,
+      outId: toTx.id,
     },
   });
   if (!mtTx || isEmpty(mtTx)) {
     return (ctx.body = {
       errno: 1000,
-      data: txTx,
+      data: null,
       errmsg: "Collection records do not match",
     });
   }
   // expectValue = tx.value
-  const { hex } = await SPV.calculateLeaf(txTx);
+  // if (toTx.extra && fromTx.extra) {
+  //   const extra:any = toTx.extra || {};
+  //   extra['ebcId'] = (<any>fromTx.extra)['ebcId'];
+  //   toTx.extra = extra;
+  // }
+  const { hex, leaf } = await SPV.calculateLeaf(toTx);
   const delayedPayment = SPV.tree[String(toChain)].delayedPayment;
   if (!delayedPayment) {
     return (ctx.body = {
@@ -186,22 +176,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   ctx.body = {
     errno: 0,
     data: {
-      tx: {
-        hash: txTx.id,
-        from: txTx.from,
-        to: txTx.to,
-        chainId: txTx.chainId,
-        symbol: txTx.symbol,
-        value: txTx.value,
-        side: txTx.side,
-        status: txTx.status,
-        nonce: txTx.nonce,
-        tokenAddress: txTx.tokenAddress,
-        timestamp: txTx.timestamp,
-        // "makerId": txTx.makerId,
-        // "lpId": txTx.lpId,
-        // "ebcId": extra['ebcId'],
-      },
+      tx: leaf,
       proof,
     },
     errmsg: "",
@@ -236,7 +211,7 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
   const { hex } = await SPV.calculateLeaf(tx);
   if (!SPV.tree[String(query["chainId"])]) {
     return (ctx.body = {
-      errno: 0,
+      errno: 1000,
       data: [],
       errmsg: "proof non-existent",
     });
@@ -245,12 +220,11 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
     SPV.tree[String(query["chainId"])].uncollectedPayment;
   if (!uncollectedPayment) {
     return (ctx.body = {
-      errno: 0,
+      errno: 1000,
       data: [],
       errmsg: "non-existent",
     });
   }
-  console.log(uncollectedPayment.getHexLeaves(), "==");
   const proof = uncollectedPayment.getHexProof(hex);
   ctx.body = {
     errno: 0,

@@ -88,14 +88,18 @@ export class SPV {
   public async start() {
     const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
     for (const chainId in chainGroup) {
+      const defaultLeafs = [
+        Buffer.from("0000000000000000000000000000000000000000", "hex"),
+      ];
       const tree = {
-        uncollectedPayment: new MerkleTree([], keccak256, {
+        uncollectedPayment: new MerkleTree(defaultLeafs, keccak256, {
           sort: true,
         }),
-        delayedPayment: new MerkleTree([], keccak256, {
+        delayedPayment: new MerkleTree(defaultLeafs, keccak256, {
           sort: true,
         }),
       };
+      console.log(tree.delayedPayment.toString(), "=========");
       SPV.tree[chainId] = tree;
       const spvByChain = new ChainSPVTree(
         this.ctx,

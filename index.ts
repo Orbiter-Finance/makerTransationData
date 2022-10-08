@@ -17,7 +17,7 @@ export class Application {
       });
     }
     // watch
-    //   .readDBMatch("2022-08-25 00:47:33", "2022-08-31 00:47:33")
+    //   .readDBMatch("2022-08-25 00:47:33", "2022-12-31 00:47:33")
     //   .then(result => {
     //     this.ctx.logger.info(`readDBMatch end`, result);
     //   })

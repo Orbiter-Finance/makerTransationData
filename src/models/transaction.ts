@@ -221,7 +221,7 @@ export class transaction
         lpId: {
           type: DataTypes.STRING,
           allowNull: true,
-          comment: "maker id",
+          comment: "lp id",
         },
         extra: {
           type: DataTypes.JSON,

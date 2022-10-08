@@ -1,3 +1,4 @@
+import { isEmpty } from "orbiter-chaincore/src/utils/core";
 import { transactionAttributes } from "./../models/transaction";
 import { chains } from "orbiter-chaincore";
 import dayjs from "dayjs";
@@ -62,6 +63,9 @@ export class SPV {
       leaf.expectSafetyCode,
       Number(leaf.ebcid),
     ];
+    if (isEmpty(args[0])) {
+      throw new Error("Missing parameter LPID");
+    }
     const hex = utils.solidityKeccak256(
       [
         "bytes32",
@@ -224,11 +228,12 @@ export class ChainSPVTree {
         "to",
         "value",
         "nonce",
-        "side",
         "memo",
+        "side",
         "tokenAddress",
         "symbol",
         "lpId",
+        "makerId",
         "chainId",
         "timestamp",
         "extra",
@@ -264,6 +269,7 @@ export class ChainSPVTree {
         "tokenAddress",
         "symbol",
         "lpId",
+        "makerId",
         "chainId",
         "timestamp",
         "extra",

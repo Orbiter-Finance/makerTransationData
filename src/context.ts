@@ -31,7 +31,7 @@ export class Context {
   public config: Config = {
     chains: [],
     subgraphEndpoint: "",
-    makerTransferTimeout: 10, // min
+    makerTransferTimeout: 5, // min
     L1L2Mapping: {
       "4": {
         "0x80c67432656d59144ceff962e8faf8926599bcf8":
@@ -57,7 +57,7 @@ export class Context {
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
         timezone: DB_TIMEZONE || "+00:00",
-        logging: this.NODE_ENV != "prod",
+        logging: false,
       },
     );
     this.models = initModels(this.sequelize);
@@ -143,7 +143,7 @@ export const fecthSubgraphFetchLp = async (endpoint: string) => {
   const graphqlQuery = {
     operationName: "fetchLpList",
     query: `query fetchLpList {
-      lpEntities(where: { status: 1 }) {
+      lpEntities{
         id
         createdAt
         maxPrice

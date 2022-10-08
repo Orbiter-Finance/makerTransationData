@@ -84,6 +84,7 @@ export async function txProcessMatch(ctx: Context, tx: any) {
       return await processUserSendMakerTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processUserSendMakerTx error: `, {
+        message: error.message,
         error,
         tx,
       });
@@ -459,9 +460,9 @@ export async function processUserSendMakerTx(
       status: 1,
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 24 * 2, "m")
-          .toDate(),
+        // [Op.lte]: dayjs(trx.timestamp)
+        //   .add(60 * 24 * 2, "m")
+        //   .toDate(),
       },
       value: String(needToAmount),
     };
@@ -469,9 +470,9 @@ export async function processUserSendMakerTx(
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 24 * 2, "m")
-          .toDate(),
+        // [Op.lte]: dayjs(trx.timestamp)
+        //   .add(60 * 24 * 2, "m")
+        //   .toDate(),
       };
     }
     // TODO:122
@@ -502,6 +503,8 @@ export async function processUserSendMakerTx(
         {
           side: 1,
           status: upStatus,
+          lpId: trx.lpId,
+          makerId: trx.makerId,
         },
         {
           where: {
@@ -554,6 +557,8 @@ export async function processMakerSendUserTx(
         "symbol",
         "nonce",
         "timestamp",
+        "lpId",
+        "makerId",
         "replyAccount",
         "replySender",
       ],
@@ -565,9 +570,9 @@ export async function processMakerSendUserTx(
         replyAccount,
         replySender,
         timestamp: {
-          [Op.gte]: dayjs(trx.timestamp)
-            .subtract(24 * 60 * 2, "m")
-            .toDate(),
+          // [Op.gte]: dayjs(trx.timestamp)
+          //   .subtract(24 * 60 * 2, "m")
+          //   .toDate(),
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
         },
         value: {
@@ -614,6 +619,8 @@ export async function processMakerSendUserTx(
         {
           status: upStatus,
           side: 1,
+          lpId: userSendTx.lpId,
+          makerId: userSendTx.makerId,
         },
         {
           where: {

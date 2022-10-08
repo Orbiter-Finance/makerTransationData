@@ -100,7 +100,25 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   const spvCtx = ctx.state["spvCtx"] as Context;
   // valid is exists
   const fromTx = await spvCtx.models.transaction.findOne({
-    attributes: ["id", "hash", "chainId", "memo", "side", "status"],
+    attributes: [
+      "id",
+      "hash",
+      "from",
+      "to",
+      "chainId",
+      "symbol",
+      "value",
+      "side",
+      "status",
+      "memo",
+      "nonce",
+      "timestamp",
+      "makerId",
+      "lpId",
+      "tokenAddress",
+      "extra",
+    ],
+    raw: true,
     where: {
       chainId: Number(fromChain),
       side: 0,
@@ -114,6 +132,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
       errmsg: "From Transaction does not exist",
     });
   }
+
   if (fromTx.status != 98) {
     return (ctx.body = {
       errno: 1000,

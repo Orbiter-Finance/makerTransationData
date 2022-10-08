@@ -5,7 +5,15 @@ export function createServer(spvCtx: Context) {
   const app = new Koa2();
   app.use(async (ctx, next) => {
     ctx.state.spvCtx = spvCtx;
-    await next();
+    try {
+      await next();
+    } catch (error: any) {
+      console.error(error);
+      return (ctx.body = {
+        errno: 1000,
+        errmsg: error["message"],
+      });
+    }
   });
   app.use(router.routes());
   const port = process.env["PORT"] || 3000;

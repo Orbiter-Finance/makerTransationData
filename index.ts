@@ -3,6 +3,9 @@ import "dotenv/config";
 import { SPV } from "./src/service/spv";
 import { Context } from "./src/context";
 import { createServer } from "./src/server";
+import utc from "dayjs/plugin/utc";
+import dayjs from "dayjs";
+dayjs.extend(utc);
 export class Application {
   public ctx: Context = new Context();
   async bootstrap() {

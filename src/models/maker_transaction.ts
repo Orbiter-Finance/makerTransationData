@@ -73,13 +73,13 @@ export class maker_transaction
           type: DataTypes.BIGINT,
           allowNull: true,
           comment: "inId",
-          // unique: "maker_transaction_ibfk_2",
+          unique: "maker_transaction_inId",
         },
         outId: {
           type: DataTypes.BIGINT,
           allowNull: true,
           comment: "outId",
-          // unique: "maker_transaction_ibfk_1",
+          unique: "maker_transaction_outId",
         },
         fromChain: {
           type: DataTypes.INTEGER,
@@ -124,18 +124,18 @@ export class maker_transaction
             using: "BTREE",
             fields: [{ name: "transcationId" }],
           },
-          // {
-          //   name: "maker_transaction_ibfk_1",
-          //   unique: true,
-          //   using: "BTREE",
-          //   fields: [{ name: "inId" }],
-          // },
-          // {
-          //   name: "maker_transaction_ibfk_2",
-          //   unique: true,
-          //   using: "BTREE",
-          //   fields: [{ name: "outId" }],
-          // },
+          {
+            name: "maker_transaction_inId",
+            unique: true,
+            using: "BTREE",
+            fields: [{ name: "inId" }],
+          },
+          {
+            name: "maker_transaction_outId",
+            unique: true,
+            using: "BTREE",
+            fields: [{ name: "outId" }],
+          },
           {
             name: "replySender",
             using: "BTREE",

@@ -251,7 +251,9 @@ export async function bulkCreateTransaction(
       input: tx.input != "0x" ? tx.input : null,
       status: tx.status,
       tokenAddress: tx.tokenAddress || "",
-      timestamp: dayjs(tx.timestamp * 1000).toDate(),
+      timestamp: dayjs(tx.timestamp * 1000)
+        .utc()
+        .toDate(),
       fee: String(tx.fee),
       feeToken: tx.feeToken,
       chainId: Number(chainConfig.internalId),

@@ -47,7 +47,7 @@ export class SPV {
       nonce: tx.nonce,
       value: tx.value,
       token: tx.tokenAddress,
-      timestamp: dayjs(tx.timestamp).unix(),
+      timestamp: dayjs(tx.timestamp).utc().unix(),
       expectValue,
       expectSafetyCode,
       ebcId: ebcid,

@@ -3,7 +3,6 @@ import { isEmpty } from "orbiter-chaincore/src/utils/core";
 import { Context } from "../../context";
 import Router from "koa-router";
 import dayjs from "dayjs";
-import { Op } from "sequelize";
 
 export async function getTransferTransactions(ctx: Router.RouterContext) {
   const queryType = ctx.params["type"] || "all";
@@ -35,12 +34,12 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
       where["from"] = filterAddress;
       where["side"] = 0;
       where["status"] = 1;
-      where["timestamp"] = {
-        [Op.lte]: dayjs()
-          .subtract(1, "s")
-          .subtract(spvCtx.config.makerTransferTimeout, "m")
-          .toDate(),
-      };
+      // where["timestamp"] = {
+      //   [Op.lte]: dayjs()
+      //     .subtract(1, "s")
+      //     .subtract(spvCtx.config.makerTransferTimeout, "m")
+      //     .toDate(),
+      // };
       break;
   }
   const result: any =
@@ -71,6 +70,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
     row.ebcId = row.extra.ebcId;
     row.expectValue = row.extra.expectValue;
     row.expectSafetyCode = 0;
+    row.timestamp = dayjs(row.timestamp).utc().unix();
     if (row.side === 0) {
       row.expectSafetyCode = row.nonce;
     }

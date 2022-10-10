@@ -5,14 +5,14 @@ export interface IMarket {
   recipient: string;
   sender: string;
   fromChain: {
-    id: string;
+    id: number;
     name: string;
     tokenAddress: string;
     symbol: string;
     decimals: number;
   };
   toChain: {
-    id: string;
+    id: number;
     name: string;
     tokenAddress: string;
     symbol: string;

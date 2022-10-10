@@ -1,5 +1,5 @@
 import { BigNumber } from "bignumber.js";
-import { equals } from "orbiter-chaincore/src/utils/core";
+import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
 import { uniq, flatten } from "lodash";
 import { chains } from "orbiter-chaincore";
@@ -12,10 +12,10 @@ export async function convertMarketListToFile(
       return convertPool(row);
     }),
   ).map(row => {
-    if (["4", "44"].includes(row.toChain.id)) {
+    if ([4, 44].includes(row.toChain.id)) {
       row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
     }
-    if (["4", "44"].includes(row.fromChain.id)) {
+    if ([4, 44].includes(row.fromChain.id)) {
       // starknet mapping
       row.recipient =
         L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
@@ -25,77 +25,82 @@ export async function convertMarketListToFile(
   return configs;
 }
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
-  return oldLpList.map(row => {
-    const pair = row["pair"];
-    const maker = row["maker"];
-    const fromChain = chains.getChainByInternalId(pair.sourceChain);
-    const fromToken = fromChain.tokens.find(row =>
-      equals(row.address, pair.sourceToken),
-    );
-    const toChain = chains.getChainByInternalId(pair.destChain);
-    const toToken = toChain.tokens.find(row =>
-      equals(row.address, pair.destToken),
-    );
-    const recipientAddress = maker["owner"];
-    const senderAddress = maker["owner"];
-    const fromChainId = pair.sourceChain;
-    const toChainId = pair.destChain;
-    const minPrice = new BigNumber(
-      Number(row["minPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
-    ).toNumber();
-    const maxPrice = new BigNumber(
-      Number(row["maxPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
-    ).toNumber();
-    const times = [
-      Number(row["startTime"]),
-      Number(row["stopTime"] || 9999999999),
-    ];
-    return {
-      id: row["id"],
-      recipient: recipientAddress,
-      sender: senderAddress,
-      makerId: maker.id,
-      ebcId: pair["ebcId"],
-      fromChain: {
-        id: fromChainId,
-        name: fromChain.name,
-        tokenAddress: pair.sourceToken,
-        symbol: fromToken?.symbol || "",
-        decimals: Number(row["sourcePresion"]),
-      },
-      toChain: {
-        id: toChainId,
-        name: toChain.name,
-        tokenAddress: pair.destToken,
-        symbol: toToken?.symbol || "",
-        decimals: Number(row["destPresion"]),
-      },
-      times,
-      pool: {
-        //Subsequent versions will modify the structure
-        makerAddress: recipientAddress,
-        c1ID: fromChainId,
-        c2ID: toChainId,
-        c1Name: fromChain.name,
-        c2Name: toChain.name,
-        t1Address: pair.sourceToken,
-        t2Address: pair.destToken,
-        tName: fromToken?.symbol,
-        minPrice,
-        maxPrice,
-        precision: Number(row["sourcePresion"]),
-        avalibleDeposit: 1000,
-        tradingFee: new BigNumber(
-          Number(row["tradingFee"]) / Math.pow(10, Number(row["destPresion"])),
-        ).toNumber(),
-        gasFee: new BigNumber(
-          Number(row["gasFee"]) / Math.pow(10, Number(row["destPresion"])),
-        ).toNumber(),
-        avalibleTimes: times,
-      },
-    };
+  const marketList: Array<IMarket | null> = oldLpList.map(row => {
+    try {
+      const pair = row["pair"];
+      const maker = row["maker"];
+      const fromChain = chains.getChainByInternalId(pair.sourceChain);
+      const fromToken = fromChain.tokens.find(row =>
+        equals(row.address, pair.sourceToken),
+      );
+      const toChain = chains.getChainByInternalId(pair.destChain);
+      const toToken = toChain.tokens.find(row =>
+        equals(row.address, pair.destToken),
+      );
+      const recipientAddress = maker["owner"];
+      const senderAddress = maker["owner"];
+      const fromChainId = pair.sourceChain;
+      const toChainId = pair.destChain;
+      const minPrice = new BigNumber(
+        Number(row["minPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
+      ).toNumber();
+      const maxPrice = new BigNumber(
+        Number(row["maxPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
+      ).toNumber();
+      const times = [
+        Number(row["startTime"]),
+        Number(row["stopTime"] || 9999999999),
+      ];
+      return {
+        id: row["id"],
+        recipient: recipientAddress,
+        sender: senderAddress,
+        makerId: maker.id,
+        ebcId: pair["ebcId"],
+        fromChain: {
+          id: Number(fromChainId),
+          name: fromChain.name,
+          tokenAddress: pair.sourceToken,
+          symbol: fromToken?.symbol || "",
+          decimals: Number(row["sourcePresion"]),
+        },
+        toChain: {
+          id: Number(toChainId),
+          name: toChain.name,
+          tokenAddress: pair.destToken,
+          symbol: toToken?.symbol || "",
+          decimals: Number(row["destPresion"]),
+        },
+        times,
+        pool: {
+          //Subsequent versions will modify the structure
+          makerAddress: recipientAddress,
+          c1ID: fromChainId,
+          c2ID: toChainId,
+          c1Name: fromChain.name,
+          c2Name: toChain.name,
+          t1Address: pair.sourceToken,
+          t2Address: pair.destToken,
+          tName: fromToken?.symbol,
+          minPrice,
+          maxPrice,
+          precision: Number(row["sourcePresion"]),
+          avalibleDeposit: 1000,
+          tradingFee: new BigNumber(
+            Number(row["tradingFee"]) /
+              Math.pow(10, Number(row["destPresion"])),
+          ).toNumber(),
+          gasFee: new BigNumber(
+            Number(row["gasFee"]) / Math.pow(10, Number(row["destPresion"])),
+          ).toNumber(),
+          avalibleTimes: times,
+        },
+      } as IMarket;
+    } catch (error) {
+      return null;
+    }
   });
-  // return lpList;
+  return marketList.filter(row => !isEmpty(row)) as any;
 }
 export function groupWatchAddressByChain(makerList: Array<IMarket>): {
   [key: string]: Array<string>;
@@ -127,14 +132,14 @@ export function convertPool(pool: any): Array<IMarket> {
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
       fromChain: {
-        id: String(pool.c1ID),
+        id: pool.c1ID,
         name: pool.c1Name,
         tokenAddress: pool.t1Address,
         symbol: pool.tName,
         decimals: pool.precision,
       },
       toChain: {
-        id: String(pool.c2ID),
+        id: pool.c2ID,
         name: pool.c2Name,
         tokenAddress: pool.t2Address,
         symbol: pool.tName,

@@ -230,8 +230,8 @@ export async function bulkCreateTransaction(
       // makerAddress
       if (!tx.from) {
         const makerItem = await ctx.makerConfigs.find(
-          (row: { toChain: { id: string } }) =>
-            row.toChain.id === chainConfig.internalId,
+          (row: { toChain: { id: number } }) =>
+            equals(row.toChain.id, Number(chainConfig.internalId)),
         );
         tx.from = (makerItem && makerItem.sender) || "";
       }
@@ -310,8 +310,8 @@ export async function bulkCreateTransaction(
       }
       const market = ctx.makerConfigs.find(
         m =>
-          equals(m.fromChain.id, String(fromChainId)) &&
-          equals(m.toChain.id, String(toChainId)) &&
+          equals(m.fromChain.id, fromChainId) &&
+          equals(m.toChain.id, toChainId) &&
           equals(m.fromChain.symbol, txData.symbol) &&
           equals(m.fromChain.tokenAddress, txData.tokenAddress) &&
           dayjs(txData.timestamp).unix() >= m.times[0] &&
@@ -434,8 +434,8 @@ export async function processUserSendMakerTx(
   );
   const market = ctx.makerConfigs.find(
     m =>
-      equals(m.fromChain.id, String(fromChainId)) &&
-      equals(m.toChain.id, String(toChainId)) &&
+      equals(m.fromChain.id, fromChainId) &&
+      equals(m.toChain.id, toChainId) &&
       equals(m.fromChain.symbol, trx.symbol) &&
       equals(m.fromChain.tokenAddress, trx.tokenAddress) &&
       dayjs(trx.timestamp).unix() >= m.times[0] &&

@@ -501,10 +501,19 @@ export async function processUserSendMakerTx(
       replyAccount: trx.replyAccount,
     };
     if (makerSendTx && makerSendTx.id) {
+      const chainData = ctx.config.chainsTokens.find((row: any) =>
+        equals(row.id, trx.chainId),
+      );
+      if (!chainData) {
+        ctx.logger.error("processUserSendMakerTx getChain Not Found");
+        return;
+      }
+      const maxReceiptTime = chainData.maxReceiptTime;
+
       upsertData.outId = makerSendTx.id;
       let upStatus = 99;
-      const delayMin = dayjs(makerSendTx.timestamp).diff(trx.timestamp, "m");
-      if (delayMin > ctx.config.makerTransferTimeout) {
+      const delayMin = dayjs(makerSendTx.timestamp).diff(trx.timestamp, "s");
+      if (delayMin > maxReceiptTime) {
         upStatus = 98; //
       }
       await ctx.models.transaction.update(
@@ -606,9 +615,17 @@ export async function processMakerSendUserTx(
         userSendTx.symbol,
       );
       let upStatus = 99;
+      const chainData = ctx.config.chainsTokens.find((row: any) =>
+        equals(row.id, userSendTx.chainId),
+      );
+      if (!chainData) {
+        ctx.logger.error("processMakerSendUserTx getChain Not Found");
+        return;
+      }
+      const maxReceiptTime = chainData.maxReceiptTime;
       // Check whether the payment is delayed in minutes
-      const delayMin = dayjs(trx.timestamp).diff(userSendTx.timestamp, "m");
-      if (delayMin > ctx.config.makerTransferTimeout) {
+      const delayMin = dayjs(trx.timestamp).diff(userSendTx.timestamp, "s");
+      if (delayMin > maxReceiptTime) {
         upStatus = 98; //
       }
       await ctx.models.transaction.update(

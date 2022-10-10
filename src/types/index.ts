@@ -27,7 +27,7 @@ export interface Config {
       [key: string]: string;
     };
   };
+  chainsTokens: Array<any>;
   subgraphEndpoint: string;
-  makerTransferTimeout: number;
   chains: Array<any>;
 }

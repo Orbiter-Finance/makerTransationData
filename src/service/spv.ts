@@ -216,6 +216,16 @@ export class ChainSPVTree {
   public async getUserNotRefundedTransactionList(): Promise<
     Array<transactionAttributes>
   > {
+    const chainData = this.ctx.config.chainsTokens.find(
+      row => row.id === this.chainId,
+    );
+    if (!chainData) {
+      this.ctx.logger.error(
+        "getUserNotRefundedTransactionList getChain Not Found",
+      );
+      return [];
+    }
+    const maxReceiptTime = chainData.maxReceiptTime;
     const where = {
       chainId: this.chainId,
       status: 1,
@@ -224,10 +234,7 @@ export class ChainSPVTree {
         [Op.gt]: this.maxTxId.user,
       },
       timestamp: {
-        [Op.lte]: dayjs()
-          .subtract(1, "s")
-          .subtract(this.ctx.config.makerTransferTimeout, "m")
-          .toDate(),
+        [Op.lte]: dayjs().subtract(maxReceiptTime, "s").toDate(),
       },
     };
     const txList = await this.ctx.models.transaction.findAll({

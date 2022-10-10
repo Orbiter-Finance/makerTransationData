@@ -55,7 +55,7 @@ export const CHAIN_INDEX: any = {
   515: "bnbchain",
   16: "arbitrum_nova",
   516: "arbitrum_nova",
-  1337: "orbiter",
+  599: "orbiter",
 };
 
 export const SIZE_OP = {

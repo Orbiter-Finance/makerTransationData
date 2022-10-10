@@ -10,10 +10,11 @@ import { Config, IMarket } from "./types";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
-import { convertChainLPToOldLP, convertMarketListToFile } from "./utils";
+import { convertMarketListToFile } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import { makerList, makerListHistory } from "./maker";
+import Subgraphs from "./service/subgraphs";
 
 export class Context {
   public models!: {
@@ -30,8 +31,8 @@ export class Context {
   public isSpv: boolean;
   public config: Config = {
     chains: [],
+    chainsTokens: [],
     subgraphEndpoint: "",
-    makerTransferTimeout: 5, // min
     L1L2Mapping: {
       "4": {
         "0x80c67432656d59144ceff962e8faf8926599bcf8":
@@ -88,25 +89,38 @@ export class Context {
   async init() {
     await this.initChainConfigs();
     chains.fill(this.config.chains);
+    const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
     if (this.isSpv) {
       try {
-        this.makerConfigs = await fecthSubgraphFetchLp(
-          this.config.subgraphEndpoint,
-        );
+        this.makerConfigs = await subApi.getAllLp();
       } catch (error) {
         this.logger.error("init LP error", error);
       }
+      this.config.chainsTokens = await subApi.getChains();
       setInterval(() => {
-        fecthSubgraphFetchLp(this.config.subgraphEndpoint)
+        subApi
+          .getAllLp()
           .then(result => {
             if (result && result.length > 0) {
               this.makerConfigs = result;
             }
           })
           .catch(error => {
-            this.logger.error("setInterval fetchLP error:", error);
+            this.logger.error("setInterval getAllLp error:", error);
           });
+        if (Date.now() % 6 === 0) {
+          subApi
+            .getChains()
+            .then(chainsTokens => {
+              if (chainsTokens) {
+                this.config.chainsTokens = chainsTokens;
+              }
+            })
+            .catch(error => {
+              this.logger.error("setInterval getChains error:", error);
+            });
+        }
       }, 1000 * 10);
     } else {
       await fetchFileMakerList(this);
@@ -136,54 +150,3 @@ export async function fetchFileMakerList(ctx: Context) {
   );
   ctx.makerConfigs.push(...makerConfigsHistory);
 }
-export const fecthSubgraphFetchLp = async (endpoint: string) => {
-  const headers = {
-    "content-type": "application/json",
-  };
-  const graphqlQuery = {
-    operationName: "fetchLpList",
-    query: `query fetchLpList {
-      lpEntities{
-        id
-        createdAt
-        maxPrice
-        minPrice
-        sourcePresion
-        destPresion
-        tradingFee
-        gasFee
-        startTime
-        stopTime
-          maker {
-          id
-          owner
-        }
-          pair {
-          id
-          sourceChain
-          destChain
-          sourceToken
-          destToken
-          ebcId
-        }
-      }
-    }`,
-    variables: {},
-  };
-
-  const options = {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(graphqlQuery),
-  };
-
-  const response = await fetch(endpoint, options);
-  const data = await response.json();
-  //
-  const lpEntities = data.data["lpEntities"];
-  if (!(lpEntities && Array.isArray(lpEntities))) {
-    throw new Error("Get LP List Fail");
-  }
-  const convertData = convertChainLPToOldLP(lpEntities);
-  return convertData;
-};

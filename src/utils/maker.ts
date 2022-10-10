@@ -97,6 +97,7 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
         },
       } as IMarket;
     } catch (error) {
+      console.error(`convertChainLPToOldLP error:`, row, error);
       return null;
     }
   });

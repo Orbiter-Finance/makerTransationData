@@ -18,8 +18,11 @@ export class SPV {
       delayedPayment: MerkleTree;
     };
   } = {};
-  constructor(private readonly ctx: Context, private contractChainId: number) {
-    const chain = chains.getChainByChainId(String(contractChainId));
+  constructor(
+    private readonly ctx: Context,
+    private readonly contractChainId: number,
+  ) {
+    const chain = chains.getChainByChainId(String(this.contractChainId));
     if (chain) {
       this.rpcPovider = new providers.JsonRpcProvider(chain.rpc[0]);
     }

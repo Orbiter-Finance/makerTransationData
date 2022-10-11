@@ -22,7 +22,7 @@ export class SPV {
     private readonly ctx: Context,
     private readonly contractChainId: number,
   ) {
-    const chain = chains.getChainByChainId(String(this.contractChainId));
+    const chain = chains.getChainByInternalId(String(this.contractChainId));
     if (chain) {
       this.rpcPovider = new providers.JsonRpcProvider(chain.rpc[0]);
     }

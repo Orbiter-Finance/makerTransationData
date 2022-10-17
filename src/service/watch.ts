@@ -57,6 +57,13 @@ export class Watch {
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
+        // findByHashTxMatch(ctx, 16, '0x0e56229ca8428ac229fda738ec26b36e6350f7034665ba7f9277d0948e7e2e4b').then(res=>{
+        //   console.log('匹配结束：', res);
+
+        // }).catch(err=> {
+        //   console.log('error:', err);
+
+        // })
       }
 
       process.on("SIGINT", () => {
@@ -72,10 +79,9 @@ export class Watch {
         this.initUnmatchedTransaction().catch(error => {
           this.ctx.logger.error("initUnmatchedTransaction error:", error);
         });
-      this.ctx.instanceId === 0 &&
-        this.readQueneMatch().catch(error => {
-          this.ctx.logger.error("readQueneMatch error:", error);
-        });
+      this.readQueneMatch().catch(error => {
+        this.ctx.logger.error("readQueneMatch error:", error);
+      });
     }
   }
   public async readDBMatch(

@@ -15,13 +15,11 @@ services:
     command: pm2-runtime start pm2.json
     ports:
       - '8001:8001'
+      - '3000:3000'
     depends_on:
       - redis
     links:
       - redis
     volumes:
-      - './src/config/chains.json:/home/makerTransationData/dist/src/config/chains.json'
-      - './src/config/testnet.json:/home/makerTransationData/dist/src/config/testnet.json'
       - './runtime:/home/makerTransationData/runtime'
-      - './src/config:/home/makerTransationData/dist/src/config'
       - './pm2.json:/home/makerTransationData/pm2.json'

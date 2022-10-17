@@ -1,12 +1,11 @@
 {
-  "name": "makerTransationData",
+  "name": "orbiter-spv",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "seqauto": "sequelize-auto -o ./src/models -d orbiter-new -h localhost -u root -p 3306 -x 123456 -e mysql -l ts",
     "dev": "ts-node ./index.ts",
-    "dev:spv": "ts-node ./index.ts --spv",
     "pushServer": "ts-node ./cmd/server.js",
     "inject": "ts-node ./cmd/client.js",
     "start": "node ./dist/index.js",
@@ -45,6 +44,8 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
+    "@types/koa": "^2.13.5",
+    "@types/koa-router": "^7.4.4",
     "bignumber.js": "^9.0.2",
     "chalk": "^4.1.2",
     "dayjs": "^1.11.4",
@@ -55,10 +56,13 @@
     "inquirer": "^8.2.4",
     "ioredis": "^5.2.0",
     "keccak256": "^1.0.6",
+    "koa": "^2.13.4",
+    "koa-body": "^5.0.0",
+    "koa-router": "^12.0.0",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.2.32",
     "mysql2": "^2.3.3",
-    "orbiter-chaincore": "1.3.3",
+    "orbiter-chaincore": "1.3.4",
     "patch-package": "^6.4.7",
     "postinstall-postinstall": "^2.1.0",
     "prompt": "^1.3.0",

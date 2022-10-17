@@ -84,6 +84,7 @@ export async function txProcessMatch(ctx: Context, tx: any) {
       return await processUserSendMakerTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processUserSendMakerTx error: `, {
+        message: error.message,
         error,
         tx,
       });
@@ -216,19 +217,21 @@ export async function bulkCreateTransaction(
     //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
     // );
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
-    if (["9", "99"].includes(chainConfig.internalId) && tx.extra) {
-      memo = String(tx.extra.memo % 9000);
+    const txExtra = tx.extra || {};
+    if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
+      memo = String(txExtra.memo % 9000);
     } else if (
       ["11", "511"].includes(chainConfig.internalId) &&
-      tx.extra["type"] === "TRANSFER_OUT"
+      txExtra["type"] === "TRANSFER_OUT"
     ) {
       if (!tx.to) {
-        tx.to = dydx.getEthereumAddressFromClientId(tx.extra["clientId"]);
+        tx.to = dydx.getEthereumAddressFromClientId(txExtra["clientId"]);
       }
       // makerAddress
       if (!tx.from) {
-        const makerItem = await ctx.makerConfigs.find(row =>
-          equals(row.toChain.id, Number(chainConfig.internalId)),
+        const makerItem = await ctx.makerConfigs.find(
+          (row: { toChain: { id: number } }) =>
+            equals(row.toChain.id, Number(chainConfig.internalId)),
         );
         tx.from = (makerItem && makerItem.sender) || "";
       }
@@ -248,16 +251,25 @@ export async function bulkCreateTransaction(
       input: tx.input != "0x" ? tx.input : null,
       status: tx.status,
       tokenAddress: tx.tokenAddress || "",
-      timestamp: dayjs(tx.timestamp * 1000).toDate(),
+      timestamp: dayjs(tx.timestamp * 1000)
+        .utc()
+        .toDate(),
       fee: String(tx.fee),
       feeToken: tx.feeToken,
       chainId: Number(chainConfig.internalId),
       source: tx.source,
-      extra: tx.extra,
+      extra: {},
       memo,
       replyAccount: "",
       replySender: "",
       side: 0,
+      makerId: "",
+      lpId: "",
+      expectValue: "",
+    };
+    const saveExtra: any = {
+      expectValue: 0,
+      ebcId: 0,
     };
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
@@ -279,16 +291,17 @@ export async function bulkCreateTransaction(
       let toChainId = Number(
         getAmountFlag(Number(fromChainId), String(txData.value)),
       );
-      if ([9, 99].includes(fromChainId) && txData.extra) {
-        toChainId = Number(txData.extra.memo) % 9000;
+      if ([9, 99].includes(fromChainId) && txExtra) {
+        toChainId = Number(txExtra.memo) % 9000;
       }
       txData.replyAccount = txData.from;
       if ([44, 4, 11, 511].includes(fromChainId)) {
         // dydx contract send
         // starknet contract send
-        txData.replyAccount = txData.extra["ext"] || "";
+        txData.replyAccount = txExtra["ext"] || "";
       } else if ([44, 4, 11, 511].includes(toChainId)) {
-        const ext = txData.extra["ext"] || "";
+        const ext = txExtra["ext"] || "";
+        saveExtra["ext"] = ext;
         // 11,511 0x02 first
         // 4, 44 0x03 first
         txData.replyAccount = `0x${ext.substring(4)}`;
@@ -308,7 +321,23 @@ export async function bulkCreateTransaction(
       if (!market) {
         txData.status = 3;
       } else {
+        txData.lpId = market.id;
+        txData.makerId = market.makerId;
+        // ebc
+        saveExtra["ebcId"] = market.ebcId;
         txData.replySender = market.sender;
+        // calc response amount
+        try {
+          txData.expectValue = String(
+            await calcMakerSendAmount(ctx.makerConfigs, txData as any),
+          );
+          saveExtra["expectValue"] = txData.expectValue;
+        } catch (error) {
+          ctx.logger.error(
+            "bulkCreateTransaction calcMakerSendAmount error:",
+            error,
+          );
+        }
       }
     }
 
@@ -318,8 +347,11 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
+    txData.extra = saveExtra;
     txsList.push(txData);
   }
+  // calc response amount
+
   try {
     await ctx.models.transaction.bulkCreate(<any>txsList, {
       // returning: true,
@@ -339,6 +371,9 @@ export async function bulkCreateTransaction(
         "replyAccount",
         "replySender",
         "side",
+        "expectValue",
+        "lpId",
+        "makerId",
       ],
     });
     return txsList;
@@ -412,17 +447,7 @@ export async function processUserSendMakerTx(
       `${trx.hash} Transaction pair not found ${trx.chainId} - ${trx.memo}`,
     );
   }
-  let needToAmount = "0";
-  if (market && market.pool) {
-    needToAmount =
-      getAmountToSend(
-        Number(fromChainId),
-        Number(toChainId),
-        trx.value.toString(),
-        market.pool,
-        trx.nonce,
-      )?.tAmount || "0";
-  }
+  const needToAmount = trx.expectValue;
   const t = await ctx.sequelize.transaction();
   try {
     const where = {
@@ -434,19 +459,19 @@ export async function processUserSendMakerTx(
       status: 1,
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 24 * 2, "m")
-          .toDate(),
+        // [Op.lte]: dayjs(trx.timestamp)
+        //   .add(60 * 24 * 2, "m")
+        //   .toDate(),
       },
-      value: String(needToAmount),
+      value: needToAmount,
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
-        [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 24 * 2, "m")
-          .toDate(),
+        // [Op.lte]: dayjs(trx.timestamp)
+        //   .add(60 * 24 * 2, "m")
+        //   .toDate(),
       };
     }
     // TODO:122
@@ -466,16 +491,31 @@ export async function processUserSendMakerTx(
       replySender: trx.replySender,
       replyAccount: trx.replyAccount,
     };
+
     if (makerSendTx && makerSendTx.id) {
+      let maxReceiptTime = 1 * 60 * 60 * 24;
+      if (ctx.isSpv) {
+        const chainData = ctx.config.chainsTokens.find((row: any) =>
+          equals(row.id, trx.chainId),
+        );
+        if (!chainData) {
+          ctx.logger.error("processUserSendMakerTx getChain Not Found");
+          return;
+        }
+        maxReceiptTime = chainData.maxReceiptTime;
+      }
+
       upsertData.outId = makerSendTx.id;
       let upStatus = 99;
-      const delayMin = dayjs(makerSendTx.timestamp).diff(trx.timestamp, "m");
-      if (delayMin > ctx.config.makerTransferTimeout) {
+      const delayMin = dayjs(makerSendTx.timestamp).diff(trx.timestamp, "s");
+      if (delayMin > maxReceiptTime) {
         upStatus = 98; //
       }
       await ctx.models.transaction.update(
         {
           status: upStatus,
+          lpId: trx.lpId,
+          makerId: trx.makerId,
         },
         {
           where: {
@@ -540,6 +580,8 @@ export async function processMakerSendUserTx(
         "symbol",
         "nonce",
         "timestamp",
+        "lpId",
+        "makerId",
         "replyAccount",
         "replySender",
       ],
@@ -550,10 +592,11 @@ export async function processMakerSendUserTx(
         symbol: trx.symbol,
         replyAccount,
         replySender,
+        expectValue: trx.value,
         timestamp: {
-          [Op.gte]: dayjs(trx.timestamp)
-            .subtract(24 * 60 * 2, "m")
-            .toDate(),
+          // [Op.gte]: dayjs(trx.timestamp)
+          //   .subtract(24 * 60 * 2, "m")
+          //   .toDate(),
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
         },
         value: {
@@ -580,9 +623,21 @@ export async function processMakerSendUserTx(
         dayjs(userSendTx.timestamp).valueOf(),
       );
       let upStatus = 99;
+      let maxReceiptTime = 1 * 60 * 60 * 24;
+      if (ctx.isSpv) {
+        const chainData = ctx.config.chainsTokens.find((row: any) =>
+          equals(row.id, userSendTx.chainId),
+        );
+        if (!chainData) {
+          ctx.logger.error("processMakerSendUserTx getChain Not Found");
+          return;
+        }
+        maxReceiptTime = chainData.maxReceiptTime;
+      }
+
       // Check whether the payment is delayed in minutes
-      const delayMin = dayjs(trx.timestamp).diff(userSendTx.timestamp, "m");
-      if (delayMin > ctx.config.makerTransferTimeout) {
+      const delayMin = dayjs(trx.timestamp).diff(userSendTx.timestamp, "s");
+      if (delayMin > maxReceiptTime) {
         upStatus = 98; //
       }
       await ctx.models.transaction.update(
@@ -591,7 +646,21 @@ export async function processMakerSendUserTx(
         },
         {
           where: {
-            id: [userSendTx.id, trx.id],
+            id: userSendTx.id,
+          },
+          transaction: t,
+        },
+      );
+      await ctx.models.transaction.update(
+        {
+          status: upStatus,
+          side: 1,
+          lpId: userSendTx.lpId,
+          makerId: userSendTx.makerId,
+        },
+        {
+          where: {
+            id: trx.id,
           },
           transaction: t,
         },

@@ -60,7 +60,7 @@ export default class Subgraphs {
       "content-type": "application/json",
     };
     const graphqlQuery = {
-      operationName: "fetchLpList",
+      operationName: "getChains",
       query: `query  {
         chainEntities {
           id
@@ -84,6 +84,10 @@ export default class Subgraphs {
 
     const response = await fetch(this.endpoint, options);
     const { data } = await response.json();
+    if (!data) {
+      console.error("getChains fail", data);
+      return;
+    }
     return data.chainEntities.map((row: any) => {
       row.maxDisputeTime = Number(row.maxDisputeTime);
       row.maxReceiptTime = Number(row.maxReceiptTime);

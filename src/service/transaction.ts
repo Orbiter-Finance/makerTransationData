@@ -431,6 +431,7 @@ export async function processUserSendMakerTx(
     trx.chainId,
     trx.nonce,
     trx.symbol,
+    dayjs(trx.timestamp).valueOf(),
   );
   const market = ctx.makerConfigs.find(
     m =>
@@ -613,6 +614,7 @@ export async function processMakerSendUserTx(
         userSendTx.chainId,
         userSendTx.nonce,
         userSendTx.symbol,
+        dayjs(userSendTx.timestamp).valueOf(),
       );
       let upStatus = 99;
       const chainData = ctx.config.chainsTokens.find((row: any) =>

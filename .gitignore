@@ -20,3 +20,4 @@ src/config/testnet.json
 pm2.json
 .yalc
 yalc.lock
+.env

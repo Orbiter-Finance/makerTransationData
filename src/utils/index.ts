@@ -18,7 +18,7 @@ export function TransactionID(
   timestamp?: number,
 ) {
   let ext = "";
-  if ([8, 8].includes(Number(fromChainId))) {
+  if ([8, 88].includes(Number(fromChainId))) {
     ext = timestamp ? `_${dayjs(timestamp).unix()}` : "";
   }
   return `${fromAddress}${padStart(String(fromChainId), 4, "0")}${

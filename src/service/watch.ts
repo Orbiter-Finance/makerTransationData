@@ -4,7 +4,12 @@ import { Op } from "sequelize";
 import { WAIT_MATCH_REDIS_KEY } from "../types/const";
 import { groupWatchAddressByChain, sleep } from "../utils";
 import { Context } from "../context";
-import { bulkCreateTransaction, findByHashTxMatch } from "./transaction";
+import {
+  bulkCreateTransaction,
+  findByHashTxMatch,
+  txProcessMatch,
+} from "./transaction";
+import dayjs from "dayjs";
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public async processSubTxList(txlist: Array<Transaction>) {
@@ -14,7 +19,7 @@ export class Watch {
         continue;
       }
       this.ctx.redis
-        .rpush(
+        .lpush(
           WAIT_MATCH_REDIS_KEY,
           JSON.stringify({ chainId: tx.chainId, hash: tx.hash }),
         )
@@ -53,6 +58,7 @@ export class Watch {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
+
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);
@@ -72,6 +78,39 @@ export class Watch {
         });
     }
   }
+  public async readDBMatch(
+    startAt: any,
+    endAt: any = new Date(),
+  ): Promise<any> {
+    // read
+    const txList = await this.ctx.models.transaction.findAll({
+      raw: true,
+      attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
+      limit: 2000,
+      order: [["timestamp", "desc"]],
+      where: {
+        side: 0,
+        status: 1,
+        timestamp: {
+          [Op.gt]: startAt,
+          [Op.lt]: endAt,
+        },
+      },
+    });
+    for (const tx of txList) {
+      const result = await txProcessMatch(this.ctx, tx);
+      this.ctx.logger.debug(
+        `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+        result,
+      );
+      endAt = tx.timestamp;
+    }
+    if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {
+      return { startAt, endAt, count: txList.length };
+    }
+    await sleep(1000 * 5);
+    return await this.readDBMatch(startAt, endAt);
+  }
   public async initUnmatchedTransaction() {
     const where: any = {
       [Op.or]: [
@@ -82,13 +121,16 @@ export class Watch {
           outId: null,
         },
       ],
+      createdAt: {
+        [Op.gte]: dayjs().startOf("d"),
+      },
     };
     const mtxList = await this.ctx.models.maker_transaction.findAll({
       attributes: ["inId", "outId"],
       raw: true,
       where,
       order: [["id", "desc"]],
-      limit: 1000,
+      limit: 500,
     });
     const txIdList = mtxList.map(row => {
       return row.inId || row.outId;

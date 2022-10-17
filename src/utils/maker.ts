@@ -9,10 +9,10 @@ export async function convertMarketListToFile(
       return convertPool(row);
     }),
   ).map(row => {
-    if (["4", "44"].includes(row.toChain.id)) {
+    if ([4, 44].includes(row.toChain.id)) {
       row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
     }
-    if (["4", "44"].includes(row.fromChain.id)) {
+    if ([4, 44].includes(row.fromChain.id)) {
       // starknet mapping
       row.recipient =
         L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
@@ -48,13 +48,13 @@ export function convertPool(pool: any): Array<IMarket> {
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
       fromChain: {
-        id: String(pool.c1ID),
+        id: Number(pool.c1ID),
         name: pool.c1Name,
         tokenAddress: pool.t1Address,
         symbol: pool.tName,
       },
       toChain: {
-        id: String(pool.c2ID),
+        id: Number(pool.c2ID),
         name: pool.c2Name,
         tokenAddress: pool.t2Address,
         symbol: pool.tName,
@@ -86,13 +86,13 @@ export function convertPool(pool: any): Array<IMarket> {
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
       fromChain: {
-        id: String(pool.c2ID),
+        id: Number(pool.c2ID),
         name: pool.c2Name,
         tokenAddress: pool.t2Address,
         symbol: pool.tName,
       },
       toChain: {
-        id: String(pool.c1ID),
+        id: Number(pool.c1ID),
         name: pool.c1Name,
         tokenAddress: pool.t1Address,
         symbol: pool.tName,

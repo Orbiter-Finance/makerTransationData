@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { padStart } from "orbiter-chaincore/src/utils/core";
 
 export * from "./maker";
@@ -14,8 +15,13 @@ export function TransactionID(
   fromChainId: number | string,
   fromTxNonce: string | number,
   symbol: string | undefined,
+  timestamp?: number,
 ) {
-  return `${fromAddress}${padStart(String(fromChainId), 4, "00")}${
+  let ext = "";
+  if ([8, 88].includes(Number(fromChainId))) {
+    ext = timestamp ? `_${dayjs(timestamp).unix()}` : "";
+  }
+  return `${fromAddress}${padStart(String(fromChainId), 4, "0")}${
     symbol || "NULL"
-  }${fromTxNonce}`.toLowerCase();
+  }${fromTxNonce}${ext}`.toLowerCase();
 }

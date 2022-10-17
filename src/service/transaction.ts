@@ -330,7 +330,6 @@ export async function bulkCreateTransaction(
         "fee",
         "feeToken",
         "symbol",
-        "status",
         "input",
         "extra",
         "timestamp",
@@ -476,28 +475,39 @@ export async function processUserSendMakerTx(
       }
       await ctx.models.transaction.update(
         {
-          side: 1,
           status: upStatus,
         },
         {
           where: {
-            id: makerSendTx.id,
+            id: [makerSendTx.id, trx.id],
           },
           transaction: t,
         },
       );
-      await ctx.models.transaction.update(
-        {
-          side: 0,
-          status: upStatus,
-        },
-        {
-          where: {
-            id: trx.id,
-          },
-          transaction: t,
-        },
-      );
+      // await ctx.models.transaction.update(
+      //   {
+      //     side: 1,
+      //     status: upStatus,
+      //   },
+      //   {
+      //     where: {
+      //       id: makerSendTx.id,
+      //     },
+      //     transaction: t,
+      //   },
+      // );
+      // await ctx.models.transaction.update(
+      //   {
+      //     side: 0,
+      //     status: upStatus,
+      //   },
+      //   {
+      //     where: {
+      //       id: trx.id,
+      //     },
+      //     transaction: t,
+      //   },
+      // );
     }
     await ctx.models.maker_transaction.upsert(upsertData, {
       transaction: t,
@@ -578,27 +588,38 @@ export async function processMakerSendUserTx(
       await ctx.models.transaction.update(
         {
           status: upStatus,
-          side: 0,
         },
         {
           where: {
-            id: userSendTx.id,
+            id: [userSendTx.id, trx.id],
           },
           transaction: t,
         },
       );
-      await ctx.models.transaction.update(
-        {
-          status: upStatus,
-          side: 1,
-        },
-        {
-          where: {
-            id: trx.id,
-          },
-          transaction: t,
-        },
-      );
+      // await ctx.models.transaction.update(
+      //   {
+      //     status: upStatus,
+      //     side: 0,
+      //   },
+      //   {
+      //     where: {
+      //       id: userSendTx.id,
+      //     },
+      //     transaction: t,
+      //   },
+      // );
+      // await ctx.models.transaction.update(
+      //   {
+      //     status: upStatus,
+      //     side: 1,
+      //   },
+      //   {
+      //     where: {
+      //       id: trx.id,
+      //     },
+      //     transaction: t,
+      //   },
+      // );
     }
     const [makerRelTrx] = await models.maker_transaction.upsert(upsertData, {
       transaction: t,

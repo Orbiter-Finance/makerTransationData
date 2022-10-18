@@ -236,19 +236,19 @@ export async function bulkCreateTransaction(
         tx.from = (makerItem && makerItem.sender) || "";
       }
     }
-    const txData = {
+    const txData: Partial<transactionAttributes> = {
       hash: tx.hash,
       nonce: String(tx.nonce),
       blockHash: tx.blockHash,
       blockNumber: tx.blockNumber,
       transactionIndex: tx.transactionIndex,
-      from: tx.from || "",
-      to: tx.to || "",
+      from: tx.from,
+      to: tx.to,
       value: String(tx.value),
       symbol: tx.symbol,
       gasPrice: tx.gasPrice,
       gas: tx.gas,
-      input: tx.input != "0x" ? tx.input : null,
+      input: tx.input != "0x" ? tx.input : undefined,
       status: tx.status,
       tokenAddress: tx.tokenAddress || "",
       timestamp: dayjs(tx.timestamp * 1000)
@@ -260,15 +260,14 @@ export async function bulkCreateTransaction(
       source: tx.source,
       extra: {},
       memo,
-      replyAccount: "",
-      replySender: "",
+      replyAccount: undefined,
+      replySender: undefined,
       side: 0,
-      makerId: "",
-      lpId: "",
-      expectValue: "",
+      makerId: undefined,
+      lpId: undefined,
+      expectValue: undefined,
     };
     const saveExtra: any = {
-      expectValue: 0,
       ebcId: 0,
     };
     const isMakerSend =
@@ -313,14 +312,17 @@ export async function bulkCreateTransaction(
         m =>
           equals(m.fromChain.id, fromChainId) &&
           equals(m.toChain.id, toChainId) &&
-          equals(m.fromChain.symbol, txData.symbol) &&
-          equals(m.fromChain.tokenAddress, txData.tokenAddress) &&
+          equals(m.recipient, String(txData.to)) &&
+          equals(m.fromChain.symbol, String(txData.symbol)) &&
+          equals(m.fromChain.tokenAddress, String(txData.tokenAddress)) &&
           dayjs(txData.timestamp).unix() >= m.times[0] &&
           dayjs(txData.timestamp).unix() <= m.times[1],
       );
       if (!market) {
+        // market not found
         txData.status = 3;
       } else {
+        // valid timestamp
         txData.lpId = market.id;
         txData.makerId = market.makerId;
         // ebc
@@ -331,7 +333,16 @@ export async function bulkCreateTransaction(
           txData.expectValue = String(
             await calcMakerSendAmount(ctx.makerConfigs, txData as any),
           );
-          saveExtra["expectValue"] = txData.expectValue;
+          // TODO: valid maxPrice and minPrice
+          // const minPrice = new BigNumber(market.pool.minPrice)
+          //   .plus(new BigNumber(market.pool.tradingFee))
+          //   .multipliedBy(new BigNumber(10 ** market.fromChain.decimals));
+          // const maxPrice = new BigNumber(market.pool.maxPrice)
+          //   .plus(new BigNumber(market.pool.tradingFee))
+          //   .multipliedBy(new BigNumber(10 ** market.fromChain.decimals));
+          // if () {
+          //   // txData.status = 5;
+          // }
         } catch (error) {
           ctx.logger.error(
             "bulkCreateTransaction calcMakerSendAmount error:",

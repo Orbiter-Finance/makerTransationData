@@ -68,7 +68,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
     })) || {};
   for (const row of result.rows) {
     row.ebcId = row.extra.ebcId;
-    row.expectValue = row.extra.expectValue;
+    row.expectValue = row.expectValue;
     row.expectSafetyCode = 0;
     row.timestamp = dayjs(row.timestamp).utc().unix();
     if (row.side === 0) {
@@ -156,12 +156,6 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
       errmsg: "Collection records do not match",
     });
   }
-  // expectValue = tx.value
-  // if (toTx.extra && fromTx.extra) {
-  //   const extra:any = toTx.extra || {};
-  //   extra['ebcId'] = (<any>fromTx.extra)['ebcId'];
-  //   toTx.extra = extra;
-  // }
   const { hex, leaf } = await SPV.calculateLeaf(toTx);
   const delayedPayment = SPV.tree[String(toChain)].delayedPayment;
   if (!delayedPayment) {
@@ -207,7 +201,6 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
       errmsg: `${query["txid"]} Tx Not Found`,
     });
   }
-  // expectValue = tx.value
   const { hex } = await SPV.calculateLeaf(tx);
   if (!SPV.tree[String(query["chainId"])]) {
     return (ctx.body = {

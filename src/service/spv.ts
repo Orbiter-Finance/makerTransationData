@@ -29,15 +29,15 @@ export class SPV {
   }
 
   public static async calculateLeaf(tx: transactionAttributes) {
-    let expectValue = "0";
+    let expectValue;
     let expectSafetyCode = 0;
     const extra: any = tx.extra || {};
     if (tx.side === 0 && extra) {
       // user
-      expectValue = extra.expectValue;
+      expectValue = tx.expectValue || "0";
       expectSafetyCode = Number(tx.nonce);
     } else if (tx.side === 1) {
-      expectValue = tx.value;
+      expectValue = tx.value || "0";
       expectSafetyCode = Number(tx.memo);
     }
     const ebcid = extra.ebcId || 0;
@@ -252,6 +252,7 @@ export class ChainSPVTree {
         "side",
         "tokenAddress",
         "symbol",
+        "expectValue",
         "lpId",
         "makerId",
         "chainId",
@@ -288,6 +289,7 @@ export class ChainSPVTree {
         "side",
         "tokenAddress",
         "symbol",
+        "expectValue",
         "lpId",
         "makerId",
         "chainId",

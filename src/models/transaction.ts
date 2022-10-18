@@ -172,7 +172,7 @@ export class transaction
           type: DataTypes.BOOLEAN,
           allowNull: false,
           comment:
-            "status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,99= MatchSuccess,98=makerDelayTransfer",
+            "status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,5=Timers Not Match,99=MatchSuccess,98=MakerDelayTransfer",
         },
         tokenAddress: {
           type: DataTypes.STRING(255),

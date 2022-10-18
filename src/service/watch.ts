@@ -1,3 +1,4 @@
+import { equals } from "orbiter-chaincore/src/utils/core";
 import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
@@ -12,11 +13,27 @@ import {
 import dayjs from "dayjs";
 export class Watch {
   constructor(public readonly ctx: Context) {}
+
   public async processSubTxList(txlist: Array<Transaction>) {
     const saveTxList = await bulkCreateTransaction(this.ctx, txlist);
     for (const tx of saveTxList) {
+      // save log
       if (Number(tx.status) !== 1) {
         continue;
+      }
+      if (
+        tx.chainId == 4 &&
+        equals(
+          tx.to,
+          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
+        )
+      ) {
+        const key = `${tx.chainId}:${dayjs().format("YYYYMMDD")}:inTransfer`;
+        await this.ctx.redis
+          .multi()
+          .sadd(key, String(tx.hash))
+          .expire(key, 86400 * 7)
+          .exec();
       }
       this.ctx.redis
         .lpush(
@@ -53,19 +70,10 @@ export class Watch {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
-        //TAG: On
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
-        // findByHashTxMatch(ctx, 16, '0x0e56229ca8428ac229fda738ec26b36e6350f7034665ba7f9277d0948e7e2e4b').then(res=>{
-        //   console.log('匹配结束：', res);
-
-        // }).catch(err=> {
-        //   console.log('error:', err);
-
-        // })
       }
-
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);
@@ -96,6 +104,7 @@ export class Watch {
       order: [["timestamp", "desc"]],
       where: {
         side: 0,
+        chainId: 4,
         status: 1,
         timestamp: {
           [Op.gt]: startAt,
@@ -103,6 +112,8 @@ export class Watch {
         },
       },
     });
+    console.log(txList);
+
     for (const tx of txList) {
       const result = await txProcessMatch(this.ctx, tx);
       this.ctx.logger.debug(

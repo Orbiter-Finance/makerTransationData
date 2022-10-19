@@ -1,4 +1,7 @@
 export interface IMarket {
+  id: string;
+  makerId: string;
+  ebcId: string;
   recipient: string;
   sender: string;
   fromChain: {
@@ -6,12 +9,14 @@ export interface IMarket {
     name: string;
     tokenAddress: string;
     symbol: string;
+    decimals: number;
   };
   toChain: {
     id: number;
     name: string;
     tokenAddress: string;
     symbol: string;
+    decimals: number;
   };
   times: Number[];
   pool?: any;
@@ -22,6 +27,7 @@ export interface Config {
       [key: string]: string;
     };
   };
-  makerTransferTimeout: number;
+  chainsTokens: Array<any>;
+  subgraphEndpoint: string;
   chains: Array<any>;
 }

@@ -25,6 +25,9 @@ export interface transactionAttributes {
   memo?: string;
   extra?: object;
   side?: number;
+  expectValue?: string;
+  makerId?: string;
+  lpId?: string;
   createdAt?: Date;
   updatedAt?: Date;
   replyAccount?: string;
@@ -48,6 +51,9 @@ export type transactionOptionalAttributes =
   | "memo"
   | "extra"
   | "side"
+  | "makerId"
+  | "expectValue"
+  | "lpId"
   | "createdAt"
   | "updatedAt"
   | "replyAccount"
@@ -81,6 +87,9 @@ export class transaction
   feeToken?: string;
   chainId!: number;
   side!: number;
+  makerId!: string;
+  expectValue!: string;
+  lpId!: string;
   source?: string;
   memo?: string;
   extra?: object;
@@ -162,7 +171,8 @@ export class transaction
         status: {
           type: DataTypes.BOOLEAN,
           allowNull: false,
-          comment: "status:0=PENDING,1=COMPLETE,2=FAIL",
+          comment:
+            "status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,5=Timers Not Match,99=MatchSuccess,98=MakerDelayTransfer",
         },
         tokenAddress: {
           type: DataTypes.STRING(255),
@@ -205,6 +215,21 @@ export class transaction
           type: DataTypes.TINYINT,
           allowNull: false,
           comment: "side:0=user,1=maker",
+        },
+        makerId: {
+          type: DataTypes.STRING,
+          allowNull: true,
+          comment: "maker id",
+        },
+        expectValue: {
+          type: DataTypes.STRING(32),
+          allowNull: false,
+          comment: "expectValue",
+        },
+        lpId: {
+          type: DataTypes.STRING,
+          allowNull: true,
+          comment: "lp id",
         },
         extra: {
           type: DataTypes.JSON,

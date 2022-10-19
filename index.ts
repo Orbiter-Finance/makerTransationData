@@ -1,46 +1,31 @@
 import { Watch } from "./src/service/watch";
 import "dotenv/config";
-import { convertMarketListToFile } from "./src/utils";
-import { makerList, makerListHistory } from "./src/maker";
 import { SPV } from "./src/service/spv";
 import { Context } from "./src/context";
-import { TCPInject } from "./src/service/tcpInject";
+import { createServer } from "./src/server";
+import utc from "dayjs/plugin/utc";
+import dayjs from "dayjs";
+dayjs.extend(utc);
 export class Application {
   public ctx: Context = new Context();
-
   async bootstrap() {
     await this.ctx.init();
-    this.ctx.makerConfigs = await convertMarketListToFile(
-      makerList,
-      this.ctx.config.L1L2Mapping,
-    );
-    const makerConfigsHistory = await convertMarketListToFile(
-      makerListHistory,
-      this.ctx.config.L1L2Mapping,
-    );
-    this.ctx.makerConfigs.push(...makerConfigsHistory);
-    new TCPInject(this.ctx);
+    createServer(this.ctx);
     const watch = new Watch(this.ctx);
     watch.start();
-    if (process.argv.includes("--spv")) {
-      const spvService = new SPV(this.ctx, 1);
-      spvService
-        .initTree()
-        .then(() => {
-          spvService.checkTree();
-        })
-        .catch(error => {
-          this.ctx.logger.error("SPV init tree error:", error);
-        });
+    // watch.readDBMatch("2022-10-18 00:47:33", "2022-10-19 00:47:33")
+    // .then(result => {
+    //   this.ctx.logger.info(`readDBMatch end`, result);
+    // })
+    // .catch((error: any) => {
+    //   this.ctx.logger.error(`readDBMatch error`, error);
+    // });
+    if (this.ctx.isSpv) {
+      const spvService = new SPV(this.ctx, Number(process.env["SPV_CHAIN"]));
+      spvService.start().catch(error => {
+        this.ctx.logger.error("SPV init tree error:", error);
+      });
     }
-    // watch
-    //   .readDBMatch("2022-08-25 00:47:33", "2022-08-31 00:47:33")
-    //   .then(result => {
-    //     this.ctx.logger.info(`readDBMatch end`, result);
-    //   })
-    //   .catch((error: any) => {
-    //     this.ctx.logger.error(`readDBMatch error`, error);
-    //   });
   }
 }
 const app = new Application();

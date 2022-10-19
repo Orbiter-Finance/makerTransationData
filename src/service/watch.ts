@@ -1,3 +1,4 @@
+import { equals } from "orbiter-chaincore/src/utils/core";
 import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
@@ -12,11 +13,27 @@ import {
 import dayjs from "dayjs";
 export class Watch {
   constructor(public readonly ctx: Context) {}
+
   public async processSubTxList(txlist: Array<Transaction>) {
     const saveTxList = await bulkCreateTransaction(this.ctx, txlist);
     for (const tx of saveTxList) {
+      // save log
       if (Number(tx.status) !== 1) {
         continue;
+      }
+      if (
+        tx.chainId == 4 &&
+        equals(
+          tx.to,
+          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
+        )
+      ) {
+        const key = `${tx.chainId}:${dayjs().format("YYYYMMDD")}:inTransfer`;
+        await this.ctx.redis
+          .multi()
+          .sadd(key, String(tx.hash))
+          .expire(key, 86400 * 7)
+          .exec();
       }
       this.ctx.redis
         .lpush(
@@ -53,12 +70,10 @@ export class Watch {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
-        //TAG: On
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
-
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);
@@ -72,10 +87,9 @@ export class Watch {
         this.initUnmatchedTransaction().catch(error => {
           this.ctx.logger.error("initUnmatchedTransaction error:", error);
         });
-      this.ctx.instanceId === 0 &&
-        this.readQueneMatch().catch(error => {
-          this.ctx.logger.error("readQueneMatch error:", error);
-        });
+      this.readQueneMatch().catch(error => {
+        this.ctx.logger.error("readQueneMatch error:", error);
+      });
     }
   }
   public async readDBMatch(
@@ -90,6 +104,7 @@ export class Watch {
       order: [["timestamp", "desc"]],
       where: {
         side: 0,
+        chainId: 4,
         status: 1,
         timestamp: {
           [Op.gt]: startAt,
@@ -97,6 +112,8 @@ export class Watch {
         },
       },
     });
+    console.log(txList);
+
     for (const tx of txList) {
       const result = await txProcessMatch(this.ctx, tx);
       this.ctx.logger.debug(

@@ -18,6 +18,7 @@ const MAX_BITS: any = {
   zkspace: 35,
   bnbchain: 256,
   arbitrum_nova: 256,
+  polygon_zkevm: 256,
 };
 const precisionResolverMap: any = {
   // pay attention:  the type of field "userAmount" in the following methods is not BigNumber
@@ -55,24 +56,13 @@ export const CHAIN_INDEX: any = {
   515: "bnbchain",
   16: "arbitrum_nova",
   516: "arbitrum_nova",
+  517: "polygon_zkevm",
   599: "orbiter",
 };
 
 export const SIZE_OP = {
   P_NUMBER: 4,
 };
-
-/**
- * @deprecated
- * @param chain
- * @returns
- */
-function isZKChain(chain: string | number) {
-  if (chain === 3 || chain === 33 || chain === "zksync") {
-    return true;
-  }
-  return false;
-}
 
 function isLimitNumber(chain: string | number) {
   if (chain === 3 || chain === 33 || chain === "zksync") {
@@ -97,64 +87,6 @@ function isLPChain(chain: string | number) {
   return false;
 }
 
-function isAmountValid(chain: number, amount: any) {
-  if (!isChainSupport(chain)) {
-    return {
-      state: false,
-      error: "The chain did not support",
-    };
-  }
-  if (amount < 1) {
-    return {
-      state: false,
-      error: "the token doesn't support that many decimal digits",
-    };
-  }
-
-  const validDigit = AmountValidDigits(chain, amount); // 10 11
-  const amountLength = amount.toString().length;
-  if (amountLength < SIZE_OP.P_NUMBER) {
-    return {
-      state: false,
-      error: "Amount size must be greater than pNumberSize",
-    };
-  }
-
-  let rAmount = amount;
-  if (isLimitNumber(chain)) {
-    rAmount = removeSidesZero(amount.toString());
-  }
-  if (!isAmountInRegion(rAmount, chain)) {
-    return {
-      state: false,
-      error: "Amount exceeds the spending range",
-    };
-  }
-  if (isLimitNumber(chain) && amountLength > validDigit) {
-    const zkAmount = amount.toString().slice(0, validDigit);
-    const op_text = zkAmount.slice(-SIZE_OP.P_NUMBER);
-    if (Number(op_text) === 0) {
-      return {
-        state: true,
-      };
-    }
-    return {
-      state: false,
-      error: "Insufficient number of flag bits",
-    };
-  } else {
-    const op_text = amount.toString().slice(-SIZE_OP.P_NUMBER);
-    if (Number(op_text) === 0) {
-      return {
-        state: true,
-      };
-    }
-    return {
-      state: false,
-      error: "Insufficient number of flag bits",
-    };
-  }
-}
 /**
  * @description {
  *  This method is to confirm the legitimacy of the amount
@@ -434,27 +366,6 @@ function pTextFormatZero(num: string) {
   return (Array(SIZE_OP.P_NUMBER).join("0") + num).slice(-SIZE_OP.P_NUMBER);
 }
 
-function transferTimeStampToTime(timestamp: string | number | Date) {
-  if (!timestamp) {
-    return timestamp;
-  }
-  if (timestamp.toString().length === 10) {
-    timestamp = Number(timestamp) * 1000;
-  }
-  const date = new Date(timestamp);
-  const Y = date.getFullYear() + "-";
-  const M =
-    (date.getMonth() + 1 < 10
-      ? "0" + (date.getMonth() + 1)
-      : date.getMonth() + 1) + "-";
-  const D = date.getDate() + " ";
-  const h = date.getHours() + ":";
-  const m = date.getMinutes() + ":";
-  const s = date.getSeconds();
-  const result = Y + M + D + h + m + s;
-  return result;
-}
-
 /**
  * Get return amount
  * @param fromChainID
@@ -504,13 +415,10 @@ export function getAmountFlag(chainId: number, amount: string): string {
 }
 
 export {
-  isAmountValid,
-  transferTimeStampToTime,
   getTAmountFromRAmount,
   getRAmountFromTAmount,
   getPTextFromTAmount,
   pTextFormatZero,
-  isZKChain,
   isLimitNumber,
   getToAmountFromUserAmount,
 };

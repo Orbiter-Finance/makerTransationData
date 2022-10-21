@@ -112,8 +112,6 @@ export class Watch {
         },
       },
     });
-    console.log(txList);
-
     for (const tx of txList) {
       const result = await txProcessMatch(this.ctx, tx);
       this.ctx.logger.debug(

@@ -5,6 +5,7 @@ import { Context } from "./src/context";
 import { createServer } from "./src/server";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
+// import { StarknetStatusConfirm } from "./src/utils/StraknetStatusConfirm";
 dayjs.extend(utc);
 export class Application {
   public ctx: Context = new Context();
@@ -26,6 +27,7 @@ export class Application {
         this.ctx.logger.error("SPV init tree error:", error);
       });
     }
+    // void new StarknetStatusConfirm(this.ctx, "4").start();
   }
 }
 const app = new Application();

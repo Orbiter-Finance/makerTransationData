@@ -70,7 +70,8 @@ export class Context {
     const file = `${this.NODE_ENV === "prod" ? "chains" : "testnet"}.json`;
     const result = await readFile(`./src/config/${file}`);
     const configs = JSON.parse(result.toString());
-    this.config.chains = configs;
+    chains.fill(configs);
+    this.config.chains = chains.getAllChains();
     return configs;
   }
   private initLogger() {

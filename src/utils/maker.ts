@@ -52,7 +52,7 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
         Number(row["stopTime"] || 9999999999),
       ];
 
-      const lpConfig = {
+      const lpConfig: IMarket = {
         id: row["id"],
         recipient: recipientAddress,
         sender: senderAddress,
@@ -64,6 +64,8 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
           tokenAddress: pair.sourceToken,
           symbol: fromToken?.symbol || "",
           decimals: Number(row["sourcePresion"]),
+          maxPrice: maxPrice,
+          minPrice: minPrice,
         },
         toChain: {
           id: Number(toChainId),
@@ -96,7 +98,7 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
           ).toNumber(),
           avalibleTimes: times,
         },
-      } as IMarket;
+      };
 
       return lpConfig;
     } catch (error) {
@@ -141,6 +143,8 @@ export function convertPool(pool: any): Array<IMarket> {
         tokenAddress: pool.t1Address,
         symbol: pool.tName,
         decimals: pool.precision,
+        minPrice: pool.c1MinPrice * Math.pow(10, 18),
+        maxPrice: pool.c1MaxPrice * Math.pow(10, 18),
       },
       toChain: {
         id: Number(pool.c2ID),
@@ -184,6 +188,8 @@ export function convertPool(pool: any): Array<IMarket> {
         tokenAddress: pool.t2Address,
         symbol: pool.tName,
         decimals: pool.precision,
+        minPrice: pool.c1MinPrice * Math.pow(10, 18),
+        maxPrice: pool.c1MaxPrice * Math.pow(10, 18),
       },
       toChain: {
         id: Number(pool.c1ID),

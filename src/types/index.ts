@@ -10,6 +10,8 @@ export interface IMarket {
     tokenAddress: string;
     symbol: string;
     decimals: number;
+    maxPrice: number;
+    minPrice: number;
   };
   toChain: {
     id: number;

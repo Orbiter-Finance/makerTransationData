@@ -204,6 +204,7 @@ function getPTextFromTAmount(chain: number, amount: string) {
       error: "the token doesn't support that many decimal digits",
     };
   }
+  amount = new BigNumber(String(amount)).toFixed();
   //Get the effective number of digits
   const validDigit = AmountValidDigits(chain, amount); // 10 11
   const amountLength = amount.toString().length;

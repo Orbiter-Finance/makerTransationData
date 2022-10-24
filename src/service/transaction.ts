@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { chains } from "orbiter-chaincore";
 import { ITransaction, TransactionStatus } from "orbiter-chaincore/src/types";
 import { dydx } from "orbiter-chaincore/src/utils";
+import BigNumber from "bignumber.js";
 import {
   equals,
   fix0xPadStartAddress,
@@ -244,7 +245,7 @@ export async function bulkCreateTransaction(
       transactionIndex: tx.transactionIndex,
       from: tx.from,
       to: tx.to,
-      value: String(tx.value),
+      value: new BigNumber(String(tx.value)).toFixed(),
       symbol: tx.symbol,
       gasPrice: tx.gasPrice,
       gas: tx.gas,
@@ -333,6 +334,10 @@ export async function bulkCreateTransaction(
           txData.expectValue = String(
             await calcMakerSendAmount(ctx.makerConfigs, txData as any),
           );
+          // if (new BigNumber(txData.expectValue).lt(new BigNumber(market.fromChain.minPrice)) || new BigNumber(txData.expectValue).gt(new BigNumber(market.fromChain.maxPrice))) {
+          //   // overflow
+          //   txData.status = 5;
+          // }
           // TODO: valid maxPrice and minPrice
           // const minPrice = new BigNumber(market.pool.minPrice)
           //   .plus(new BigNumber(market.pool.tradingFee))

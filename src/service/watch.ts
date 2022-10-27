@@ -1,48 +1,44 @@
-import { equals } from "orbiter-chaincore/src/utils/core";
+import { isEmpty } from "orbiter-chaincore/src/utils/core";
 import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
-import { WAIT_MATCH_REDIS_KEY } from "../types/const";
 import { groupWatchAddressByChain, sleep } from "../utils";
 import { Context } from "../context";
-import {
-  bulkCreateTransaction,
-  findByHashTxMatch,
-  txProcessMatch,
-} from "./transaction";
+import { bulkCreateTransaction, processUserSendMakerTx } from "./transaction";
 import dayjs from "dayjs";
 export class Watch {
   constructor(public readonly ctx: Context) {}
-
   public async processSubTxList(txlist: Array<Transaction>) {
     const saveTxList = await bulkCreateTransaction(this.ctx, txlist);
     for (const tx of saveTxList) {
       // save log
-      if (Number(tx.status) !== 1) {
-        continue;
+      if (tx.id && tx.status == 1) {
+        const transferId = tx.transferId;
+        const matchTxKey = `MatchTx:${dayjs().format("YYYY")}:${tx.side}`;
+        if (tx.side === 0) {
+          const result = await processUserSendMakerTx(this.ctx, tx);
+          if (isEmpty(result?.inId) || isEmpty(result?.outId)) {
+            await this.ctx.redis
+              .multi()
+              .hset(matchTxKey, transferId, JSON.stringify(tx))
+              .expire(matchTxKey, 1 * 60 * 60)
+              .exec();
+          } else {
+            await this.ctx.redis
+              .multi()
+              .hset(matchTxKey, transferId, "ok")
+              .expire(matchTxKey, 1 * 60 * 60)
+              .exec();
+          }
+        }
+        if (tx.side === 1) {
+          await this.ctx.redis
+            .multi()
+            .zadd(matchTxKey, dayjs(tx.timestamp).unix(), transferId)
+            .expire(matchTxKey, 1 * 60 * 60)
+            .exec();
+        }
       }
-      if (
-        tx.chainId == 4 &&
-        equals(
-          tx.to,
-          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
-        )
-      ) {
-        const key = `${tx.chainId}:${dayjs().format("YYYYMMDD")}:inTransfer`;
-        await this.ctx.redis
-          .multi()
-          .sadd(key, String(tx.hash))
-          .expire(key, 86400 * 7)
-          .exec();
-      }
-      this.ctx.redis
-        .lpush(
-          WAIT_MATCH_REDIS_KEY,
-          JSON.stringify({ chainId: tx.chainId, hash: tx.hash }),
-        )
-        .catch(error => {
-          this.ctx.logger.error("save waitMatching queue error:", error);
-        });
     }
     return saveTxList;
   }
@@ -63,7 +59,7 @@ export class Watch {
             .then(result => {
               this.ctx.logger.info(
                 `Received subscription transaction,instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
-                result,
+                result.map(tx => tx.hash),
               );
             })
             .catch(error => {
@@ -82,17 +78,18 @@ export class Watch {
       });
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
-    } finally {
-      this.ctx.instanceId === 0 &&
-        this.initUnmatchedTransaction().catch(error => {
-          this.ctx.logger.error("initUnmatchedTransaction error:", error);
-        });
+    }
+
+    if (this.ctx.instanceId === 0) {
+      // this.readDBMatch("2022-10-24 00:00:26", "2022-10-26 00:00:26").catch(error => {
+      //   console.log(error);
+      // })
       this.readQueneMatch().catch(error => {
         this.ctx.logger.error("readQueneMatch error:", error);
       });
     }
   }
-  public async readDBMatch(
+  public async readUserSendReMatch(
     startAt: any,
     endAt: any = new Date(),
   ): Promise<any> {
@@ -100,11 +97,10 @@ export class Watch {
     const txList = await this.ctx.models.transaction.findAll({
       raw: true,
       attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-      limit: 2000,
+      limit: 500,
       order: [["timestamp", "desc"]],
       where: {
         side: 0,
-        chainId: 4,
         status: 1,
         timestamp: {
           [Op.gt]: startAt,
@@ -112,8 +108,9 @@ export class Watch {
         },
       },
     });
+
     for (const tx of txList) {
-      const result = await txProcessMatch(this.ctx, tx);
+      const result = await processUserSendMakerTx(this.ctx, tx);
       this.ctx.logger.debug(
         `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
         result,
@@ -124,72 +121,45 @@ export class Watch {
       return { startAt, endAt, count: txList.length };
     }
     await sleep(1000 * 5);
-    return await this.readDBMatch(startAt, endAt);
-  }
-  public async initUnmatchedTransaction() {
-    const where: any = {
-      [Op.or]: [
-        {
-          inId: null,
-        },
-        {
-          outId: null,
-        },
-      ],
-      createdAt: {
-        [Op.gte]: dayjs().startOf("d"),
-      },
-    };
-    const mtxList = await this.ctx.models.maker_transaction.findAll({
-      attributes: ["inId", "outId"],
-      raw: true,
-      where,
-      order: [["id", "desc"]],
-      limit: 500,
-    });
-    const txIdList = mtxList.map(row => {
-      return row.inId || row.outId;
-    });
-    if (!txIdList || txIdList.length <= 0) {
-      return;
-    }
-    const txList = await this.ctx.models.transaction.findAll({
-      attributes: ["chainId", "hash"],
-      raw: true,
-      // order: [["id", "desc"]],
-      where: <any>{
-        status: 1,
-        id: {
-          [Op.in]: txIdList,
-        },
-      },
-    });
-    txList.forEach(tx => {
-      this.ctx.redis
-        .rpush(
-          WAIT_MATCH_REDIS_KEY,
-          JSON.stringify({ chainId: tx.chainId, hash: tx.hash }),
-        )
-        .catch(error => {
-          this.ctx.logger.error("save waitMatching queue error:", error);
-        });
-    });
+    return await this.readUserSendReMatch(startAt, endAt);
   }
   public async readQueneMatch(): Promise<any> {
-    const tx: any = await this.ctx.redis
-      .lpop(WAIT_MATCH_REDIS_KEY)
-      .then((result: any) => {
-        return result && JSON.parse(result);
-      });
     try {
-      if (tx) {
-        await findByHashTxMatch(this.ctx, tx.chainId, tx.hash);
-      } else {
-        await sleep(1000 * 10);
+      const MakerSaveTxKey = `MatchTx:${dayjs().format("YYYY")}:1`;
+      const UserSaveTxKey = `MatchTx:${dayjs().format("YYYY")}:0`;
+      const transferIdList = await this.ctx.redis.zrangebyscore(
+        MakerSaveTxKey,
+        dayjs().startOf("d").unix(),
+        dayjs().unix(),
+      );
+      for (const id of transferIdList) {
+        const result = await this.ctx.redis.hget(UserSaveTxKey, String(id));
+        if (!isEmpty(result)) {
+          if (result === "ok") {
+            this.ctx.redis.hdel(UserSaveTxKey, String(id)).catch(error => {
+              this.ctx.logger.error("readQueneMatch>ok delete error:", error);
+            });
+          } else {
+            const matchResult = await processUserSendMakerTx(
+              this.ctx,
+              JSON.parse(String(result)),
+            );
+            if (matchResult?.inId && matchResult.outId) {
+              this.ctx.redis.hdel(UserSaveTxKey, String(id)).catch(error => {
+                this.ctx.logger.error(
+                  "readQueneMatch>rematch ok delete error:",
+                  error,
+                );
+              });
+            }
+          }
+        }
       }
     } catch (error) {
-      this.ctx.logger.error("readQueneMatch findByHashTxMatch error:", error);
+      this.ctx.logger.error("readQueneMatch> error:", error);
+    } finally {
+      await sleep(1000 * 2);
+      return this.readQueneMatch();
     }
-    return this.readQueneMatch();
   }
 }

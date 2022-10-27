@@ -27,6 +27,7 @@ export interface transactionAttributes {
   side?: number;
   expectValue?: string;
   makerId?: string;
+  transferId: string;
   lpId?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -52,6 +53,7 @@ export type transactionOptionalAttributes =
   | "extra"
   | "side"
   | "makerId"
+  | "transferId"
   | "expectValue"
   | "lpId"
   | "createdAt"
@@ -88,6 +90,7 @@ export class transaction
   chainId!: number;
   side!: number;
   makerId!: string;
+  transferId!: string;
   expectValue!: string;
   lpId!: string;
   source?: string;
@@ -221,9 +224,15 @@ export class transaction
           allowNull: true,
           comment: "maker id",
         },
+        transferId: {
+          type: DataTypes.STRING(32),
+          allowNull: true,
+          comment: "transferId",
+        },
         expectValue: {
           type: DataTypes.STRING(32),
           allowNull: false,
+          defaultValue: "",
           comment: "expectValue",
         },
         lpId: {

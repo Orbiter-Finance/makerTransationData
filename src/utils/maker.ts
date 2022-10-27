@@ -1,12 +1,13 @@
 import { BigNumber } from "bignumber.js";
 import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
-import { uniq, flatten } from "lodash";
+import { uniq, flatten, clone } from "lodash";
 import { chains } from "orbiter-chaincore";
 export async function convertMarketListToFile(
   makerList: Array<any>,
   L1L2Mapping: any,
 ): Promise<Array<IMarket>> {
+  const starknetAttachMaker: any[] = [];
   const configs = flatten(
     makerList.map(row => {
       return convertPool(row);
@@ -14,6 +15,26 @@ export async function convertMarketListToFile(
   ).map(row => {
     if ([4, 44].includes(row.toChain.id)) {
       row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
+      const item = clone(row);
+      if (
+        equals(
+          row.sender,
+          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
+        )
+      ) {
+        item.sender =
+          "0x06D1D401AE235bA01e5D8a6aDE82A0f17Aba7DB4f8780194B4d65315071BE10b";
+      }
+      if (
+        equals(
+          row.sender,
+          "0x001709eA381e87D4c9ba5e4A67Adc9868C05e82556A53FD1b3A8b1F21e098143",
+        )
+      ) {
+        item.sender =
+          "0x01a316c2a9eECE495Df038A074781Ce3983B4dBDA665b951Cc52a3025690a448";
+      }
+      starknetAttachMaker.push(item);
     }
     if ([4, 44].includes(row.fromChain.id)) {
       // starknet mapping
@@ -22,7 +43,7 @@ export async function convertMarketListToFile(
     }
     return row;
   });
-  return configs;
+  return [...configs, ...starknetAttachMaker];
 }
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   const marketList: Array<IMarket | null> = oldLpList.map(row => {

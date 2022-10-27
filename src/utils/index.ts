@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { padStart } from "orbiter-chaincore/src/utils/core";
-
+import crypto from "crypto";
 export * from "./maker";
 export async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
@@ -8,6 +8,10 @@ export async function sleep(ms: number): Promise<void> {
       resolve();
     }, ms);
   });
+}
+export function MD5(value: string) {
+  const md5 = crypto.createHash("md5");
+  return md5.update(value).digest("hex");
 }
 
 export function TransactionID(

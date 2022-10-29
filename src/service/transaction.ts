@@ -379,6 +379,7 @@ export async function bulkCreateTransaction(
         "feeToken",
         "symbol",
         "input",
+        "status",
         "extra",
         "timestamp",
         "tokenAddress",

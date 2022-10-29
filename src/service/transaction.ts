@@ -17,7 +17,7 @@ import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 
 export async function txProcessMatch(ctx: Context, tx: any) {
-  if (![1, 99].includes(tx.status)) {
+  if (![0, 1, 99].includes(tx.status)) {
     ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
     return false;
   }
@@ -115,7 +115,7 @@ export async function findByHashTxMatch(
   if (!tx || !tx.id) {
     throw new Error(`chainId ${chainId} hash ${hash} Tx Not Found`);
   }
-  if (![1, 99].includes(tx.status)) {
+  if (![0, 1, 99].includes(tx.status)) {
     ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
     return false;
   }

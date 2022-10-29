@@ -1,4 +1,3 @@
-import { equals } from "orbiter-chaincore/src/utils/core";
 import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { Op } from "sequelize";
@@ -18,23 +17,9 @@ export class Watch {
     const saveTxList = await bulkCreateTransaction(this.ctx, txlist);
     for (const tx of saveTxList) {
       // save log
-      if (Number(tx.status) !== 1) {
-        continue;
-      }
-      if (
-        tx.chainId == 4 &&
-        equals(
-          tx.to,
-          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
-        )
-      ) {
-        const key = `${tx.chainId}:${dayjs().format("YYYYMMDD")}:inTransfer`;
-        await this.ctx.redis
-          .multi()
-          .sadd(key, String(tx.hash))
-          .expire(key, 86400 * 7)
-          .exec();
-      }
+      // if (Number(tx.status) !== 1) {
+      //   continue;
+      // }
       this.ctx.redis
         .lpush(
           WAIT_MATCH_REDIS_KEY,

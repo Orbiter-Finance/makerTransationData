@@ -1,2 +1,3 @@
-export const WAIT_MATCH_REDIS_KEY = "waitMatching";
-export const WAIT_MATCH_BAK_REDIS_KEY = "waitBakMatching";
+export const MAKER_MATCH_TX = `MatchTx:1`;
+export const USER_MATCH_TX = `MatchTx:0`;
+export const MAKER_MATCH_CROSS_TX = `${MAKER_MATCH_TX}:cross`;

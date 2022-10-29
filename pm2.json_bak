@@ -17,11 +17,11 @@
       "cwd": "./dist/",
       "env": {
         "RUNTIME_DIR": "/home/makerTransationData",
-        "DB_HOST": "ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com",
-        "DB_NAME": "orbiter-data",
-        "DB_USER": "orbiter",
-        "DB_PASS": "Orbiter2022!@#",
-        "NODE_ENV": "test",
+        "MYSQL_DB_HOST": "xxxxx",
+        "MYSQL_DB_NAME": "orbiter",
+        "MYSQL_DB_USERNAME": "orbiter",
+        "MYSQL_DB_PASSWORD": "xxxxx",
+        "NODE_ENV": "production",
         "INSTANCES": 4,
         "REDIS_HOST": "redis",
         "REDIS_PORT": 6379

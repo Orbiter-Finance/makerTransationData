@@ -1,3 +1,4 @@
+import { Context } from "./../context";
 import { BigNumber } from "bignumber.js";
 import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
@@ -5,45 +6,33 @@ import { uniq, flatten, clone } from "lodash";
 import { chains } from "orbiter-chaincore";
 export async function convertMarketListToFile(
   makerList: Array<any>,
-  L1L2Mapping: any,
+  ctx: Context,
 ): Promise<Array<IMarket>> {
-  const starknetAttachMaker: any[] = [];
+  const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
+  const crossAddressMakers: any[] = [];
   const configs = flatten(
     makerList.map(row => {
       return convertPool(row);
     }),
   ).map(row => {
     if ([4, 44].includes(row.toChain.id)) {
-      row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
-      const item = clone(row);
-      if (
-        equals(
-          row.sender,
-          "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
-        )
-      ) {
-        item.sender =
-          "0x06D1D401AE235bA01e5D8a6aDE82A0f17Aba7DB4f8780194B4d65315071BE10b";
-      }
-      if (
-        equals(
-          row.sender,
-          "0x001709eA381e87D4c9ba5e4A67Adc9868C05e82556A53FD1b3A8b1F21e098143",
-        )
-      ) {
-        item.sender =
-          "0x01a316c2a9eECE495Df038A074781Ce3983B4dBDA665b951Cc52a3025690a448";
-      }
-      starknetAttachMaker.push(item);
+      row.sender = ctx.config.L1L2Mapping[row.sender.toLowerCase()];
     }
     if ([4, 44].includes(row.fromChain.id)) {
       // starknet mapping
-      row.recipient =
-        L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
+      row.recipient = ctx.config.L1L2Mapping[row.recipient.toLowerCase()];
+    }
+    // after
+    const item = clone(row);
+    for (const addr1 in crossAddressTransferMap) {
+      if (equals(row.sender, addr1)) {
+        item.sender = crossAddressTransferMap[addr1];
+        crossAddressMakers.push(item);
+      }
     }
     return row;
   });
-  return [...configs, ...starknetAttachMaker];
+  return [...configs, ...crossAddressMakers];
 }
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   const marketList: Array<IMarket | null> = oldLpList.map(row => {

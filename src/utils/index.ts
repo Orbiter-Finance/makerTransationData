@@ -29,3 +29,16 @@ export function TransactionID(
     symbol || "NULL"
   }${fromTxNonce}${ext}`.toLowerCase();
 }
+
+export function TranferId(
+  toChainId: number | string,
+  replySender: string,
+  replyAccount: string,
+  fromNonce: number | string,
+  toSymbol: string,
+  toValue?: string,
+) {
+  return MD5(
+    `${toChainId}_${replySender}_${replyAccount}_${fromNonce}_${toSymbol}_${toValue}`.toLowerCase(),
+  ).toString();
+}

@@ -43,7 +43,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
       break;
   }
   const result: any =
-    (await spvCtx.models.transaction.findAndCountAll({
+    (await spvCtx.models.Transaction.findAndCountAll({
       raw: true,
       attributes: [
         "hash",
@@ -101,7 +101,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   }
   const spvCtx = ctx.state["spvCtx"] as Context;
   // valid is exists
-  const fromTx = await spvCtx.models.transaction.findOne({
+  const fromTx = await spvCtx.models.Transaction.findOne({
     raw: true,
     where: {
       chainId: Number(fromChain),
@@ -125,7 +125,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   }
 
   const toChain = Number(fromTx?.memo);
-  const toTx = await spvCtx.models.transaction.findOne({
+  const toTx = await spvCtx.models.Transaction.findOne({
     raw: true,
     where: {
       chainId: Number(toChain),
@@ -142,7 +142,7 @@ export async function getDelayTransferProof(ctx: Router.RouterContext) {
   }
 
   // get
-  const mtTx = await spvCtx.models.maker_transaction.findOne({
+  const mtTx = await spvCtx.models.MakerTransaction.findOne({
     attributes: ["id"],
     where: {
       inId: fromTx.id,
@@ -186,7 +186,7 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
     });
   }
   const spvCtx = ctx.state["spvCtx"] as Context;
-  const tx = await spvCtx.models.transaction.findOne({
+  const tx = await spvCtx.models.Transaction.findOne({
     raw: true,
     where: {
       chainId: Number(query["chainId"]),

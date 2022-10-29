@@ -1,5 +1,5 @@
 import { isEmpty } from "orbiter-chaincore/src/utils/core";
-import { transactionAttributes } from "./../models/transaction";
+import { Transaction as transactionAttributes } from "../models/Transactions";
 import { chains } from "orbiter-chaincore";
 import dayjs from "dayjs";
 import { Contract, ethers, providers, utils } from "ethers";
@@ -240,7 +240,7 @@ export class ChainSPVTree {
         [Op.lte]: dayjs().subtract(maxReceiptTime, "s").toDate(),
       },
     };
-    const txList = await this.ctx.models.transaction.findAll({
+    const txList = await this.ctx.models.Transaction.findAll({
       attributes: [
         "id",
         "hash",
@@ -277,7 +277,7 @@ export class ChainSPVTree {
         [Op.gt]: this.maxTxId.maker,
       },
     };
-    const txList = await this.ctx.models.transaction.findAll({
+    const txList = await this.ctx.models.Transaction.findAll({
       attributes: [
         "id",
         "hash",

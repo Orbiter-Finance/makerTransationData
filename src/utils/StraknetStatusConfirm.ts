@@ -33,7 +33,7 @@ export class StarknetStatusConfirm {
   }
   async readTxs() {
     // query
-    const result = await this.ctx.models.transaction.findAndCountAll({
+    const result = await this.ctx.models.Transaction.findAndCountAll({
       raw: true,
       attributes: ["id", "hash", "from", "value", "memo", "symbol"],
       where: {

@@ -6,6 +6,7 @@ export default {
     password: process.env.MYSQL_DB_PASSWORD || "root",
     host: process.env.MYSQL_DB_HOST || "localhost",
     port: Number(process.env.MYSQL_DB_PORT || "3306"),
+    logging: false,
     timezone: "+00:00",
   },
   test: {
@@ -24,6 +25,7 @@ export default {
     password: process.env.MYSQL_DB_PASSWORD,
     host: process.env.MYSQL_DB_HOST,
     port: Number(process.env.MYSQL_DB_PORT),
+    logging: false,
     timezone: "+00:00",
   },
 };

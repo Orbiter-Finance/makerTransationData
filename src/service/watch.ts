@@ -1,20 +1,17 @@
-import { isEmpty } from "orbiter-chaincore/src/utils/core";
+import { isEmpty, sleep } from "orbiter-chaincore/src/utils/core";
 import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
-import { Op } from "sequelize";
-import { groupWatchAddressByChain, sleep } from "../utils";
+import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
-import {
-  bulkCreateTransaction,
-  processMakerSendUserTx,
-  processUserSendMakerTx,
-} from "./transaction";
+import { bulkCreateTransaction, processUserSendMakerTx } from "./transaction";
 import dayjs from "dayjs";
 import {
   MAKER_MATCH_CROSS_TX,
   MAKER_MATCH_TX,
+  TRANSACTION_RAW,
   USER_MATCH_TX,
 } from "../types/const";
+import { Op } from "sequelize";
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public async processSubTxList(txlist: Array<Transaction>) {
@@ -24,13 +21,19 @@ export class Watch {
       if (tx.status != 1) {
         continue;
       }
+      if (!tx.id) {
+        throw new Error("Id non-existent");
+      }
       let transferId = tx.transferId;
+      const reidsT = await this.ctx.redis
+        .multi()
+        .hset(`${TRANSACTION_RAW}:${tx.chainId}`, tx.hash, JSON.stringify(tx));
       if (tx.side === 0) {
-        const result = await processUserSendMakerTx(this.ctx, tx.hash);
+        const result = await processUserSendMakerTx(this.ctx, tx as any);
         if (isEmpty(result?.inId) || isEmpty(result?.outId)) {
-          await this.ctx.redis.hset(USER_MATCH_TX, transferId, tx.hash);
+          await reidsT.hset(USER_MATCH_TX, transferId, tx.hash);
         } else {
-          await this.ctx.redis.hset(USER_MATCH_TX, transferId, "ok");
+          // await this.ctx.redis.hset(USER_MATCH_TX, transferId, "ok");
         }
       }
       if (tx.side === 1) {
@@ -41,19 +44,18 @@ export class Watch {
           )
         ) {
           transferId = `${transferId}:cross`;
-          await this.ctx.redis
-            .multi()
+          await reidsT
             .hset(MAKER_MATCH_CROSS_TX, transferId, tx.hash)
-            .zadd(MAKER_MATCH_TX, dayjs(tx.timestamp).unix(), transferId)
-            .exec();
+            .zadd(MAKER_MATCH_TX, dayjs(tx.timestamp).unix(), transferId);
         } else {
-          await this.ctx.redis.zadd(
+          await reidsT.zadd(
             MAKER_MATCH_TX,
             dayjs(tx.timestamp).unix(),
             transferId,
           );
         }
       }
+      await reidsT.exec();
     }
     return saveTxList;
   }
@@ -81,9 +83,9 @@ export class Watch {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
-        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-        //   ctx.logger.error(`${id} startScanChain error:`, error);
-        // });
+        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+          ctx.logger.error(`${id} startScanChain error:`, error);
+        });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -95,123 +97,126 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     if (this.ctx.instanceId === 0) {
+      this.readUserSendReMatch().catch(error => {
+        this.ctx.logger.error("readUserSendReMatch error:", error);
+      });
       // processMakerTxCrossAddress(this.ctx, "0x64282d53de4947ce61c44e702d44afde73d5135c8a7c5d3a5e56262e8af8913").then(result => {
       //   console.log(result, '==result');
       // }).catch(error => {
       //   console.log(error, '======error');
       // })
       // setInterval(() => {
-      this.readUserSendReMatch(
-        dayjs().subtract(50, "minute").toDate(),
-        dayjs().subtract(1, "minute").toDate(),
-      ).catch(error => {
-        console.log(error, "==");
-      });
+
       // }, 1000 * 60);
       // this.readQueneMatch().catch(error => {
       //   this.ctx.logger.error("readQueneMatch error:", error);
       // });
     }
   }
-  public async readUserSendReMatch(
-    startAt: any,
-    endAt: any = new Date(),
-  ): Promise<any> {
-    // read
-    const txList = await this.ctx.models.Transaction.findAll({
-      raw: true,
-      attributes: ["hash"],
-      limit: 500,
-      order: [["timestamp", "desc"]],
-      where: {
-        side: 0,
-        status: 1,
-        timestamp: {
-          [Op.gte]: startAt,
-          [Op.lte]: endAt,
-        },
-      },
-    });
-    for (const tx of txList) {
-      await processUserSendMakerTx(this.ctx, tx.hash).catch(error => {
-        this.ctx.logger.error(
-          `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
-          error,
-        );
-      });
-      endAt = tx.timestamp;
-    }
-    if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {
-      return { startAt, endAt, count: txList.length };
-    }
-    await sleep(1000 * 5);
-    return await this.readUserSendReMatch(startAt, endAt);
-  }
-  public async readQueneMatch(): Promise<any> {
+  public async readUserSendReMatch(): Promise<any> {
+    const startAt = dayjs().subtract(50, "minute").toDate();
+    let endAt = dayjs().subtract(1, "minute").toDate();
+
     try {
-      const transferIdList: Array<string> = await this.ctx.redis.zrangebyscore(
-        MAKER_MATCH_TX,
-        dayjs().subtract(60, "minute").unix(),
-        dayjs().unix(),
-      );
-      for (const transferId of transferIdList) {
-        try {
-          if (String(transferId).includes(":cross")) {
-            const hash = await this.ctx.redis.hget(
-              MAKER_MATCH_CROSS_TX,
-              transferId,
-            );
-            if (hash) {
-              const matchResult = await processMakerSendUserTx(
-                this.ctx,
-                hash,
-                true,
-              );
-              if (matchResult?.inId && matchResult.outId) {
-                await this.ctx.redis
-                  .multi()
-                  .zrem(MAKER_MATCH_CROSS_TX, transferId)
-                  .hdel(`${MAKER_MATCH_TX}:cross`, transferId);
-              }
-            }
-            continue;
-          }
-          const hash = await this.ctx.redis.hget(
-            USER_MATCH_TX,
-            String(transferId),
-          );
-          if (!hash) {
-            continue;
-          }
-          if (hash === "ok") {
-            await this.ctx.redis
-              .multi()
-              .zrem(MAKER_MATCH_TX, transferId)
-              .hdel(USER_MATCH_TX, transferId)
-              .exec();
-            continue;
-          }
-          const matchResult = await processUserSendMakerTx(this.ctx, hash);
-          if (matchResult?.inId && matchResult.outId) {
-            await this.ctx.redis
-              .multi()
-              .zrem(MAKER_MATCH_TX, transferId)
-              .hdel(USER_MATCH_TX, transferId)
-              .exec();
-          }
-        } catch (error) {
+      // read
+      const txList = await this.ctx.models.Transaction.findAll({
+        raw: true,
+        attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
+        limit: 500,
+        order: [["timestamp", "desc"]],
+        where: {
+          side: 0,
+          status: 1,
+          timestamp: {
+            [Op.gte]: startAt,
+            [Op.lte]: endAt,
+          },
+        },
+      });
+      console.log("循环匹配：-----------", txList.length);
+      for (const tx of txList) {
+        await processUserSendMakerTx(this.ctx, tx).catch(error => {
           this.ctx.logger.error(
-            "readQueneMatch>for transferId error:%s,%s",
-            transferId,
+            `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
             error,
           );
-        }
+        });
+        endAt = tx.timestamp;
+      }
+      if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {
+        return { startAt, endAt, count: txList.length };
       }
     } catch (error) {
-      this.ctx.logger.error("readQueneMatch> error:", error);
     } finally {
-      await sleep(1000 * 2);
-      return await this.readQueneMatch();
+      await sleep(1000 * 5);
+      return await this.readUserSendReMatch();
     }
   }
+  // public async readQueneMatch(): Promise<any> {
+  //   try {
+  //     const transferIdList: Array<string> = await this.ctx.redis.zrangebyscore(
+  //       MAKER_MATCH_TX,
+  //       dayjs().subtract(60, "minute").unix(),
+  //       dayjs().unix(),
+  //     );
+  //     for (const transferId of transferIdList) {
+  //       try {
+  //         if (String(transferId).includes(":cross")) {
+  //           const hash = await this.ctx.redis.hget(
+  //             MAKER_MATCH_CROSS_TX,
+  //             transferId,
+  //           );
+  //           if (hash) {
+  //             const matchResult = await processMakerSendUserTx(
+  //               this.ctx,
+  //               hash,
+  //               true,
+  //             );
+  //             if (matchResult?.inId && matchResult.outId) {
+  //               await this.ctx.redis
+  //                 .multi()
+  //                 .zrem(MAKER_MATCH_CROSS_TX, transferId)
+  //                 .hdel(`${MAKER_MATCH_TX}:cross`, transferId);
+  //             }
+  //           }
+  //           continue;
+  //         }
+  //         const hash = await this.ctx.redis.hget(
+  //           USER_MATCH_TX,
+  //           String(transferId),
+  //         );
+  //         if (!hash) {
+  //           continue;
+  //         }
+  //         if (hash === "ok") {
+  //           await this.ctx.redis
+  //             .multi()
+  //             .zrem(MAKER_MATCH_TX, transferId)
+  //             .hdel(USER_MATCH_TX, transferId)
+  //             .exec();
+  //           continue;
+  //         }
+  //         const matchResult = await processUserSendMakerTx(this.ctx, hash);
+  //         if (matchResult?.inId && matchResult.outId) {
+  //           await this.ctx.redis
+  //             .multi()
+  //             .zrem(MAKER_MATCH_TX, transferId)
+  //             .hdel(USER_MATCH_TX, transferId)
+  //             .exec();
+  //         }
+  //       } catch (error) {
+  //         this.ctx.logger.error(
+  //           "readQueneMatch>for transferId error:%s,%s",
+  //           transferId,
+  //           error,
+  //         );
+  //       }
+  //     }
+  //   } catch (error) {
+  //     this.ctx.logger.error("readQueneMatch> error:", error);
+  //   } finally {
+  //     await sleep(1000 * 2);
+  //     return await this.readQueneMatch();
+  //   }
+  // }
 }

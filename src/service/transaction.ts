@@ -89,7 +89,7 @@ export async function findByHashTxMatch(
   }
   if (isMakerSend) {
     try {
-      return await processMakerSendUserTx(ctx, tx.hash);
+      return await processMakerSendUserTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processMakerSendUserTx error: `, {
         error,
@@ -98,7 +98,7 @@ export async function findByHashTxMatch(
     }
   } else if (isUserSend) {
     try {
-      return await processUserSendMakerTx(ctx, tx.hash);
+      return await processUserSendMakerTx(ctx, tx);
     } catch (error: any) {
       ctx.logger.error(`processUserSendMakerTx error: `, {
         error,
@@ -299,7 +299,7 @@ export async function bulkCreateTransaction(
   }
   // calc response amount
   try {
-    await ctx.models.Transaction.bulkCreate(upsertList, {
+    const upsertResult = await ctx.models.Transaction.bulkCreate(upsertList, {
       returning: true,
       updateOnDuplicate: [
         // "hash",
@@ -324,6 +324,15 @@ export async function bulkCreateTransaction(
         "makerId",
       ],
     });
+    for (const tx of upsertList) {
+      const item = await upsertResult.find(row => equals(row.hash, tx.hash));
+      if (equals(item?.hash, tx.hash)) {
+        tx.id = item?.id;
+      } else {
+        console.log("未找到-----------------", item?.id, tx);
+        process.exit(1);
+      }
+    }
     return upsertList;
   } catch (error: any) {
     ctx.logger.error("processSubTx error:", error);
@@ -367,46 +376,51 @@ export async function calcMakerSendAmount(
     )?.tAmount || 0
   );
 }
-export async function processUserSendMakerTx(ctx: Context, hash: string) {
+export async function processUserSendMakerTx(
+  ctx: Context,
+  userTx: Transaction,
+) {
   const t = await ctx.models.sequelize.transaction();
   try {
-    const userTx = await ctx.models.Transaction.findOne({
-      attributes: [
-        "id",
-        "hash",
-        "transferId",
-        "chainId",
-        "from",
-        "to",
-        "tokenAddress",
-        "nonce",
-        "status",
-        "timestamp",
-        "value",
-        "expectValue",
-        "memo",
-        "symbol",
-        "makerId",
-        "lpId",
-        "replySender",
-        "replyAccount",
-      ],
-      where: {
-        hash,
-        // status: 1,
-        side: 0,
-      },
-      include: [
-        {
-          required: false,
-          attributes: ["id", "inId", "outId"],
-          model: ctx.models.MakerTransaction,
-          as: "maker_transaction",
-        },
-      ],
-      transaction: t,
-    });
-
+    // const userTx = await ctx.models.Transaction.findOne({
+    //   attributes: [
+    //     "id",
+    //     "hash",
+    //     "transferId",
+    //     "chainId",
+    //     "from",
+    //     "to",
+    //     "tokenAddress",
+    //     "nonce",
+    //     "status",
+    //     "timestamp",
+    //     "value",
+    //     "expectValue",
+    //     "memo",
+    //     "symbol",
+    //     "makerId",
+    //     "lpId",
+    //     "replySender",
+    //     "replyAccount",
+    //   ],
+    //   where: {
+    //     hash,
+    //     // status: 1,
+    //     side: 0,
+    //   },
+    //   include: [
+    //     {
+    //       required: false,
+    //       attributes: ["id", "inId", "outId"],
+    //       model: ctx.models.MakerTransaction,
+    //       as: "maker_transaction",
+    //     },
+    //   ],
+    //   transaction: t,
+    // });
+    if (!userTx || isEmpty(userTx.id)) {
+      throw new Error("Missing Id Or Transaction does not exist");
+    }
     if (!userTx || isEmpty(userTx.transferId)) {
       throw new Error("Missing transferId Or Transaction does not exist");
     }
@@ -421,7 +435,7 @@ export async function processUserSendMakerTx(ctx: Context, hash: string) {
       };
     }
     if (userTx.status != 1) {
-      throw new Error(`${hash} Current status cannot match`);
+      throw new Error(`${userTx.hash} Current status cannot match`);
     }
     // user send to Maker
     const fromChainId = Number(userTx.chainId);
@@ -494,10 +508,17 @@ export async function processUserSendMakerTx(ctx: Context, hash: string) {
       await makerSendTx.save({
         transaction: t,
       });
-      userTx.status = upStatus;
-      await userTx.save({
-        transaction: t,
-      });
+      await ctx.models.Transaction.update(
+        {
+          status: upStatus,
+        },
+        {
+          where: {
+            id: userTx.id,
+          },
+          transaction: t,
+        },
+      );
     }
     await ctx.models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
@@ -511,39 +532,42 @@ export async function processUserSendMakerTx(ctx: Context, hash: string) {
 }
 export async function processMakerSendUserTx(
   ctx: Context,
-  hash: string,
+  makerTx: Transaction,
   isCross?: boolean,
 ) {
   const t = await ctx.models.sequelize.transaction();
   try {
-    const makerTx = await ctx.models.Transaction.findOne({
-      attributes: [
-        "id",
-        "transferId",
-        "chainId",
-        "status",
-        "timestamp",
-        "value",
-        "memo",
-        "symbol",
-        "replySender",
-        "replyAccount",
-      ],
-      where: {
-        hash,
-        // status: 1,
-        side: 1,
-      },
-      transaction: t,
-      include: [
-        {
-          required: false,
-          attributes: ["id", "inId", "outId"],
-          model: ctx.models.MakerTransaction,
-          as: "out_maker_transaction",
-        },
-      ],
-    });
+    // const makerTx = await ctx.models.Transaction.findOne({
+    //   attributes: [
+    //     "id",
+    //     "transferId",
+    //     "chainId",
+    //     "status",
+    //     "timestamp",
+    //     "value",
+    //     "memo",
+    //     "symbol",
+    //     "replySender",
+    //     "replyAccount",
+    //   ],
+    //   where: {
+    //     hash,
+    //     // status: 1,
+    //     side: 1,
+    //   },
+    //   transaction: t,
+    //   include: [
+    //     {
+    //       required: false,
+    //       attributes: ["id", "inId", "outId"],
+    //       model: ctx.models.MakerTransaction,
+    //       as: "out_maker_transaction",
+    //     },
+    //   ],
+    // });
+    if (!makerTx || isEmpty(makerTx.id)) {
+      throw new Error("Missing Id Or Transaction does not exist");
+    }
     if (!makerTx || isEmpty(makerTx.transferId)) {
       throw new Error("Missing transferId Or Transaction does not exist");
     }
@@ -557,7 +581,7 @@ export async function processMakerSendUserTx(
       };
     }
     if (makerTx.status != 1) {
-      throw new Error(`${hash} Current status cannot match`);
+      throw new Error(`${makerTx.hash} Current status cannot match`);
     }
     const models = ctx.models;
     let where: any = {
@@ -662,12 +686,19 @@ export async function processMakerSendUserTx(
     await userSendTx.save({
       transaction: t,
     });
-    makerTx.status = upStatus;
-    makerTx.lpId = userSendTx.lpId;
-    makerTx.makerId = userSendTx.makerId;
-    await makerTx.save({
-      transaction: t,
-    });
+    await ctx.models.Transaction.update(
+      {
+        status: upStatus,
+        lpId: userSendTx.lpId,
+        makerId: userSendTx.makerId,
+      },
+      {
+        where: {
+          id: userSendTx.id,
+        },
+        transaction: t,
+      },
+    );
     await models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
     });

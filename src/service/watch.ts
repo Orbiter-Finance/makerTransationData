@@ -83,9 +83,9 @@ export class Watch {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
-        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-          ctx.logger.error(`${id} startScanChain error:`, error);
-        });
+        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+        //   ctx.logger.error(`${id} startScanChain error:`, error);
+        // });
       }
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
@@ -114,15 +114,13 @@ export class Watch {
     }
   }
   public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(50, "minute").toDate();
+    const startAt = dayjs().startOf("d").toDate();
     let endAt = dayjs().subtract(1, "minute").toDate();
-
     try {
       // read
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-        limit: 500,
         order: [["timestamp", "desc"]],
         where: {
           side: 0,
@@ -133,7 +131,6 @@ export class Watch {
           },
         },
       });
-      console.log("循环匹配：-----------", txList.length);
       for (const tx of txList) {
         await processUserSendMakerTx(this.ctx, tx).catch(error => {
           this.ctx.logger.error(
@@ -148,7 +145,7 @@ export class Watch {
       }
     } catch (error) {
     } finally {
-      await sleep(1000 * 5);
+      await sleep(1000 * 30);
       return await this.readUserSendReMatch();
     }
   }

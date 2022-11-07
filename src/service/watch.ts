@@ -37,7 +37,10 @@ export class Watch {
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
-        if (Number(id) % this.ctx.instanceCount !== this.ctx.instanceId) {
+        if (
+          Number(id) % this.ctx.instanceCount !== this.ctx.instanceId ||
+          Number(id) != 4
+        ) {
           continue;
         }
         ctx.logger.info(
@@ -55,10 +58,22 @@ export class Watch {
               ctx.logger.error(`${id} processSubTxList error:`, error);
             });
         });
+
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
+      pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
+        console.log(tx, "===tx s");
+        try {
+          await this.processSubTxList([tx]);
+        } catch (error) {
+          ctx.logger.error(
+            `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
+            error,
+          );
+        }
+      });
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);
@@ -132,7 +147,7 @@ export class Watch {
       order: [["id", "desc"]],
       limit: 500,
     });
-    const txIdList = mtxList.map(row => {
+    const txIdList = mtxList.map((row: any) => {
       return row.inId || row.outId;
     });
     if (!txIdList || txIdList.length <= 0) {
@@ -149,7 +164,7 @@ export class Watch {
         },
       },
     });
-    txList.forEach(tx => {
+    txList.forEach((tx: { chainId: any; hash: any }) => {
       this.ctx.redis
         .rpush(
           WAIT_MATCH_REDIS_KEY,

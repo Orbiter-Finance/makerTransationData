@@ -434,7 +434,7 @@ export async function processUserSendMakerTx(
         errmsg: "UserTx Already matched",
       };
     }
-    if (userTx.status != 1) {
+    if (userTx.status != 1 && userTx.status != 0) {
       throw new Error(`${userTx.hash} Current status cannot match`);
     }
     // user send to Maker

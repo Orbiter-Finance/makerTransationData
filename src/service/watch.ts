@@ -132,7 +132,7 @@ export class Watch {
         order: [["timestamp", "desc"]],
         where: {
           side: 0,
-          status: 1,
+          status: [0, 1],
           timestamp: {
             [Op.gte]: startAt,
             [Op.lte]: endAt,

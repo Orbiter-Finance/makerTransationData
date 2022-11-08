@@ -93,24 +93,24 @@ export class MakerTransaction extends Model<
             using: "BTREE",
             fields: [{ name: "id" }],
           },
-          {
-            name: "trxid",
-            unique: true,
-            using: "BTREE",
-            fields: [{ name: "transcationId" }],
-          },
+          // {
+          //   name: "trxid",
+          //   unique: true,
+          //   using: "BTREE",
+          //   fields: [{ name: "transcationId" }],
+          // },
           {
             name: "maker_transaction_inId",
             unique: true,
             using: "BTREE",
             fields: [{ name: "inId" }],
           },
-          {
-            name: "maker_transaction_outId",
-            unique: true,
-            using: "BTREE",
-            fields: [{ name: "outId" }],
-          },
+          // {
+          //   name: "maker_transaction_outId",
+          //   unique: true,
+          //   using: "BTREE",
+          //   fields: [{ name: "outId" }],
+          // },
           {
             name: "replySender",
             using: "BTREE",

@@ -530,6 +530,49 @@ export async function processUserSendMakerTx(
     ctx.logger.error("processUserSendMakerTx error", error);
   }
 }
+export async function quickMatchSuccess(
+  ctx: Context,
+  inId: number,
+  outId: number,
+  transferId: string,
+) {
+  console.log("快速匹配", inId, outId);
+  const outTx = await ctx.models.Transaction.findOne({
+    attributes: ["id", "status"],
+    where: {
+      status: [0, 1],
+      id: outId,
+    },
+  });
+  if (!outTx) {
+    throw new Error("No quick matching transactions found");
+  }
+  const rows = await ctx.models.MakerTransaction.update(
+    {
+      outId: outId,
+    },
+    {
+      where: {
+        inId: inId,
+        outId: null,
+      },
+    },
+  );
+  if (rows.length == 1) {
+    return {
+      inId,
+      outId,
+      errmsg: "ok",
+    };
+  } else {
+    return {
+      inId,
+      outId,
+      errmsg: "fail",
+    };
+  }
+}
+
 export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,

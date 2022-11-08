@@ -172,8 +172,7 @@ export class Transaction extends Model<
         },
         expectValue: {
           type: DataTypes.STRING(32),
-          allowNull: false,
-          defaultValue: "",
+          allowNull: true,
           comment: "expectValue",
         },
         lpId: {

@@ -5,11 +5,13 @@ import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
 import {
   bulkCreateTransaction,
+  processMakerSendUserTx,
   processUserSendMakerTx,
   quickMatchSuccess,
 } from "./transaction";
 import dayjs from "dayjs";
 import {
+  TRANSACTION_RAW,
   MATCH_SUCCESS,
   USERTX_WAIT_MATCH,
   MAKERTX_WAIT_MATCH,
@@ -20,13 +22,8 @@ import { Op } from "sequelize";
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
-    return (
-      Object.keys(this.ctx.config.crossAddressTransferMap).includes(
-        makerAddress.toLowerCase(),
-      ) ||
-      Object.values(this.ctx.config.crossAddressTransferMap).includes(
-        makerAddress.toLowerCase(),
-      )
+    return Object.values(this.ctx.config.crossAddressTransferMap).includes(
+      makerAddress.toLowerCase(),
     );
   }
   public async processSubTxList(txlist: Array<Transaction>) {
@@ -56,11 +53,16 @@ export class Watch {
         }
       }
       if (tx.side === 1 && tx.replySender) {
-        await reidsT
-          .hset(MAKERTX_TRANSFERID, tx.id, tx.transferId)
-          .zadd(MAKERTX_WAIT_MATCH, dayjs(tx.timestamp).unix(), tx.id);
-        if (this.isMultiAddressPaymentCollection(tx.replySender)) {
+        if (this.isMultiAddressPaymentCollection(tx.from)) {
           // Multi address payment collection
+          await reidsT
+            .hset(TRANSACTION_RAW, tx.id, JSON.stringify(tx))
+            .hset(MAKERTX_TRANSFERID, tx.id, `${tx.transferId}_cross`)
+            .zadd(MAKERTX_WAIT_MATCH, dayjs(tx.timestamp).unix(), tx.id);
+        } else {
+          await reidsT
+            .hset(MAKERTX_TRANSFERID, tx.id, tx.transferId)
+            .zadd(MAKERTX_WAIT_MATCH, dayjs(tx.timestamp).unix(), tx.id);
         }
       }
       await reidsT.exec();
@@ -178,28 +180,40 @@ export class Watch {
         if (!transferId) {
           continue;
         }
+        let matchRes: any = {
+          inId: null,
+          outId: null,
+        };
         try {
-          const inTxId = await this.ctx.redis.hget(
-            USERTX_WAIT_MATCH,
-            transferId,
-          );
-          if (inTxId) {
-            const result = await quickMatchSuccess(
-              this.ctx,
-              Number(inTxId),
-              Number(outTxId),
+          if (transferId.includes("_cross")) {
+            // tx
+            const txItem = await this.ctx.redis
+              .hget(TRANSACTION_RAW, outTxId)
+              .then(res => res && JSON.parse(res));
+            matchRes = await processMakerSendUserTx(this.ctx, txItem, true);
+          } else {
+            const inTxId = await this.ctx.redis.hget(
+              USERTX_WAIT_MATCH,
               transferId,
             );
-            this.ctx.logger.info(`quickMatchSuccess result:`, result);
-            if (result.inId && result.outId) {
-              await this.ctx.redis
-                .multi()
-                .zrem(MAKERTX_WAIT_MATCH, outTxId)
-                .hdel(MAKERTX_TRANSFERID, outTxId)
-                .hdel(USERTX_WAIT_MATCH, transferId)
-                .hset(MATCH_SUCCESS, result.inId, result.outId)
-                .exec();
+            if (inTxId) {
+              matchRes = await quickMatchSuccess(
+                this.ctx,
+                Number(inTxId),
+                Number(outTxId),
+                transferId,
+              );
             }
+          }
+          this.ctx.logger.info(`quickMatchSuccess result:`, matchRes);
+          if (matchRes.inId && matchRes.outId) {
+            await this.ctx.redis
+              .multi()
+              .zrem(MAKERTX_WAIT_MATCH, outTxId)
+              .hdel(MAKERTX_TRANSFERID, outTxId)
+              .hdel(USERTX_WAIT_MATCH, transferId)
+              .hset(MATCH_SUCCESS, matchRes.inId, matchRes.outId)
+              .exec();
           }
         } catch (error) {
           this.ctx.logger.error(`readUserCacheSendReMatch error:`, error);

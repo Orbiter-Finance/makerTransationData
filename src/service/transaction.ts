@@ -298,46 +298,69 @@ export async function bulkCreateTransaction(
     upsertList.push(<any>txData);
   }
   // calc response amount
-  try {
-    const upsertResult = await ctx.models.Transaction.bulkCreate(upsertList, {
-      returning: true,
-      updateOnDuplicate: [
-        // "hash",
-        "from",
-        "to",
-        "source",
-        "value",
-        "fee",
-        "feeToken",
-        "symbol",
-        "input",
-        "extra",
-        "timestamp",
-        "tokenAddress",
-        "nonce",
-        "memo",
-        "replyAccount",
-        "replySender",
-        "side",
-        "expectValue",
-        "lpId",
-        "makerId",
-      ],
-    });
-    for (const tx of upsertList) {
-      const item = await upsertResult.find(row => equals(row.hash, tx.hash));
-      if (equals(item?.hash, tx.hash)) {
-        tx.id = item?.id;
-      } else {
-        console.log("未找到-----------------", item?.id, tx);
-        process.exit(1);
+  // const updateOnDuplicate:string[] = [
+  //   // "hash",
+  //   "from",
+  //   "to",
+  //   "source",
+  //   "value",
+  //   "fee",
+  //   "feeToken",
+  //   "symbol",
+  //   "input",
+  //   "extra",
+  //   "timestamp",
+  //   "tokenAddress",
+  //   "nonce",
+  //   "memo",
+  //   "replyAccount",
+  //   "replySender",
+  //   "side",
+  //   "expectValue",
+  //   "lpId",
+  //   "makerId",
+  // ];
+  for (const row of upsertList) {
+    try {
+      const [newTx, created] = await ctx.models.Transaction.findOrCreate({
+        defaults: row,
+        attributes: ["id", "hash", "status", "expectValue"],
+        where: {
+          hash: row.hash,
+        },
+      });
+      if (!created) {
+        if (newTx.status == 0) {
+          newTx.status = row.status;
+          await newTx.save();
+        }
       }
+      row.id = newTx.id;
+    } catch (error: any) {
+      console.log(row);
+      ctx.logger.error("processSubTx error:", error);
+      throw error;
     }
-    return upsertList;
-  } catch (error: any) {
-    ctx.logger.error("processSubTx error:", error);
-    throw error;
   }
+  // const upsertResult = await ctx.models.Transaction.bulkCreate(upsertList, {
+  //   updateOnDuplicate:updateOnDuplicate as any,
+  // });
+  // for (const tx of upsertList) {
+  //   const item = await upsertResult.find(row => equals(row.hash, tx.hash));
+  //   if (equals(item?.hash, tx.hash)) {
+  //     if (!item?.id) {
+  //       ctx.logger.error("空ID1", item?.id)
+  //       ctx.logger.error("空ID2", item?.getDataValue("id"))
+  //       ctx.logger.error("空ID3",  item?.isNewRecord,'===', item?.get("id"))
+  //     }
+  //     tx.id = item?.id;
+  //     if (!item?.id) {
+  //     }
+  //   } else {
+  //     process.exit(1);
+  //   }
+  // }
+  return upsertList;
 }
 export async function calcMakerSendAmount(
   makerConfigs: Array<any>,
@@ -536,7 +559,6 @@ export async function quickMatchSuccess(
   outId: number,
   transferId: string,
 ) {
-  console.log("快速匹配", inId, outId);
   const outTx = await ctx.models.Transaction.findOne({
     attributes: ["id", "status"],
     where: {
@@ -545,7 +567,11 @@ export async function quickMatchSuccess(
     },
   });
   if (!outTx) {
-    throw new Error("No quick matching transactions found");
+    return {
+      inId,
+      outId: null,
+      errmsg: "No quick matching transactions found",
+    };
   }
   const rows = await ctx.models.MakerTransaction.update(
     {

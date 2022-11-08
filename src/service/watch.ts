@@ -37,7 +37,8 @@ export class Watch {
       //   continue;
       // }
       if (!tx.id) {
-        throw new Error("Id non-existent");
+        this.ctx.logger.error(`Id non-existent`, tx);
+        continue;
       }
       const reidsT = await this.ctx.redis.multi();
       // const reidsT = await this.ctx.redis.multi()
@@ -46,7 +47,10 @@ export class Watch {
         const result = await processUserSendMakerTx(this.ctx, tx as any);
         if (result?.inId && result.outId) {
           // success
-          await reidsT.hset(MATCH_SUCCESS, result.inId, result.outId);
+          await reidsT
+            .hset(MATCH_SUCCESS, result.inId, result.outId)
+            .hdel(MAKERTX_TRANSFERID, result.outId)
+            .zrem(MAKERTX_WAIT_MATCH, result.outId);
         } else {
           await reidsT.hset(USERTX_WAIT_MATCH, tx.transferId, tx.id);
         }

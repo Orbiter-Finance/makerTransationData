@@ -128,8 +128,6 @@ export class Transaction extends Model<
         timestamp: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
-          primaryKey: true,
           comment: "timestamp",
         },
         fee: {

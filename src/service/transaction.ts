@@ -14,104 +14,112 @@ import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
 import { TranferId, TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
-// import { IMarket } from "../types";
+import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 
-// export async function findByHashTxMatch(
-//   ctx: Context,
-//   chainId: number,
-//   hash: string,
-// ) {
-//   const tx = await ctx.models.Transaction.findOne({
-//     raw: true,
-//     attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-//     where: {
-//       hash,
-//       chainId,
-//     },
-//   });
-//   if (!tx || !tx.id) {
-//     throw new Error(`chainId ${chainId} hash ${hash} Tx Not Found`);
-//   }
-//   if (![1, 99].includes(tx.status)) {
-//     ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
-//     return false;
-//   }
+export async function findByHashTxMatch(
+  ctx: Context,
+  hashOrId: number | string,
+) {
+  const where: any = {};
+  if (typeof hashOrId == "string") {
+    where["hash"] = String(hashOrId);
+  } else {
+    where["id"] = Number(hashOrId);
+  }
+  const tx = await ctx.models.Transaction.findOne({
+    raw: true,
+    attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
+    where,
+  });
+  if (!tx || !tx.id) {
+    throw new Error(` hash ${hashOrId} Tx Not Found`);
+  }
+  if (![1, 99].includes(tx.status)) {
+    ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
+    return {
+      inId: null,
+      outId: null,
+    };
+  }
 
-//   if (
-//     isEmpty(tx.from) ||
-//     isEmpty(tx.to) ||
-//     isEmpty(tx.value) ||
-//     isEmpty(String(tx.nonce)) ||
-//     isEmpty(tx.symbol)
-//   ) {
-//     ctx.logger.error(`Tx ${tx.hash} Missing required parameters`, {
-//       from: tx.from,
-//       to: tx.to,
-//       value: tx.value,
-//       nonce: tx.nonce,
-//       symbol: tx.symbol,
-//     });
-//     return false;
-//   }
-//   const isMakerSend =
-//     ctx.makerConfigs.findIndex((row: IMarket) =>
-//       equals(row.sender, tx.from),
-//     ) !== -1;
-//   const isUserSend =
-//     ctx.makerConfigs.findIndex((row: IMarket) =>
-//       equals(row.recipient, tx.to),
-//     ) !== -1;
-//   const mtTx = await ctx.models.MakerTransaction.findOne({
-//     attributes: ["id", "inId", "outId"],
-//     raw: true,
-//     where: {
-//       [Op.or]: {
-//         inId: tx.id,
-//         outId: tx.id,
-//       },
-//     },
-//   });
-//   if (mtTx && mtTx.inId && mtTx.outId) {
-//     await ctx.models.Transaction.update(
-//       {
-//         status: 99,
-//       },
-//       {
-//         where: {
-//           id: {
-//             [Op.in]: [mtTx.inId, mtTx.outId],
-//           },
-//         },
-//       },
-//     );
-//     return;
-//   }
-//   if (isMakerSend) {
-//     try {
-//       return await processMakerSendUserTx(ctx, tx);
-//     } catch (error: any) {
-//       ctx.logger.error(`processMakerSendUserTx error: `, {
-//         error,
-//         tx,
-//       });
-//     }
-//   } else if (isUserSend) {
-//     try {
-//       return await processUserSendMakerTx(ctx, tx);
-//     } catch (error: any) {
-//       ctx.logger.error(`processUserSendMakerTx error: `, {
-//         error,
-//         tx,
-//       });
-//     }
-//   } else {
-//     ctx.logger.error(
-//       `findByHashTxMatch matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
-//       tx,
-//     );
-//   }
-// }
+  if (
+    isEmpty(tx.from) ||
+    isEmpty(tx.to) ||
+    isEmpty(tx.value) ||
+    isEmpty(String(tx.nonce)) ||
+    isEmpty(tx.symbol)
+  ) {
+    ctx.logger.error(`Tx ${tx.hash} Missing required parameters`, {
+      from: tx.from,
+      to: tx.to,
+      value: tx.value,
+      nonce: tx.nonce,
+      symbol: tx.symbol,
+    });
+    return { inId: null, outId: null };
+  }
+  const isMakerSend =
+    ctx.makerConfigs.findIndex((row: IMarket) =>
+      equals(row.sender, tx.from),
+    ) !== -1;
+  const isUserSend =
+    ctx.makerConfigs.findIndex((row: IMarket) =>
+      equals(row.recipient, tx.to),
+    ) !== -1;
+  const mtTx = await ctx.models.MakerTransaction.findOne({
+    attributes: ["id", "inId", "outId"],
+    raw: true,
+    where: {
+      [Op.or]: {
+        inId: tx.id,
+        outId: tx.id,
+      },
+    },
+  });
+  if (mtTx && mtTx.inId && mtTx.outId) {
+    await ctx.models.Transaction.update(
+      {
+        status: 99,
+      },
+      {
+        where: {
+          id: {
+            [Op.in]: [mtTx.inId, mtTx.outId],
+          },
+        },
+      },
+    );
+    return {
+      inId: mtTx.inId,
+      outId: mtTx.outId,
+    };
+  }
+  if (isMakerSend) {
+    try {
+      return await processMakerSendUserTx(ctx, tx);
+    } catch (error: any) {
+      ctx.logger.error(`processMakerSendUserTx error: `, {
+        error,
+        tx,
+      });
+    }
+  } else if (isUserSend) {
+    try {
+      return await processUserSendMakerTx(ctx, tx);
+    } catch (error: any) {
+      ctx.logger.error(`processUserSendMakerTx error: `, {
+        error,
+        tx,
+      });
+    }
+  } else {
+    ctx.logger.error(
+      `findByHashTxMatch matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
+      tx,
+    );
+  }
+}
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<ITransaction>,
@@ -330,7 +338,7 @@ export async function bulkCreateTransaction(
         },
       });
       if (!created) {
-        if (newTx.status == 0) {
+        if (![0, 1].includes(row.status)) {
           newTx.status = row.status;
           await newTx.save();
         }
@@ -473,7 +481,7 @@ export async function processUserSendMakerTx(
 
     const where = {
       transferId: userTx.transferId,
-      status: 1,
+      status: [0, 1],
       side: 1,
       timestamp: {
         [Op.gte]: dayjs(userTx.timestamp).subtract(5, "m").toDate(),
@@ -570,7 +578,7 @@ export async function quickMatchSuccess(
     return {
       inId,
       outId: null,
-      errmsg: "No quick matching transactions found",
+      errmsg: `No quick matching transactions found ${outId}`,
     };
   }
   const rows = await ctx.models.MakerTransaction.update(

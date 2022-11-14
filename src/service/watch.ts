@@ -5,6 +5,7 @@ import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
 import {
   bulkCreateTransaction,
+  findByHashTxMatch,
   processMakerSendUserTx,
   processUserSendMakerTx,
   quickMatchSuccess,
@@ -45,7 +46,7 @@ export class Watch {
         if (result?.inId && result.outId) {
           // success
           await reidsT
-            .hset(MATCH_SUCCESS, result.inId, result.outId)
+            .hset(MATCH_SUCCESS, result.outId, result.inId)
             .hdel(MAKERTX_TRANSFERID, result.outId)
             .zrem(MAKERTX_WAIT_MATCH, result.outId);
         } else {
@@ -107,9 +108,9 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     if (this.ctx.instanceId === 0) {
-      // this.readUserSendReMatch().catch(error => {
-      //   this.ctx.logger.error("readUserSendReMatch error:", error);
-      // });
+      this.readUserSendReMatch().catch(error => {
+        this.ctx.logger.error("readUserSendReMatch error:", error);
+      });
       // processMakerTxCrossAddress(this.ctx, "0x64282d53de4947ce61c44e702d44afde73d5135c8a7c5d3a5e56262e8af8913").then(result => {
       //   console.log(result, '==result');
       // }).catch(error => {
@@ -121,14 +122,14 @@ export class Watch {
       // this.readQueneMatch().catch(error => {
       //   this.ctx.logger.error("readQueneMatch error:", error);
       // });
-      this.readMakerTxCacheReMatch().catch(error => {
-        this.ctx.logger.error("readMakerTxCacheReMatch error:", error);
-      });
+      // this.readMakerTxCacheReMatch().catch(error => {
+      //   this.ctx.logger.error("readMakerTxCacheReMatch error:", error);
+      // });
     }
   }
   // read db
   public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().startOf("d").toDate();
+    const startAt = dayjs().subtract(7, "d").startOf("d").toDate();
     let endAt = dayjs().subtract(1, "minute").toDate();
     try {
       // read
@@ -136,6 +137,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
+        limit: 100,
         where: {
           side: 0,
           status: [0, 1],
@@ -159,7 +161,7 @@ export class Watch {
       }
     } catch (error) {
     } finally {
-      await sleep(1000 * 30);
+      await sleep(1000 * 60 * 5);
       return await this.readUserSendReMatch();
     }
   }
@@ -203,16 +205,26 @@ export class Watch {
                 Number(outTxId),
                 transferId,
               );
+            } else {
+              const res = await findByHashTxMatch(
+                this.ctx,
+                Number(outTxId),
+              ).catch(error => {
+                this.ctx.logger.info(
+                  `readMakerTxCacheReMatch findByHashTxMatch error:`,
+                  error,
+                );
+              });
             }
           }
-          this.ctx.logger.info(`quickMatchSuccess result:`, matchRes);
           if (matchRes.inId && matchRes.outId) {
+            this.ctx.logger.info(`quickMatchSuccess result:`, matchRes);
             await this.ctx.redis
               .multi()
               .zrem(MAKERTX_WAIT_MATCH, outTxId)
               .hdel(MAKERTX_TRANSFERID, outTxId)
               .hdel(USERTX_WAIT_MATCH, transferId)
-              .hset(MATCH_SUCCESS, matchRes.inId, matchRes.outId)
+              .hset(MATCH_SUCCESS, matchRes.outId, matchRes.inId)
               .exec();
           }
         } catch (error) {

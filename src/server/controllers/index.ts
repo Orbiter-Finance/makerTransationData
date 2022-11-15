@@ -59,6 +59,7 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
         "timestamp",
         "makerId",
         "lpId",
+        "expectValue",
         "tokenAddress",
         "extra",
       ],
@@ -68,7 +69,6 @@ export async function getTransferTransactions(ctx: Router.RouterContext) {
     })) || {};
   for (const row of result.rows) {
     row.ebcId = row.extra.ebcId;
-    row.expectValue = row.expectValue;
     row.expectSafetyCode = 0;
     row.timestamp = dayjs(row.timestamp).utc().unix();
     if (row.side === 0) {

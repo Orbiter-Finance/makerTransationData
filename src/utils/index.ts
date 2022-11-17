@@ -25,3 +25,17 @@ export function TransactionID(
     symbol || "NULL"
   }${fromTxNonce}${ext}`.toLowerCase();
 }
+
+export function TransactionIDV2(
+  fromAddress: string,
+  fromChainId: number | string,
+  fromTxNonce: string | number,
+  symbol: string | undefined,
+  ext?: string,
+) {
+  let txid = `${fromAddress}${padStart(String(fromChainId), 4, "0")}${
+    symbol || "NULL"
+  }${fromTxNonce}`;
+  if (ext) txid = `${txid}_${ext}`;
+  return txid.toLowerCase();
+}

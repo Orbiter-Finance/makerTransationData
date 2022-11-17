@@ -12,7 +12,7 @@ import {
 import { Op } from "sequelize";
 import { Context } from "../context";
 import { transactionAttributes } from "../models/transaction";
-import { TransactionID } from "../utils";
+import { TransactionIDV2 } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 
@@ -268,6 +268,7 @@ export async function bulkCreateTransaction(
       lpId: undefined,
       expectValue: undefined,
     };
+
     const saveExtra: any = {
       ebcId: 0,
     };
@@ -363,6 +364,13 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
+
+    switch (Number(txData.chainId)) {
+      case 4:
+      case 44:
+        saveExtra["version"] = Number(tx.extra["version"]);
+        break;
+    }
     txData.extra = saveExtra;
     txsList.push(txData);
   }
@@ -443,12 +451,19 @@ export async function processUserSendMakerTx(
   // user send to Maker
   const fromChainId = Number(trx.chainId);
   const toChainId = Number(trx.memo);
-  const transcationId = TransactionID(
+  let ext = "";
+  if ([8, 88].includes(Number(trx.chainId))) {
+    ext = dayjs(trx.timestamp).unix().toString();
+  } else if ([4, 44].includes(Number(trx.chainId))) {
+    const version = Number(trx.extra && (<any>trx.extra)["version"]);
+    ext = String(version);
+  }
+  const transcationId = TransactionIDV2(
     String(trx.from),
     trx.chainId,
     trx.nonce,
     trx.symbol,
-    dayjs(trx.timestamp).valueOf(),
+    ext,
   );
   const market = ctx.makerConfigs.find(
     m =>
@@ -541,30 +556,6 @@ export async function processUserSendMakerTx(
           transaction: t,
         },
       );
-      // await ctx.models.transaction.update(
-      //   {
-      //     side: 1,
-      //     status: upStatus,
-      //   },
-      //   {
-      //     where: {
-      //       id: makerSendTx.id,
-      //     },
-      //     transaction: t,
-      //   },
-      // );
-      // await ctx.models.transaction.update(
-      //   {
-      //     side: 0,
-      //     status: upStatus,
-      //   },
-      //   {
-      //     where: {
-      //       id: trx.id,
-      //     },
-      //     transaction: t,
-      //   },
-      // );
     }
     await ctx.models.maker_transaction.upsert(upsertData, {
       transaction: t,
@@ -632,12 +623,21 @@ export async function processMakerSendUserTx(
     if (userSendTx?.id) {
       upsertData.inId = userSendTx.id;
       upsertData.fromChain = userSendTx.chainId;
-      upsertData.transcationId = TransactionID(
+      let ext = "";
+      if ([8, 88].includes(Number(userSendTx.chainId))) {
+        ext = dayjs(userSendTx.timestamp).unix().toString();
+      } else if ([4, 44].includes(Number(userSendTx.chainId))) {
+        const version = Number(
+          userSendTx.extra && (<any>userSendTx.extra)["version"],
+        );
+        ext = String(version);
+      }
+      upsertData.transcationId = TransactionIDV2(
         String(userSendTx.from),
         userSendTx.chainId,
         userSendTx.nonce,
         userSendTx.symbol,
-        dayjs(userSendTx.timestamp).valueOf(),
+        ext,
       );
       let upStatus = 99;
       let maxReceiptTime = 1 * 60 * 60 * 24;

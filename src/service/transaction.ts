@@ -491,9 +491,9 @@ export async function processUserSendMakerTx(
       status: 1,
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
-        // [Op.lte]: dayjs(trx.timestamp)
-        //   .add(60 * 24 * 2, "m")
-        //   .toDate(),
+        [Op.lte]: dayjs(trx.timestamp)
+          .add(60 * 24 * 2, "m")
+          .toDate(),
       },
       value: needToAmount,
     };
@@ -501,9 +501,9 @@ export async function processUserSendMakerTx(
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
         [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
-        // [Op.lte]: dayjs(trx.timestamp)
-        //   .add(60 * 24 * 2, "m")
-        //   .toDate(),
+        [Op.lte]: dayjs(trx.timestamp)
+          .add(60 * 24 * 2, "m")
+          .toDate(),
       };
     }
     // TODO:122
@@ -602,9 +602,9 @@ export async function processMakerSendUserTx(
         replySender,
         expectValue: trx.value,
         timestamp: {
-          // [Op.gte]: dayjs(trx.timestamp)
-          //   .subtract(24 * 60 * 2, "m")
-          //   .toDate(),
+          [Op.gte]: dayjs(trx.timestamp)
+            .subtract(24 * 60 * 2, "m")
+            .toDate(),
           [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
         },
         value: {

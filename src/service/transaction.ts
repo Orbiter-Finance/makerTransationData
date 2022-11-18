@@ -488,7 +488,7 @@ export async function processUserSendMakerTx(
       to: trx.replyAccount,
       symbol: trx.symbol,
       memo: trx.nonce,
-      status: 1,
+      status: [0, 1],
       timestamp: {
         [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
@@ -596,7 +596,7 @@ export async function processMakerSendUserTx(
       where: {
         memo: trx.chainId,
         nonce: trx.memo,
-        status: 1,
+        status: [0, 1],
         symbol: trx.symbol,
         replyAccount,
         replySender,

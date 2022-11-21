@@ -101,7 +101,6 @@ export class Watch {
       order: [["timestamp", "desc"]],
       where: {
         side: 0,
-        chainId: 4,
         status: 1,
         timestamp: {
           [Op.gt]: startAt,

@@ -455,7 +455,8 @@ export async function processUserSendMakerTx(
   if ([8, 88].includes(Number(trx.chainId))) {
     ext = dayjs(trx.timestamp).unix().toString();
   } else if ([4, 44].includes(Number(trx.chainId))) {
-    const version = Number(trx.extra && (<any>trx.extra)["version"]);
+    const extra: any = trx.extra;
+    const version = Number(extra && extra["version"]);
     ext = String(version);
   }
   const transcationId = TransactionIDV2(
@@ -592,6 +593,7 @@ export async function processMakerSendUserTx(
         "makerId",
         "replyAccount",
         "replySender",
+        "extra",
       ],
       where: {
         memo: trx.chainId,

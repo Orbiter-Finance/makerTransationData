@@ -15,6 +15,7 @@ export default {
     username: process.env.MYSQL_DB_USERNAME || "root",
     password: process.env.MYSQL_DB_PASSWORD || "root",
     host: process.env.MYSQL_DB_HOST || "localhost",
+    logging: false,
     port: Number(process.env.MYSQL_DB_PORT || "3306"),
     timezone: "+00:00",
   },

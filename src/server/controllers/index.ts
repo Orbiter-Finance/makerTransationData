@@ -225,3 +225,11 @@ export async function getUncollectedPaymentProof(ctx: Router.RouterContext) {
     errmsg: "",
   };
 }
+export async function getLps(ctx: Router.RouterContext) {
+  const spvCtx = ctx.state["spvCtx"] as Context;
+  ctx.body = {
+    errno: 0,
+    data: spvCtx.makerConfigs,
+    errmsg: "",
+  };
+}

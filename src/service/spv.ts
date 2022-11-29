@@ -93,6 +93,7 @@ export class SPV {
   }
   public async start() {
     const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
+    console.log("chainGroup：", chainGroup);
     for (const chainId in chainGroup) {
       const defaultLeafs = [
         Buffer.from(

@@ -137,7 +137,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
-        limit: 100,
+        limit: 500,
         where: {
           side: 0,
           status: [0, 1],
@@ -156,12 +156,12 @@ export class Watch {
         });
         endAt = tx.timestamp;
       }
-      if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {
-        return { startAt, endAt, count: txList.length };
-      }
+      // if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {
+      //   return { startAt, endAt, count: txList.length };
+      // }
     } catch (error) {
     } finally {
-      await sleep(1000 * 60 * 5);
+      await sleep(1000 * 10);
       return await this.readUserSendReMatch();
     }
   }

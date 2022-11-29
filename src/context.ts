@@ -77,28 +77,31 @@ export class Context {
       }
       this.config.chainsTokens = await subApi.getChains();
       setInterval(() => {
-        subApi
-          .getAllLp()
-          .then(result => {
-            console.log("ref lp", result);
-            if (result && result.length > 0) {
-              this.makerConfigs = result;
-            }
-          })
-          .catch(error => {
-            this.logger.error("setInterval getAllLp error:", error);
-          });
-        if (Date.now() % 6 === 0) {
+        try {
           subApi
-            .getChains()
-            .then(chainsTokens => {
-              if (chainsTokens) {
-                this.config.chainsTokens = chainsTokens;
+            .getAllLp()
+            .then(result => {
+              if (result && result.length > 0) {
+                this.makerConfigs = result;
               }
             })
             .catch(error => {
-              this.logger.error("setInterval getChains error:", error);
+              this.logger.error("setInterval getAllLp error:", error);
             });
+          if (Date.now() % 6 === 0) {
+            subApi
+              .getChains()
+              .then(chainsTokens => {
+                if (chainsTokens) {
+                  this.config.chainsTokens = chainsTokens;
+                }
+              })
+              .catch(error => {
+                this.logger.error("setInterval getChains error:", error);
+              });
+          }
+        } catch (error) {
+          this.logger.error("setInterval error:", error);
         }
       }, 1000 * 10);
     } else {

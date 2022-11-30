@@ -20,7 +20,7 @@
         "DB_HOST": "ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com",
         "DB_NAME": "orbiter-data",
         "DB_USER": "orbiter",
-        "DB_PASS": "Orbiter2022!@#",
+        "DB_PASS": "xxxxxxx,
         "NODE_ENV": "test",
         "INSTANCES": 4,
         "REDIS_HOST": "redis",

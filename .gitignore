@@ -22,3 +22,6 @@ pm2.json
 .yalc
 yalc.lock
 .env
+
+yarn.lock
+package.lock

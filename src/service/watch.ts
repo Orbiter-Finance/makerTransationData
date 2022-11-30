@@ -56,9 +56,9 @@ export class Watch {
             });
         });
 
-        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-        //   ctx.logger.error(`${id} startScanChain error:`, error);
-        // });
+        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+          ctx.logger.error(`${id} startScanChain error:`, error);
+        });
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         try {
@@ -79,27 +79,25 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     } finally {
-      // this.ctx.instanceId === 0 &&
-      //   this.initUnmatchedTransaction().catch(error => {
-      //     this.ctx.logger.error("initUnmatchedTransaction error:", error);
-      //   });
-      // this.readQueneMatch().catch(error => {
-      //   this.ctx.logger.error("readQueneMatch error:", error);
-      // });
+      this.ctx.instanceId === 0 &&
+        this.initUnmatchedTransaction().catch(error => {
+          this.ctx.logger.error("initUnmatchedTransaction error:", error);
+        });
+      this.readQueneMatch().catch(error => {
+        this.ctx.logger.error("readQueneMatch error:", error);
+      });
     }
-    this.readDBMatch(
-      dayjs().subtract(5, "d").format("YYYY-MM-DD HH:mm"),
-      dayjs().subtract(10, "minute").format("YYYY-MM-DD HH:mm"),
-    ).catch(error => {
-      console.log(error, "==error");
-    });
+    // this.readDBMatch(
+    //   dayjs().subtract(5, "d").format("YYYY-MM-DD HH:mm"),
+    //   dayjs().subtract(10, "minute").format("YYYY-MM-DD HH:mm"),
+    // ).catch(error => {
+    //   console.log(error, "==error");
+    // });
   }
   public async readDBMatch(
     startAt: any,
     endAt: any = new Date(),
   ): Promise<any> {
-    console.log(startAt, "==startAt");
-    console.log(endAt, "==endAt");
     // read
     const txList = await this.ctx.models.transaction.findAll({
       raw: true,
@@ -115,11 +113,8 @@ export class Watch {
         },
       },
     });
-    console.log(txList.length, "===txList---");
     for (const tx of txList) {
       const result = await txProcessMatch(this.ctx, tx);
-      console.log(result, "==result");
-
       this.ctx.logger.debug(
         `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
         result,

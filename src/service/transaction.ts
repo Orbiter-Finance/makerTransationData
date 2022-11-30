@@ -491,7 +491,7 @@ export async function processUserSendMakerTx(
       memo: trx.nonce,
       status: [0, 1],
       timestamp: {
-        [Op.gte]: dayjs(trx.timestamp).subtract(5, "m").toDate(),
+        [Op.gte]: dayjs(trx.timestamp).subtract(20, "m").toDate(),
         [Op.lte]: dayjs(trx.timestamp)
           .add(60 * 24 * 2, "m")
           .toDate(),
@@ -607,7 +607,7 @@ export async function processMakerSendUserTx(
           [Op.gte]: dayjs(trx.timestamp)
             .subtract(24 * 60 * 2, "m")
             .toDate(),
-          [Op.lte]: dayjs(trx.timestamp).add(5, "m").toDate(),
+          [Op.lte]: dayjs(trx.timestamp).add(60, "m").toDate(),
         },
         value: {
           [Op.gt]: Number(trx.value),

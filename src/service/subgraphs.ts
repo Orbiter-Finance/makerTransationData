@@ -10,7 +10,7 @@ export default class Subgraphs {
     const graphqlQuery = {
       operationName: "fetchLpList",
       query: `query fetchLpList {
-        lpEntities{
+        lpEntities(where: {status_in:[1,2]}){
           id
           createdAt
           maxPrice

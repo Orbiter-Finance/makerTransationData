@@ -109,6 +109,7 @@ export class Context {
         subApi
           .getAllLp()
           .then(result => {
+            console.log("ref lp", result);
             if (result && result.length > 0) {
               this.makerConfigs = result;
             }

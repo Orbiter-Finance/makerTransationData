@@ -3,7 +3,32 @@ import { isEmpty } from "orbiter-chaincore/src/utils/core";
 import { Context } from "../../context";
 import Router from "koa-router";
 import dayjs from "dayjs";
+import { Op } from "sequelize";
 
+export async function getMakerTransactionsCount(ctx: Router.RouterContext) {
+  const spvCtx = ctx.state["spvCtx"] as Context;
+  const query = ctx.request.query;
+  const makerId = query["makerId"];
+  if (!makerId) {
+    return (ctx.body = {
+      errno: 1000,
+      errmsg: "Missing parameter",
+    });
+  }
+  const where: any = {
+    makerId, status: {
+      [Op.or]: [0, 1],
+    },
+  };
+  const count: number =
+    await spvCtx.models.transaction.count({
+      where,
+    }) || 0;
+  ctx.body = {
+    errno: 0,
+    data: { count },
+  };
+}
 export async function getTransferTransactions(ctx: Router.RouterContext) {
   const queryType = ctx.params["type"] || "all";
   const spvCtx = ctx.state["spvCtx"] as Context;

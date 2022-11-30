@@ -179,18 +179,18 @@ export class ChainSPVTree {
       }
     }
     //
-    if (txList.length > 0) {
-      const nowRoot = this.tree.makerTxTree.getHexRoot();
-      const onChainRoot = await this.getMakerTreeRoot();
-      console.debug(
-        "makerTxTree:\n",
-        this.tree.makerTxTree.toString(),
-        `\ndiff:${onChainRoot}/${nowRoot}`,
-      );
-      if (onChainRoot != nowRoot) {
-        await this.setMakerTxTreeRoot(nowRoot);
-      }
+    // if (txList.length > 0) {
+    const nowRoot = this.tree.makerTxTree.getHexRoot();
+    const onChainRoot = await this.getMakerTreeRoot();
+    console.debug(
+      "makerTxTree:\n",
+      this.tree.makerTxTree.toString(),
+      `\ndiff:${onChainRoot}/${nowRoot}`,
+    );
+    if (onChainRoot != nowRoot) {
+      await this.setMakerTxTreeRoot(nowRoot);
     }
+    // }
   }
   public async updateUserTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
@@ -204,18 +204,18 @@ export class ChainSPVTree {
       }
     }
     //
-    if (txList.length > 0) {
-      const nowRoot = this.tree.userTxTree.getHexRoot();
-      const onChainRoot = await this.getUserTreeRoot();
-      console.debug(
-        "userTxTree:\n",
-        this.tree.userTxTree.toString(),
-        `\ndiff:${onChainRoot}/${nowRoot}`,
-      );
-      if (onChainRoot != nowRoot) {
-        await this.setUserTxTreeRoot(nowRoot);
-      }
+    // if (txList.length > 0) {
+    const nowRoot = this.tree.userTxTree.getHexRoot();
+    const onChainRoot = await this.getUserTreeRoot();
+    console.debug(
+      "userTxTree:\n",
+      this.tree.userTxTree.toString(),
+      `\ndiff:${onChainRoot}/${nowRoot}`,
+    );
+    if (onChainRoot != nowRoot) {
+      await this.setUserTxTreeRoot(nowRoot);
     }
+    // }
   }
   public async getUserNotRefundedTransactionList(): Promise<
     Array<transactionAttributes>
@@ -321,6 +321,7 @@ export class ChainSPVTree {
         root,
         params,
       );
+      await tx.wait();
       this.ctx.logger.info(
         `${this.chainId} setUserTxTreeRoot success:${tx.hash}`,
       );
@@ -348,6 +349,7 @@ export class ChainSPVTree {
         root,
         params,
       );
+      await tx.wait();
       this.ctx.logger.info(
         `${this.chainId} setMakerTxTreeRoot success:${tx.hash}`,
       );

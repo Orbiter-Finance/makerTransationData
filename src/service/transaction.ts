@@ -208,7 +208,6 @@ export async function bulkCreateTransaction(
     };
     if (tx.source == "xvm") {
       Object.assign(saveExtra, txExtra.xvm || {});
-      console.log(txExtra.xvm?.isOk ? "xvm swapOk" : "xvm swapFail");
     }
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>

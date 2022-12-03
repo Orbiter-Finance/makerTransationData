@@ -17,6 +17,10 @@ router.get(
   controllers.getUncollectedPaymentProof,
 );
 router.get("/lps", controllers.getLps);
+router.get(
+  "/wallet/makerTransactions/count",
+  controllers.getMakerTransactionsCount,
+);
 // router.get('/getUncollectedPaymentProof', (ctx) => {
 //   // const spvCtx = ctx.state['spvCtx'] as Context;
 //   const query = ctx.request.query;

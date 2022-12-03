@@ -272,6 +272,10 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: 0,
     };
+    if (tx.source == "xvm") {
+      Object.assign(saveExtra, txExtra.xvm || {});
+      console.log(txExtra.xvm?.isOk ? "xvm swapOk" : "xvm swapFail");
+    }
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
         equals(row.sender, tx.from),

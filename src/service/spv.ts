@@ -1,5 +1,5 @@
 import { isEmpty } from "orbiter-chaincore/src/utils/core";
-import { transactionAttributes } from "./../models/transaction";
+import { Transaction as transactionAttributes } from "../models/Transactions";
 import { chains } from "orbiter-chaincore";
 import dayjs from "dayjs";
 import { Contract, ethers, providers, utils } from "ethers";
@@ -93,6 +93,7 @@ export class SPV {
   }
   public async start() {
     const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
+    console.log("chainGroup：", chainGroup);
     for (const chainId in chainGroup) {
       const defaultLeafs = [
         Buffer.from(
@@ -178,18 +179,18 @@ export class ChainSPVTree {
       }
     }
     //
-    if (txList.length > 0) {
-      const nowRoot = this.tree.makerTxTree.getHexRoot();
-      const onChainRoot = await this.getMakerTreeRoot();
-      console.debug(
-        "makerTxTree:\n",
-        this.tree.makerTxTree.toString(),
-        `\ndiff:${onChainRoot}/${nowRoot}`,
-      );
-      if (onChainRoot != nowRoot) {
-        await this.setMakerTxTreeRoot(nowRoot);
-      }
+    // if (txList.length > 0) {
+    const nowRoot = this.tree.makerTxTree.getHexRoot();
+    const onChainRoot = await this.getMakerTreeRoot();
+    console.debug(
+      "makerTxTree:\n",
+      this.tree.makerTxTree.toString(),
+      `\ndiff:${onChainRoot}/${nowRoot}`,
+    );
+    if (onChainRoot != nowRoot) {
+      await this.setMakerTxTreeRoot(nowRoot);
     }
+    // }
   }
   public async updateUserTxTree(txList: Array<transactionAttributes>) {
     txList = orderBy(txList, ["id"], ["asc"]);
@@ -203,18 +204,18 @@ export class ChainSPVTree {
       }
     }
     //
-    if (txList.length > 0) {
-      const nowRoot = this.tree.userTxTree.getHexRoot();
-      const onChainRoot = await this.getUserTreeRoot();
-      console.debug(
-        "userTxTree:\n",
-        this.tree.userTxTree.toString(),
-        `\ndiff:${onChainRoot}/${nowRoot}`,
-      );
-      if (onChainRoot != nowRoot) {
-        await this.setUserTxTreeRoot(nowRoot);
-      }
+    // if (txList.length > 0) {
+    const nowRoot = this.tree.userTxTree.getHexRoot();
+    const onChainRoot = await this.getUserTreeRoot();
+    console.debug(
+      "userTxTree:\n",
+      this.tree.userTxTree.toString(),
+      `\ndiff:${onChainRoot}/${nowRoot}`,
+    );
+    if (onChainRoot != nowRoot) {
+      await this.setUserTxTreeRoot(nowRoot);
     }
+    // }
   }
   public async getUserNotRefundedTransactionList(): Promise<
     Array<transactionAttributes>
@@ -240,7 +241,7 @@ export class ChainSPVTree {
         [Op.lte]: dayjs().subtract(maxReceiptTime, "s").toDate(),
       },
     };
-    const txList = await this.ctx.models.transaction.findAll({
+    const txList = await this.ctx.models.Transaction.findAll({
       attributes: [
         "id",
         "hash",
@@ -277,7 +278,7 @@ export class ChainSPVTree {
         [Op.gt]: this.maxTxId.maker,
       },
     };
-    const txList = await this.ctx.models.transaction.findAll({
+    const txList = await this.ctx.models.Transaction.findAll({
       attributes: [
         "id",
         "hash",
@@ -320,6 +321,7 @@ export class ChainSPVTree {
         root,
         params,
       );
+      await tx.wait();
       this.ctx.logger.info(
         `${this.chainId} setUserTxTreeRoot success:${tx.hash}`,
       );
@@ -347,6 +349,7 @@ export class ChainSPVTree {
         root,
         params,
       );
+      await tx.wait();
       this.ctx.logger.info(
         `${this.chainId} setMakerTxTreeRoot success:${tx.hash}`,
       );

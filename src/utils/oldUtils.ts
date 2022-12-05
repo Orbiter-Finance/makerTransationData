@@ -19,6 +19,7 @@ const MAX_BITS: any = {
   bnbchain: 256,
   arbitrum_nova: 256,
   polygon_zkevm: 256,
+  orbiter: 256,
 };
 const precisionResolverMap: any = {
   // pay attention:  the type of field "userAmount" in the following methods is not BigNumber

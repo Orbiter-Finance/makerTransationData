@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { padStart } from "orbiter-chaincore/src/utils/core";
-
+import crypto from "crypto";
 export * from "./maker";
 export async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
@@ -8,6 +8,10 @@ export async function sleep(ms: number): Promise<void> {
       resolve();
     }, ms);
   });
+}
+export function MD5(value: string) {
+  const md5 = crypto.createHash("md5");
+  return md5.update(value).digest("hex");
 }
 
 export function TransactionID(
@@ -26,16 +30,15 @@ export function TransactionID(
   }${fromTxNonce}${ext}`.toLowerCase();
 }
 
-export function TransactionIDV2(
-  fromAddress: string,
-  fromChainId: number | string,
-  fromTxNonce: string | number,
-  symbol: string | undefined,
-  ext?: string,
+export function TranferId(
+  toChainId: number | string,
+  replySender: string,
+  replyAccount: string,
+  userNonce: number | string,
+  toSymbol: string,
+  toValue?: string,
 ) {
-  let txid = `${fromAddress}${padStart(String(fromChainId), 4, "0")}${
-    symbol || "NULL"
-  }${fromTxNonce}`;
-  if (ext) txid = `${txid}_${ext}`;
-  return txid.toLowerCase();
+  return MD5(
+    `${toChainId}_${replySender}_${replyAccount}_${userNonce}_${toSymbol}_${toValue}`.toLowerCase(),
+  ).toString();
 }

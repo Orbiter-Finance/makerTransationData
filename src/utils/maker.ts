@@ -1,28 +1,38 @@
+import { Context } from "./../context";
 import { BigNumber } from "bignumber.js";
 import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
-import { uniq, flatten } from "lodash";
+import { uniq, flatten, clone } from "lodash";
 import { chains } from "orbiter-chaincore";
 export async function convertMarketListToFile(
   makerList: Array<any>,
-  L1L2Mapping: any,
+  ctx: Context,
 ): Promise<Array<IMarket>> {
+  const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
+  const crossAddressMakers: any[] = [];
   const configs = flatten(
     makerList.map(row => {
       return convertPool(row);
     }),
   ).map(row => {
     if ([4, 44].includes(row.toChain.id)) {
-      row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
+      row.sender = ctx.config.L1L2Mapping[row.sender.toLowerCase()];
     }
     if ([4, 44].includes(row.fromChain.id)) {
       // starknet mapping
-      row.recipient =
-        L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
+      row.recipient = ctx.config.L1L2Mapping[row.recipient.toLowerCase()];
+    }
+    // after
+    const item = clone(row);
+    for (const addr1 in crossAddressTransferMap) {
+      if (equals(row.sender, addr1)) {
+        item.sender = crossAddressTransferMap[addr1];
+        crossAddressMakers.push(item);
+      }
     }
     return row;
   });
-  return configs;
+  return [...configs, ...crossAddressMakers];
 }
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   const marketList: Array<IMarket | null> = oldLpList.map(row => {

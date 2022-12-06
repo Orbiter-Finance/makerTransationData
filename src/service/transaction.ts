@@ -332,7 +332,10 @@ export async function bulkCreateTransaction(
   //   "lpId",
   //   "makerId",
   // ];
+  // MQ
   const rbmq = new RabbitMq();
+  await rbmq.publish(upsertList);
+
   for (const row of upsertList) {
     try {
       const [newTx, created] = await ctx.models.Transaction.findOrCreate({
@@ -349,9 +352,6 @@ export async function bulkCreateTransaction(
         }
       }
       row.id = newTx.id;
-
-      // MQ
-      await rbmq.publish(newTx.side, newTx.chainId, newTx);
     } catch (error: any) {
       console.log(row);
       ctx.logger.error("processSubTx error:", error);

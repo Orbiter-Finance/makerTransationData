@@ -1,63 +1,64 @@
 import amqp from "amqplib";
 import { Buffer } from "buffer";
 
-enum EExchangeName {
-  MTU = "MakerToUser",
-  UTM = "UserToMaker"
-}
-
 export class RabbitMq {
-  mqConnect;
+  private mqConnect;
+  private exchangeName = 'chaincore_txs';
 
   constructor() {
     this.mqConnect = amqp.connect({
       protocol: "amqp",
-      hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME,
-      port: process.env.RABBITMQ_DEFAULT_PORT,
-      vhost: process.env.RABBITMQ_DEFAULT_VHOST,
-      username: process.env.RABBITMQ_DEFAULT_USER,
-      password: process.env.RABBITMQ_DEFAULT_PASS,
+      hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || 'localhost',
+      port: process.env.RABBITMQ_DEFAULT_PORT || 5672,
+      vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
+      username: process.env.RABBITMQ_DEFAULT_USER || "guest",
+      password: process.env.RABBITMQ_DEFAULT_PASS || "guest",
     });
   }
 
-  async publish(side: number, chainId: number | string, data: any) {
-    const exchangeName: EExchangeName = side ? EExchangeName.MTU : EExchangeName.UTM;
-    const topic = `${chainId}:mqtxlist`;
-    console.log(`RabbitMq produce ${exchangeName} ${topic}`);
+  async publish(chainList: any[]) {
     const connection = await this.mqConnect;
     const channel = await connection.createConfirmChannel();
-    await channel.assertExchange(exchangeName, "fanout", {
-      durable: true,
-    });
-    await channel.assertQueue(topic);
-    if (typeof data == 'object') {
-      data = JSON.stringify(data);
+    for (const chain of chainList) {
+      const topic = `chaincore:${chain.chainId}`;
+      console.log(`RabbitMq publish ${topic}`);
+      await channel.assertExchange(this.exchangeName, "direct", {
+        autoDelete: false,
+        durable: true,
+      });
+      const str = JSON.stringify(chain);
+      await channel.publish(this.exchangeName, chain.chainId, Buffer.from(str));
     }
-    channel.sendToQueue(topic, Buffer.from(data));
     channel.close();
   }
 
-  async subscribe(side: number, chainId: number | string, callback: Function) {
+  async subscribe(chainIdList: string[], callback: Function) {
     if (typeof callback !== "function") {
       throw new TypeError(
         "When subscribing for an event, a callback function must be defined.",
       );
     }
-    const exchangeName: EExchangeName = side ? EExchangeName.MTU : EExchangeName.UTM;
-    const topic = `${chainId}:mqtxlist`;
+
     const connection = await this.mqConnect;
     const channel = await connection.createChannel();
-    await channel.assertExchange(exchangeName, "fanout", {
-      durable: true,
-    });
-    await channel.assertQueue(topic);
-    await channel.bindQueue(topic, exchangeName, topic);
-    await channel.consume(topic, (msg: any) => {
-      try {
-        callback(JSON.parse(msg.content.toString()));
-      } catch (e) {
-        callback(msg.content.toString());
-      }
-    });
+    for (const chainId of chainIdList) {
+      const topic = `chaincore:${chainId}`;
+      console.log(`RabbitMq receive ${topic}`);
+      const routingKey = chainId;
+      await channel.assertQueue(topic, {
+        autoDelete: false,
+        durable: true,
+      });
+      await channel.bindQueue(topic, this.exchangeName, routingKey);
+      // await channel.prefetch(1, false);
+      await channel.consume(topic, (msg: any) => {
+        try {
+          // channel.ack(msg); // reply msg
+          callback(JSON.parse(msg.content.toString()));
+        } catch (e) {
+          callback(msg.content.toString());
+        }
+      });
+    }
   }
 }

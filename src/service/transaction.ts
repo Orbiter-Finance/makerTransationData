@@ -16,6 +16,7 @@ import { TranferId, TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
+import { RabbitMq } from "./RabbitMq";
 
 export async function findByHashTxMatch(
   ctx: Context,
@@ -197,6 +198,9 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
+    if (tx.source == "xvm") {
+      Object.assign(saveExtra, txExtra.xvm || {});
+    }
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
         equals(row.sender, tx.from),
@@ -328,6 +332,7 @@ export async function bulkCreateTransaction(
   //   "lpId",
   //   "makerId",
   // ];
+  const rbmq = new RabbitMq();
   for (const row of upsertList) {
     try {
       const [newTx, created] = await ctx.models.Transaction.findOrCreate({
@@ -344,6 +349,9 @@ export async function bulkCreateTransaction(
         }
       }
       row.id = newTx.id;
+
+      // MQ
+      await rbmq.publish(newTx.side, newTx.chainId, newTx);
     } catch (error: any) {
       console.log(row);
       ctx.logger.error("processSubTx error:", error);

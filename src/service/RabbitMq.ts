@@ -11,7 +11,7 @@ export class RabbitMq {
       const topic = `chaincore:${chain.chainId}`;
       console.log(`RabbitMq publish ${topic}`);
       const str = JSON.stringify(chain);
-      await channel.publish(this.exchangeName, chain.chainId, Buffer.from(str));
+      await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str));
     }
   }
 }

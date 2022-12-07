@@ -2,7 +2,7 @@ import { Buffer } from "buffer";
 import { Context } from "../context";
 
 export class RabbitMq {
-  public ctx: Context = new Context();
+  constructor(public readonly ctx: Context) {}
   private exchangeName = "chaincore_txs";
 
   async publish(chainList: any[]) {

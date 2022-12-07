@@ -9,7 +9,7 @@ export class RabbitMq {
     this.mqConnect = amqp.connect({
       protocol: "amqp",
       hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || 'localhost',
-      port: process.env.RABBITMQ_DEFAULT_PORT || 5672,
+      port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
       vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
       username: process.env.RABBITMQ_DEFAULT_USER || "guest",
       password: process.env.RABBITMQ_DEFAULT_PASS || "guest",

@@ -11,10 +11,6 @@ export class RabbitMq {
     for (const chain of chainList) {
       const topic = `chaincore:${chain.chainId}`;
       console.log(`RabbitMq publish ${topic}`);
-      await channel.assertExchange(this.exchangeName, "direct", {
-        autoDelete: false,
-        durable: true,
-      });
       const str = JSON.stringify(chain);
       await channel.publish(this.exchangeName, chain.chainId, Buffer.from(str));
     }

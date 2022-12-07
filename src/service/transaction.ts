@@ -336,7 +336,7 @@ export async function bulkCreateTransaction(
   try {
     const rbmq = new RabbitMq();
     await rbmq.publish(upsertList);
-  } catch (e) {
+  } catch (e: any) {
     console.log("RabbitMQ error", e.message);
   }
 

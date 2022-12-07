@@ -1,7 +1,7 @@
 export default {
   development: {
     dialect: "mysql",
-    database: process.env.MYSQL_DB_NAME || "ob",
+    database: process.env.MYSQL_DB_NAME || "orbiter",
     username: process.env.MYSQL_DB_USERNAME || "root",
     password: process.env.MYSQL_DB_PASSWORD || "root",
     host: process.env.MYSQL_DB_HOST || "localhost",

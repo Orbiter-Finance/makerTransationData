@@ -10,6 +10,7 @@ import { chains } from "orbiter-chaincore";
 import { makerList, makerListHistory } from "./maker";
 import Subgraphs from "./service/subgraphs";
 import db from "./db";
+import amqp from "amqplib";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -40,6 +41,7 @@ export class Context {
         "0x001709ea381e87d4c9ba5e4a67adc9868c05e82556a53fd1b3a8b1f21e098143",
     },
   };
+  public channel: any;
   private async initChainConfigs() {
     const file = `${
       this.NODE_ENV === "production" ? "chains" : "testnet"
@@ -64,7 +66,19 @@ export class Context {
       db: Number(REDIS_DB || this.instanceId), // Defaults to 0
     });
   }
+  private async initChannel() {
+    const mqConnect = await amqp.connect({
+      protocol: "amqp",
+      hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || "localhost",
+      port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
+      vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
+      username: process.env.RABBITMQ_DEFAULT_USER || "guest",
+      password: process.env.RABBITMQ_DEFAULT_PASS || "guest",
+    });
+    this.channel = await mqConnect.createConfirmChannel();
+  }
   async init() {
+    await this.initChannel();
     await this.initChainConfigs();
     chains.fill(this.config.chains);
     const subApi = new Subgraphs(this.config.subgraphEndpoint);

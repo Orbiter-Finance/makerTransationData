@@ -80,7 +80,6 @@ export class Context {
   async init() {
     await this.initChannel();
     await this.initChainConfigs();
-    chains.fill(this.config.chains);
     const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
     if (this.isSpv) {

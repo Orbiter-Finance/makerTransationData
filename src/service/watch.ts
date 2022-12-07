@@ -131,6 +131,17 @@ export class Watch {
   public async readUserSendReMatch(): Promise<any> {
     const startAt = dayjs().subtract(7, "d").startOf("d").toDate();
     let endAt = dayjs().subtract(1, "minute").toDate();
+    const where = {
+      side: 0,
+      status: [0, 1],
+      transferId: {
+        [Op.not]: null,
+      },
+      timestamp: {
+        [Op.gte]: startAt,
+        [Op.lte]: endAt,
+      },
+    };
     try {
       // read
       const txList = await this.ctx.models.Transaction.findAll({
@@ -138,14 +149,7 @@ export class Watch {
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
         limit: 500,
-        where: {
-          side: 0,
-          status: [0, 1],
-          timestamp: {
-            [Op.gte]: startAt,
-            [Op.lte]: endAt,
-          },
-        },
+        where,
       });
       for (const tx of txList) {
         await processUserSendMakerTx(this.ctx, tx).catch(error => {
@@ -206,15 +210,14 @@ export class Watch {
                 transferId,
               );
             } else {
-              const res = await findByHashTxMatch(
-                this.ctx,
-                Number(outTxId),
-              ).catch(error => {
-                this.ctx.logger.info(
-                  `readMakerTxCacheReMatch findByHashTxMatch error:`,
-                  error,
-                );
-              });
+              await findByHashTxMatch(this.ctx, Number(outTxId)).catch(
+                error => {
+                  this.ctx.logger.info(
+                    `readMakerTxCacheReMatch findByHashTxMatch error:`,
+                    error,
+                  );
+                },
+              );
             }
           }
           if (matchRes.inId && matchRes.outId) {

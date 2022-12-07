@@ -18,6 +18,5 @@ export class RabbitMq {
       const str = JSON.stringify(chain);
       await channel.publish(this.exchangeName, chain.chainId, Buffer.from(str));
     }
-    channel.close();
   }
 }

@@ -23,17 +23,4 @@ services:
     volumes:
       - './runtime:/home/makerTransationData/runtime'
       - './pm2.json:/home/makerTransationData/pm2.json'
-  rabbitmq:
-    restart: always
-    image: bitnami/rabbitmq:latest
-    container_name: rabbitmq
-    ports:
-      - 5672:5672
-      - 15672:15672
-    environment:
-      TZ: Asia/Shanghai
-      RABBITMQ_USERNAME: test
-      RABBITMQ_PASSWORD: 123456
-    volumes:
-      - ./rabbit:/bitnami
 

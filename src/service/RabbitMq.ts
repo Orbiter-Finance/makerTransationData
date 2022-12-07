@@ -1,4 +1,3 @@
-import amqp from "amqplib";
 import { Buffer } from "buffer";
 import { Context } from "../context";
 

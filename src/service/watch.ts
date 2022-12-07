@@ -206,15 +206,14 @@ export class Watch {
                 transferId,
               );
             } else {
-              const res = await findByHashTxMatch(
-                this.ctx,
-                Number(outTxId),
-              ).catch(error => {
-                this.ctx.logger.info(
-                  `readMakerTxCacheReMatch findByHashTxMatch error:`,
-                  error,
-                );
-              });
+              await findByHashTxMatch(this.ctx, Number(outTxId)).catch(
+                error => {
+                  this.ctx.logger.info(
+                    `readMakerTxCacheReMatch findByHashTxMatch error:`,
+                    error,
+                  );
+                },
+              );
             }
           }
           if (matchRes.inId && matchRes.outId) {

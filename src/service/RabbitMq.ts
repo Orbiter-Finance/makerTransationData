@@ -3,12 +3,12 @@ import { Buffer } from "buffer";
 
 export class RabbitMq {
   private mqConnect;
-  private exchangeName = 'chaincore_txs';
+  private exchangeName = "chaincore_txs";
 
   constructor() {
     this.mqConnect = amqp.connect({
       protocol: "amqp",
-      hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || 'localhost',
+      hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || "localhost",
       port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
       vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
       username: process.env.RABBITMQ_DEFAULT_USER || "guest",

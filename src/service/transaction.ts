@@ -336,7 +336,7 @@ export async function bulkCreateTransaction(
   try {
     const rbmq = new RabbitMq();
     await rbmq.publish(upsertList);
-  } catch (e) {
+  } catch (e: any) {
     console.log("RabbitMQ error", e.message);
   }
 
@@ -577,7 +577,7 @@ export async function quickMatchSuccess(
   ctx: Context,
   inId: number,
   outId: number,
-  transferId: string,
+  _transferId: string,
 ) {
   const outTx = await ctx.models.Transaction.findOne({
     attributes: ["id", "status"],

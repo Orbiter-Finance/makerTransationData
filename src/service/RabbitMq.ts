@@ -9,7 +9,7 @@ export class RabbitMq {
     const channel = this.ctx.channel;
     for (const chain of chainList) {
       const topic = `chaincore:${chain.chainId}`;
-      console.log(`RabbitMq publish ${topic}`);
+      console.log(`RabbitMq publish ${topic} ${chain.source}`);
       const str = JSON.stringify(chain);
       await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str));
     }

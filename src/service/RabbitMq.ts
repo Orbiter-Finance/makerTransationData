@@ -9,9 +9,10 @@ export class RabbitMq {
     const channel = this.ctx.channel;
     for (const chain of chainList) {
       const topic = `chaincore:${chain.chainId}`;
-      console.log(`RabbitMq publish ${topic} ${chain.source}`);
       const str = JSON.stringify(chain);
-      await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str));
+      const res = await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str));
+      if (res) console.log(`RabbitMq publish success ${topic} ${chain.source} ${res}`);
+      else console.log(`RabbitMq publish fail ${topic} ${chain.source} ${res}`);
     }
   }
 }

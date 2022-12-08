@@ -375,6 +375,7 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       );
     }
   } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
+    txData.side = 1;
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
       attributes: ["id", "hash", "status"],

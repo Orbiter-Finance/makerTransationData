@@ -314,8 +314,11 @@ export async function bulkCreateTransaction(
   }
   // MQ
   try {
-    const rbmq = new RabbitMq(ctx);
-    await rbmq.publish(upsertList);
+    const mqList = upsertList.filter(item => item.side == 0);
+    if (mqList.length) {
+      const rbmq = new RabbitMq(ctx);
+      await rbmq.publish(mqList);
+    }
   } catch (e: any) {
     console.log("RabbitMQ error", e.message);
   }
@@ -379,10 +382,12 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         transferId: params.tradeId,
       },
     });
-    txData.memo = String(userTx.chainId);
-    if (name.toLowerCase() === "swapfail") {
+    if (name.toLowerCase() === "swapfail"){
       txData.status = 4;
-      if(userTx){
+    }
+    if (userTx) {
+      txData.memo = String(userTx.chainId);
+      if (name.toLowerCase() === "swapfail") {
         userTx.status = 4;
         upsertList.push(userTx);
       }

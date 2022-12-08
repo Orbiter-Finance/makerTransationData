@@ -306,8 +306,8 @@ export async function bulkCreateTransaction(
       txData.status = TransactionStatus.COMPLETE;
     }
     if (tx.source == "xvm" && txExtra?.xvm) {
-      saveExtra.xvm = txExtra.xvm;
       await handleXVMTx(ctx, txData, txExtra, isMakerSend, upsertList);
+      saveExtra.xvm = txExtra.xvm;
     }
     txData.extra = saveExtra;
     upsertList.push(<any>txData);

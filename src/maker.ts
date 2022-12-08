@@ -3731,3 +3731,72 @@ export const makerList = [
 ];
 
 export const makerListHistory = [];
+
+export const xvmList = [
+  {
+    chainId: 5, contractAddress: '0xeb5a56c4424ca7c9f6470841db1b0070b87449d2', target: [
+      {
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+        symbol: "ETH",
+        toChains: [
+          {
+            chainId: 22,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            symbol: "ETH",
+            rate: 2
+          },
+          {
+            chainId: 66,
+            tokenAddress: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
+            symbol: "MATIC",
+            rate: 2
+          },
+        ]
+      }
+    ],
+  },
+  {
+    chainId: 22, contractAddress: '0x2ad8d38d29275a5f2f52a1a69fa4f4f409b223a0', target: [
+      {
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+        symbol: "ETH",
+        toChains: [
+          {
+            chainId: 5,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            symbol: "ETH",
+            rate: 2
+          },
+          {
+            chainId: 66,
+            tokenAddress: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
+            symbol: "MATIC",
+            rate: 2
+          },
+        ]
+      }
+    ],
+  },
+  {
+    chainId: 66, contractAddress: '0xD834F61E9bf59E1d7D417fE50625f72e36EB1ffb', target: [
+      {
+        tokenAddress: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
+        symbol: "MATIC",
+        toChains: [
+          {
+            chainId: 5,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            symbol: "ETH",
+            rate: 2
+          },
+          {
+            chainId: 22,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
+            symbol: "ETH",
+            rate: 2
+          },
+        ]
+      }
+    ],
+  }
+];;

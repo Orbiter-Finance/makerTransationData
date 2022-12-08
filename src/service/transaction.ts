@@ -17,6 +17,7 @@ import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
+import { xvmList } from "../maker";
 
 export async function findByHashTxMatch(
   ctx: Context,
@@ -121,6 +122,7 @@ export async function findByHashTxMatch(
     );
   }
 }
+
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<ITransaction>,
@@ -198,9 +200,6 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    if (tx.source == "xvm") {
-      Object.assign(saveExtra, txExtra.xvm || {});
-    }
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
         equals(row.sender, tx.from),
@@ -306,6 +305,10 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
+    if (tx.source == "xvm" && txExtra?.xvm) {
+      saveExtra.xvm = txExtra.xvm;
+      await handleXVMTx(ctx, txData, txExtra, isMakerSend, upsertList);
+    }
     txData.extra = saveExtra;
     upsertList.push(<any>txData);
   }
@@ -341,6 +344,52 @@ export async function bulkCreateTransaction(
   }
   return upsertList;
 }
+
+async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: any, isMakerSend: boolean, upsertList: Array<InferCreationAttributes<Transaction>>) {
+  const { name, params } = txExtra.xvm;
+  txData.value = params.value;
+  if (!xvmList.find(item => item.chainId == txData.chainId && item.contractAddress == (<string>txData.to).toLowerCase())) {
+    txData.status = 3;
+    return;
+  }
+  // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
+  if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 4) {
+    txData.memo = String(+params.data[0]);
+    txData.replySender = String(params.data[2]);
+    txData.expectValue = String(+params.data[3]);
+    txExtra.toToken = params.data[1];
+    if (!isMakerSend) {
+      // user send
+      txData.side = 0;
+      txData.replyAccount = txData.from;
+      txData.transferId = TranferId(
+        String(txData.chainId),
+        String(txData.replySender),
+        String(txData.replyAccount),
+        String(txData.memo),
+        String(txData.symbol),
+        txData.value,
+      );
+    }
+  } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
+    // params:{tradeId,token,to,value}
+    const userTx = await ctx.models.Transaction.findOne(<any>{
+      attributes: ["id", "hash", "status"],
+      where: {
+        transferId: params.tradeId,
+      },
+    });
+    txData.memo = String(userTx.chainId);
+    if (name.toLowerCase() === "swapfail") {
+      txData.status = 4;
+      if(userTx){
+        userTx.status = 4;
+        upsertList.push(userTx);
+      }
+    }
+  }
+}
+
 export async function calcMakerSendAmount(
   makerConfigs: Array<any>,
   trx: transactionAttributes,
@@ -378,6 +427,7 @@ export async function calcMakerSendAmount(
     )?.tAmount || 0
   );
 }
+
 export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
@@ -532,6 +582,7 @@ export async function processUserSendMakerTx(
     ctx.logger.error("processUserSendMakerTx error", error);
   }
 }
+
 export async function quickMatchSuccess(
   ctx: Context,
   inId: number,

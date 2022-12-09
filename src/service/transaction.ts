@@ -306,8 +306,7 @@ export async function bulkCreateTransaction(
       txData.status = TransactionStatus.COMPLETE;
     }
     if (tx.source == "xvm" && txExtra?.xvm) {
-      await handleXVMTx(ctx, txData, txExtra, isMakerSend, upsertList);
-      saveExtra.xvm = txExtra.xvm;
+      await handleXVMTx(ctx, txData, txExtra, saveExtra, isMakerSend, upsertList);
     }
     txData.extra = saveExtra;
     upsertList.push(<any>txData);
@@ -348,7 +347,8 @@ export async function bulkCreateTransaction(
   return upsertList;
 }
 
-async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: any, isMakerSend: boolean, upsertList: Array<InferCreationAttributes<Transaction>>) {
+async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: any, saveExtra: any, isMakerSend: boolean, upsertList: Array<InferCreationAttributes<Transaction>>) {
+  saveExtra.xvm = txExtra.xvm;
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
   if (!xvmList.find(item => item.chainId == txData.chainId && item.contractAddress == (<string>txData.to).toLowerCase())) {
@@ -360,8 +360,8 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
     txData.memo = String(+params.data[0]);
     txData.replySender = String(params.data[2]);
     txData.expectValue = String(+params.data[3]);
-    txExtra.toToken = params.data[1];
-    txExtra.rate = params.data[4];
+    saveExtra.toToken = params.data[1];
+    saveExtra.rate = params.data[4];
     if (!isMakerSend) {
       // user send
       txData.side = 0;

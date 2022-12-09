@@ -10,7 +10,7 @@ import { chains } from "orbiter-chaincore";
 import { makerList, makerListHistory } from "./maker";
 import Subgraphs from "./service/subgraphs";
 import db from "./db";
-import amqp from "amqplib";
+import { RabbitMq } from "./service/RabbitMq";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -70,19 +70,7 @@ export class Context {
     const self = this;
     setTimeout(async () => {
       try {
-        const mqConnect = await amqp.connect({
-          protocol: "amqp",
-          hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || "localhost",
-          port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
-          vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
-          username: process.env.RABBITMQ_DEFAULT_USER || "guest",
-          password: process.env.RABBITMQ_DEFAULT_PASS || "guest",
-        });
-        self.channel = await mqConnect.createConfirmChannel();
-        await self.channel.assertExchange("chaincore_txs", "direct", {
-          autoDelete: false,
-          durable: true,
-        });
+        await new RabbitMq(this).initChannel();
         console.log("RabbitMQ connect success !!!");
       } catch (e: any) {
         console.log("Reconnect rabbitMQ channel", e.message);

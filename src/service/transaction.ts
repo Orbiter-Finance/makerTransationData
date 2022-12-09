@@ -356,11 +356,12 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
     return;
   }
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
-  if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 4) {
+  if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 5) {
     txData.memo = String(+params.data[0]);
     txData.replySender = String(params.data[2]);
     txData.expectValue = String(+params.data[3]);
     txExtra.toToken = params.data[1];
+    txExtra.rate = params.data[4];
     if (!isMakerSend) {
       // user send
       txData.side = 0;

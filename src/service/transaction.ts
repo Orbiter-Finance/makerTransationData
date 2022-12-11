@@ -12,12 +12,13 @@ import {
 } from "orbiter-chaincore/src/utils/core";
 import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
-import { TranferId, TransactionID } from "../utils";
+import { TranferId, TransactionID, TransferIdV2 } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
 import { xvmList } from "../maker";
+import Web3 from "web3";
 
 export async function findByHashTxMatch(
   ctx: Context,
@@ -364,25 +365,23 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
     saveExtra.rate = params.data.length > 4 ? params.data[4] : 0;
     // user send
     txData.side = 0;
-    txData.replyAccount = txData.from;
-    txData.transferId = TranferId(
+    txData.replyAccount = String(txData.from);
+    txData.transferId = TransferIdV2(
       String(txData.chainId),
-      String(txData.replySender),
       String(txData.replyAccount),
-      String(txData.memo),
-      String(txData.symbol),
-      txData.value,
+      String(txData.nonce),
     );
   } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
     txData.side = 1;
+    const web3 = new Web3();
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
       attributes: ["id", "hash", "status"],
       where: {
-        transferId: params.tradeId,
+        transferId: web3.utils.hexToString(params.tradeId),
       },
     });
-    if (name.toLowerCase() === "swapfail"){
+    if (name.toLowerCase() === "swapfail") {
       txData.status = 4;
     }
     if (userTx) {

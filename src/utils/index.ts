@@ -42,3 +42,13 @@ export function TranferId(
     `${toChainId}_${replySender}_${replyAccount}_${userNonce}_${toSymbol}_${toValue}`.toLowerCase(),
   ).toString();
 }
+
+export function TransferIdV2(
+  fromChainId: string,
+  fromAddress: string,
+  fromNonce: string,
+) {
+  return MD5(
+    `${fromChainId}_${fromAddress}_${fromNonce}`.toLowerCase(),
+  ).toString();
+}

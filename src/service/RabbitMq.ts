@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import { Context } from "../context";
-import amqp, { Connection } from "amqplib";
+import amqp, { ConfirmChannel, Connection } from "amqplib";
 
 let mqConnect: Connection;
 
@@ -64,11 +64,11 @@ export class RabbitMq {
   }
 
   async publish(chainList: any[]) {
-    const channel = this.ctx.channel;
+    const channel: ConfirmChannel = this.ctx.channel;
     for (const chain of chainList) {
       const topic = `chaincore:${chain.chainId}`;
       const str = JSON.stringify(chain);
-      const res = await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str));
+      const res = await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str), { persistent: true });
       if (res) console.log(`RabbitMq publish success ${topic} ${chain.source} ${res}`);
       else console.log(`RabbitMq publish fail ${topic} ${chain.source} ${res}`);
     }

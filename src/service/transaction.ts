@@ -12,12 +12,15 @@ import {
 } from "orbiter-chaincore/src/utils/core";
 import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
-import { TranferId, TransactionID, TransferIdV2 } from "../utils";
+import {
+  TranferId,
+  TransactionID,
+  TransferIdV2
+} from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
-import { xvmList } from "../maker";
 import Web3 from "web3";
 
 export async function findByHashTxMatch(
@@ -352,25 +355,43 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
   saveExtra.xvm = txExtra.xvm;
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
-  if (!xvmList.find(item => item.chainId == txData.chainId && item.contractAddress == (<string>txData.to).toLowerCase())) {
-    txData.status = 3;
-    return;
-  }
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
   if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 4) {
     txData.memo = String(+params.data[0]);
-    txData.replySender = String(params.data[2]);
     txData.expectValue = String(+params.data[3]);
-    saveExtra.toToken = params.data[1];
-    saveExtra.rate = params.data.length > 4 ? params.data[4] : 0;
-    // user send
-    txData.side = 0;
-    txData.replyAccount = String(txData.from);
-    txData.transferId = TransferIdV2(
-      String(txData.chainId),
-      String(txData.replyAccount),
-      String(txData.nonce),
+    const fromChainId = Number(txData.chainId);
+    const toChainId = Number(txData.memo);
+    const market = ctx.makerConfigs.find(
+      m =>
+        equals(m.fromChain.id, fromChainId) &&
+        equals(m.toChain.id, toChainId) &&
+        equals(m.recipient, String(params.maker)) &&
+        equals(m.fromChain.symbol, String(txData.symbol)) &&
+        equals(m.fromChain.tokenAddress, String(txData.tokenAddress)) &&
+        dayjs(txData.timestamp).unix() >= m.times[0] &&
+        dayjs(txData.timestamp).unix() <= m.times[1],
     );
+    if (!market) {
+      // market not found
+      txData.status = 3;
+    } else {
+      // valid timestamp
+      txData.lpId = market.id || null;
+      txData.makerId = market.makerId || null;
+      // ebc
+      saveExtra["ebcId"] = market.ebcId;
+      txData.replySender = market.sender;
+      saveExtra.toToken = params.data[1];
+      saveExtra.rate = params.data.length > 4 ? +params.data[4] : 0;
+      // user send
+      txData.side = 0;
+      txData.replyAccount = String(params.data[2]);
+      txData.transferId = TransferIdV2(
+        String(txData.chainId),
+        String(txData.from),
+        String(txData.nonce),
+      );
+    }
   } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
     txData.side = 1;
     const web3 = new Web3();

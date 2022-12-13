@@ -4,6 +4,7 @@ import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IMarket } from "../types";
 import { uniq, flatten, clone } from "lodash";
 import { chains } from "orbiter-chaincore";
+import { xvmList } from "../maker";
 export async function convertMarketListToFile(
   makerList: Array<any>,
   ctx: Context,
@@ -239,4 +240,15 @@ export function convertPool(pool: any): Array<IMarket> {
       },
     },
   ];
+}
+
+export function getXVMContractToChainInfo(fromChainID: number, toChainID: number, fromTokenAddress: string, toTokenAddress: string): any {
+  const xvm = xvmList.find(item => item.chainId === fromChainID);
+  const target = xvm?.target;
+  if (!target) return null;
+  const targetData = target.find(item => item.tokenAddress === fromTokenAddress);
+  const toChains = targetData?.toChains;
+  if (!toChains) return null;
+  const toChain = toChains.find(item => item.chainId === toChainID && item.tokenAddress === toTokenAddress);
+  return { target: targetData, toChain };
 }

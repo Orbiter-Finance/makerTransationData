@@ -14,6 +14,7 @@ import {
 import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
 import {
+  getXVMContractToChainInfo,
   TranferId,
   TransactionID,
   TransferIdV2,
@@ -23,6 +24,7 @@ import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
 import Web3 from "web3";
+import { ITarget, IToChain } from "../maker";
 
 export async function findByHashTxMatch(
   ctx: Context,
@@ -365,6 +367,12 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
     }
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
+    // xvm check
+    const toChainInfo: { target: ITarget, toChain: IToChain } = getXVMContractToChainInfo(fromChainId, toChainId, <string>txData.tokenAddress, toToken);
+    if (!toChainInfo?.toChain) {
+      txData.status = 3;
+      return;
+    }
     const market = ctx.makerConfigs.find(
       m =>
         equals(m.fromChain.id, fromChainId) &&
@@ -397,13 +405,9 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
       );
       // cross coin
-      if (toToken !== txData.tokenAddress) {
-        const tokenMap: any = {
-          "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": "ETH",
-          "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844": "DAI",
-          "0x0000000000000000000000000000000000000000": "ETH",
-        };
-        await exchangeToCoin(txData.expectValue, tokenMap[<string>txData.tokenAddress], tokenMap[<string>toToken]);
+      const { target, toChain } = toChainInfo;
+      if (target.symbol !== toChain.symbol) {
+        txData.expectValue = await exchangeToCoin(amount, target.symbol, toChain.symbol);
       } else {
         txData.expectValue = amount;
       }

@@ -5,6 +5,7 @@ import { chains } from "orbiter-chaincore";
 import { ITransaction, TransactionStatus } from "orbiter-chaincore/src/types";
 import { dydx } from "orbiter-chaincore/src/utils";
 import BigNumber from "bignumber.js";
+import axios from "axios";
 import {
   equals,
   fix0xPadStartAddress,
@@ -15,7 +16,7 @@ import { Context } from "../context";
 import {
   TranferId,
   TransactionID,
-  TransferIdV2
+  TransferIdV2,
 } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
@@ -358,8 +359,8 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
   if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 3) {
     txData.memo = String(+params.data[0]);
+    const toToken = saveExtra.toToken = params.data[1];
     if (params.data.length > 4) {
-      txData.expectValue = String(+params.data[3]);
       saveExtra.rate = +params.data[4];
     }
     const fromChainId = Number(txData.chainId);
@@ -384,7 +385,6 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       // ebc
       saveExtra["ebcId"] = market.ebcId;
       txData.replySender = market.sender;
-      saveExtra.toToken = params.data[1];
       // user send
       txData.side = 0;
       txData.replyAccount = String(params.data[2]);
@@ -393,6 +393,20 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         String(txData.from),
         String(txData.nonce),
       );
+      const amount = String(
+        await calcMakerSendAmount(ctx.makerConfigs, txData as any),
+      );
+      // cross coin
+      if (toToken !== txData.tokenAddress) {
+        const tokenMap: any = {
+          "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7": "ETH",
+          "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844": "DAI",
+          "0x0000000000000000000000000000000000000000": "ETH",
+        };
+        await exchangeToCoin(txData.expectValue, tokenMap[<string>txData.tokenAddress], tokenMap[<string>toToken]);
+      } else {
+        txData.expectValue = amount;
+      }
     }
   } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
     txData.side = 1;
@@ -415,6 +429,35 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       }
     }
   }
+}
+
+async function getRates(currency: string): Promise<any> {
+  const resp: any = await axios.get(
+    `https://api.coinbase.com/v2/exchange-rates?currency=${currency}`,
+  );
+  const rates = resp.data?.data?.rates;
+  if (!rates) {
+    console.log("Get rate fail, try it again");
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    return await getRates(currency);
+  }
+  console.log("Get rate success !!!");
+  return rates;
+}
+
+export async function exchangeToCoin(value: any, sourceCurrency: any, toCurrency: any) {
+  if (!sourceCurrency) return value;
+  if (!(value instanceof BigNumber)) {
+    value = new BigNumber(value);
+  }
+  const exchangeRates = await getRates(sourceCurrency);
+  const fromRate = exchangeRates[sourceCurrency];
+  const toRate = exchangeRates[toCurrency];
+  if (!fromRate || !fromRate) {
+    return new BigNumber(0);
+  }
+  console.log(`${sourceCurrency} fromRate`, fromRate, `${toCurrency} toRate`, toRate);
+  return value.dividedBy(fromRate).multipliedBy(toRate);
 }
 
 export async function calcMakerSendAmount(

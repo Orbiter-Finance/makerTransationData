@@ -246,9 +246,9 @@ export function getXVMContractToChainInfo(fromChainID: number, toChainID: number
   const xvm = xvmList.find(item => item.chainId === fromChainID);
   const target = xvm?.target;
   if (!target) return null;
-  const targetData = target.find(item => item.tokenAddress === fromTokenAddress);
+  const targetData = target.find(item => item.tokenAddress.toLowerCase() === fromTokenAddress.toLowerCase());
   const toChains = targetData?.toChains;
   if (!toChains) return null;
-  const toChain = toChains.find(item => item.chainId === toChainID && item.tokenAddress === toTokenAddress);
+  const toChain = toChains.find(item => item.chainId === toChainID && item.tokenAddress.toLowerCase() === toTokenAddress.toLowerCase());
   return { target: targetData, toChain };
 }

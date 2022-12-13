@@ -356,9 +356,12 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
-  if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 4) {
+  if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 3) {
     txData.memo = String(+params.data[0]);
-    txData.expectValue = String(+params.data[3]);
+    if (params.data.length > 4) {
+      txData.expectValue = String(+params.data[3]);
+      saveExtra.rate = +params.data[4];
+    }
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
     const market = ctx.makerConfigs.find(
@@ -382,7 +385,6 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       saveExtra["ebcId"] = market.ebcId;
       txData.replySender = market.sender;
       saveExtra.toToken = params.data[1];
-      saveExtra.rate = params.data.length > 4 ? +params.data[4] : 0;
       // user send
       txData.side = 0;
       txData.replyAccount = String(params.data[2]);

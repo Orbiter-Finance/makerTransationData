@@ -4,7 +4,7 @@ import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Logger } from "winston";
-import { convertMarketListToFile } from "./utils";
+import { convertMarketListToFile, convertMarketListToXvmList } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import { makerList, makerListHistory } from "./maker";
@@ -121,6 +121,8 @@ export class Context {
     } else {
       await fetchFileMakerList(this);
     }
+
+    await convertMarketListToXvmList(this.makerConfigs)
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

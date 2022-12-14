@@ -44,3 +44,23 @@ export type JsonArray = Array<
 >;
 
 export type Json = JsonMap | JsonArray | string | number | boolean | null;
+
+export interface IXvm {
+  chainId: number,
+  contractAddress: string,
+  target: ITarget[]
+}
+
+export interface ITarget {
+  tokenAddress: string;
+  symbol: string;
+  toChains: IToChain[]
+}
+
+export interface IToChain {
+  chainId: number,
+  tokenAddress: string,
+  symbol: string,
+  precision: number,
+  rate: number   // Ten thousandth ratio
+}

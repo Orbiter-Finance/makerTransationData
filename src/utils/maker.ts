@@ -1,7 +1,7 @@
 import { Context } from "./../context";
 import { BigNumber } from "bignumber.js";
 import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
-import { IMarket } from "../types";
+import { IMarket, ITarget, IToChain, IXvm } from "../types";
 import { uniq, flatten, clone } from "lodash";
 import { chains } from "orbiter-chaincore";
 import { xvmList } from "../maker";
@@ -242,6 +242,60 @@ export function convertPool(pool: any): Array<IMarket> {
   ];
 }
 
+export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
+  const xvmContractMap: any = {
+    5: "0xE6AD22003dCc4aE3F1Ee96dDC3d99c5eb64342e8",
+    22: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
+    77: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
+  };
+  const cloneMakerList: Array<IMarket> = JSON.parse(JSON.stringify(makerList));
+  const allXvmList: IXvm[] = [];
+  const targetList: { chainId: number, tokenAddress: string, symbol: string, toChains: IToChain[] }[] = [];
+  const toChainList: { id: number, name: string, tokenAddress: string, symbol: string, decimals: number }[] =
+    cloneMakerList.map(item => item.toChain);
+  let fromChainIdList: number[] = [];
+  for (const maker of cloneMakerList) {
+    const chainId: number = maker.fromChain.id;
+    fromChainIdList.push(chainId);
+    const tokenAddress: string = maker.fromChain.tokenAddress;
+    const symbol: string = maker.fromChain.symbol;
+    const toChains: IToChain[] = [];
+    for (const toChain of toChainList) {
+      if (!xvmContractMap[toChain.id]) continue;
+      if (!toChains.find(item => item.chainId === toChain.id && item.tokenAddress === toChain.tokenAddress)) {
+        toChains.push({
+          chainId: toChain.id,
+          tokenAddress: toChain.tokenAddress,
+          symbol: toChain.symbol,
+          precision: toChain.decimals,
+          rate: 200,
+        });
+      }
+    }
+    targetList.push({ chainId, tokenAddress, symbol, toChains });
+  }
+  fromChainIdList = Array.from(new Set(fromChainIdList));
+  fromChainIdList = fromChainIdList.sort(function(a, b) {
+    return a - b;
+  });
+  for (const chainId of fromChainIdList) {
+    const contractAddress: string = xvmContractMap[chainId];
+    if (!contractAddress) continue;
+    const target: ITarget[] = [];
+    for (const tar of targetList) {
+      if (tar.chainId === chainId && !target.find(item => item.tokenAddress === tar.tokenAddress)) {
+        target.push({
+          tokenAddress: tar.tokenAddress,
+          symbol: tar.symbol,
+          toChains: tar.toChains.filter(item => item.chainId !== chainId),
+        });
+      }
+    }
+    allXvmList.push({ chainId, contractAddress, target });
+  }
+  xvmList.push(...allXvmList);
+  return allXvmList;
+}
 export function getXVMContractToChainInfo(fromChainID: number, toChainID: number, fromTokenAddress: string, toTokenAddress: string): any {
   const xvm = xvmList.find(item => item.chainId === fromChainID);
   const target = xvm?.target;

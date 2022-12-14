@@ -20,11 +20,10 @@ import {
   TransferIdV2,
 } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
-import { IMarket } from "../types";
+import { IMarket, ITarget, IToChain } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
 import Web3 from "web3";
-import { ITarget, IToChain } from "../maker";
 
 export async function findByHashTxMatch(
   ctx: Context,

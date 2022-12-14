@@ -409,6 +409,7 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         const web3 = new Web3();
         const expectValue = web3.utils.fromWei((new BigNumber(amount)).toFixed(0));
         txData.expectValue = (await exchangeToCoin(expectValue, target.symbol, toChain.symbol)).toFixed(0);
+        console.log(`FE expectValue: ${+params.data[3]},maker expectValue: ${txData.expectValue}`);
       } else {
         txData.expectValue = amount;
       }

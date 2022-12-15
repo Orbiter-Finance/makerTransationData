@@ -406,8 +406,9 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       // cross coin
       const { target, toChain } = toChainInfo;
       if (target.symbol !== toChain.symbol) {
-        const web3 = new Web3();
-        const expectValue = web3.utils.fromWei((new BigNumber(amount)).toFixed(0));
+        const fromPrecision = target.precision;
+        const toPrecision = toChain.precision;
+        const expectValue = (new BigNumber(amount)).dividedBy(10 ** fromPrecision).multipliedBy(10 ** toPrecision);
         txData.expectValue = (await exchangeToCoin(expectValue, target.symbol, toChain.symbol)).toFixed(0);
         console.log(`FE expectValue: ${+params.data[3]},maker expectValue: ${txData.expectValue}`);
       } else {

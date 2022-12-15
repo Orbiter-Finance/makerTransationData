@@ -54,13 +54,14 @@ export interface IXvm {
 export interface ITarget {
   tokenAddress: string;
   symbol: string;
+  precision: number;
   toChains: IToChain[]
 }
 
 export interface IToChain {
-  chainId: number,
-  tokenAddress: string,
-  symbol: string,
-  precision: number,
-  rate: number   // Ten thousandth ratio
+  chainId: number;
+  tokenAddress: string;
+  symbol: string;
+  precision: number;
+  rate: number;   // Ten thousandth ratio
 }

@@ -246,11 +246,13 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
   const xvmContractMap: any = {
     5: "0xE6AD22003dCc4aE3F1Ee96dDC3d99c5eb64342e8",
     22: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
+    66: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
     77: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
+    515: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
   };
   const cloneMakerList: Array<IMarket> = JSON.parse(JSON.stringify(makerList));
   const allXvmList: IXvm[] = [];
-  const targetList: { chainId: number, tokenAddress: string, symbol: string, toChains: IToChain[] }[] = [];
+  const targetList: { chainId: number, tokenAddress: string, symbol: string, precision: number, toChains: IToChain[] }[] = [];
   const toChainList: { id: number, name: string, tokenAddress: string, symbol: string, decimals: number }[] =
     cloneMakerList.map(item => item.toChain);
   let fromChainIdList: number[] = [];
@@ -259,6 +261,7 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
     fromChainIdList.push(chainId);
     const tokenAddress: string = maker.fromChain.tokenAddress;
     const symbol: string = maker.fromChain.symbol;
+    const precision: number = maker.fromChain.decimals;
     const toChains: IToChain[] = [];
     for (const toChain of toChainList) {
       if (!xvmContractMap[toChain.id]) continue;
@@ -272,7 +275,7 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
         });
       }
     }
-    targetList.push({ chainId, tokenAddress, symbol, toChains });
+    targetList.push({ chainId, tokenAddress, symbol, precision, toChains });
   }
   fromChainIdList = Array.from(new Set(fromChainIdList));
   fromChainIdList = fromChainIdList.sort(function(a, b) {
@@ -287,6 +290,7 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
         target.push({
           tokenAddress: tar.tokenAddress,
           symbol: tar.symbol,
+          precision: tar.precision,
           toChains: tar.toChains.filter(item => item.chainId !== chainId),
         });
       }

@@ -419,7 +419,7 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
     txData.side = 1;
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
-      attributes: ["id", "hash", "status"],
+      attributes: ["id", "hash", "status", "chainId", "transferId"],
       where: {
         hash: params.tradeId,
       },

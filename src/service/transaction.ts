@@ -428,7 +428,13 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       txData.status = 4;
     }
     if (userTx) {
+      console.log("get userTx ...");
       txData.memo = String(userTx.chainId);
+      txData.transferId = TransferIdV2(
+        String(userTx.chainId),
+        String(userTx.from),
+        String(userTx.nonce),
+      );
       if (name.toLowerCase() === "swapfail") {
         userTx.status = 4;
         upsertList.push(userTx);

@@ -335,6 +335,7 @@ export async function bulkCreateTransaction(
         attributes: ["id", "hash", "status", "expectValue"],
         where: {
           hash: row.hash,
+          transferId: row.transferId
         },
       });
       if (!created) {
@@ -420,7 +421,7 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
     txData.side = 1;
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
-      attributes: ["id", "hash", "status", "chainId", "transferId"],
+      attributes: ["id", "hash", "status", "chainId", "transferId", "replyAccount", "replySender"],
       where: {
         hash: params.tradeId,
       },
@@ -432,6 +433,8 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       console.log("get userTx success");
       txData.memo = String(userTx.chainId);
       txData.transferId = userTx.transferId;
+      txData.replyAccount = userTx.replyAccount;
+      txData.replySender = userTx.replySender;
       if (name.toLowerCase() === "swapfail") {
         userTx.status = 4;
         upsertList.push(userTx);
@@ -457,6 +460,7 @@ async function getRates(currency: string): Promise<any> {
 }
 
 export async function exchangeToCoin(value: any, sourceCurrency: any, toCurrency: any) {
+  return value
   if (!sourceCurrency) return value;
   if (!(value instanceof BigNumber)) {
     value = new BigNumber(value);

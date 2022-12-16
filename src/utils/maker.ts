@@ -244,11 +244,11 @@ export function convertPool(pool: any): Array<IMarket> {
 
 export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
   const xvmContractMap: any = {
-    5: "0xE6AD22003dCc4aE3F1Ee96dDC3d99c5eb64342e8",
-    22: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
-    66: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
-    77: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
-    515: "0xc9C56E28F1f2Be4885844CAE9B9e974453683e28",
+    5: "0x783f0AB9199206Ee7e70d4D728A9d93609610800",
+    22: "0x783f0AB9199206Ee7e70d4D728A9d93609610800",
+    66: "0x783f0AB9199206Ee7e70d4D728A9d93609610800",
+    77: "0x783f0AB9199206Ee7e70d4D728A9d93609610800",
+    515: "0x783f0AB9199206Ee7e70d4D728A9d93609610800",
   };
   const cloneMakerList: Array<IMarket> = JSON.parse(JSON.stringify(makerList));
   const allXvmList: IXvm[] = [];

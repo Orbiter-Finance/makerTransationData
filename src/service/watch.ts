@@ -82,7 +82,15 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        pubSub.subscribe(`${id}:txlist`, (result: Transaction[]) => {
+        pubSub.subscribe(`${id}:txlist`, (txList: Transaction[]) => {
+          const result: Transaction[] = [];
+          for (const tx of txList) {
+            if (tx.source == "xvm" && tx?.extra?.xvm?.name === "multicall" && tx?.extra.txList.length) {
+              result.push(...tx?.extra.txList);
+            } else {
+              result.push(tx);
+            }
+          }
           this.processSubTxList(result)
             .then(result => {
               this.ctx.logger.info(

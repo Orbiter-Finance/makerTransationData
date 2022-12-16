@@ -357,6 +357,7 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
   saveExtra.xvm = txExtra.xvm;
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
+  console.log("Handle XVM Tx", name, JSON.stringify(params));
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
   if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 3) {
     txData.memo = String(+params.data[0]);
@@ -428,13 +429,15 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       txData.status = 4;
     }
     if (userTx) {
-      console.log("get userTx ...");
+      console.log("get userTx success");
       txData.memo = String(userTx.chainId);
       txData.transferId = userTx.transferId;
       if (name.toLowerCase() === "swapfail") {
         userTx.status = 4;
         upsertList.push(userTx);
       }
+    } else {
+      console.log(`get userTx fail, hash:${txData.hash}, tradeId:${params.tradeId}`);
     }
   }
 }

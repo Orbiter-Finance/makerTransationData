@@ -460,7 +460,6 @@ async function getRates(currency: string): Promise<any> {
 }
 
 export async function exchangeToCoin(value: any, sourceCurrency: any, toCurrency: any) {
-  return value
   if (!sourceCurrency) return value;
   if (!(value instanceof BigNumber)) {
     value = new BigNumber(value);

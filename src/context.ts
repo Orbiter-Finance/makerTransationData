@@ -4,7 +4,11 @@ import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Logger } from "winston";
-import { convertMarketListToFile, convertMarketListToXvmList } from "./utils";
+import {
+  convertMarketListToFile,
+  convertMarketListToXvmList,
+  initMakerList,
+} from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import { makerList, makerListHistory } from "./maker";
@@ -79,6 +83,7 @@ export class Context {
     }, 3000);
   }
   async init() {
+    await initMakerList();
     await this.initChannel();
     await this.initChainConfigs();
     const subApi = new Subgraphs(this.config.subgraphEndpoint);

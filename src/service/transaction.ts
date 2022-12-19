@@ -402,10 +402,9 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         String(txData.from),
         String(txData.nonce),
       );
-      const amount = String(
+      txData.expectValue = String(
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
       );
-      txData.expectValue = amount;
     }
   } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
     txData.side = 1;

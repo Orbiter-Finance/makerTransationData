@@ -426,6 +426,7 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
 
   if (Object.keys(noMatchMap).length) {
     for (const chainId in noMatchMap) {
+      if (!noMatchMap.hasOwnProperty(chainId)) continue;
       const symbolMap = noMatchMap[chainId];
       if (Object.keys(symbolMap).length) {
         for (const symbol in symbolMap) {
@@ -445,7 +446,6 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
 }
 export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
   const chains: IChainCfg[] = process.env.NODE_ENV === "production" ? <IChainCfg[]>mainnetChains : <IChainCfg[]>testnetChains;
-  chains.find(item => item.internalId);
   const xvmContractMap: any = {};
   for (const chain of chains) {
     if (chain.xvmList && chain.xvmList.length) {

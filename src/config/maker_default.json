@@ -25,6 +25,7 @@
       22,
       66,
       77,
+      510,
       515
     ],
     "symbolList": [
@@ -63,10 +64,54 @@
   },
   {
     "chainIdList": [
+      510
+    ],
+    "symbolList": [
+      "METIS"
+    ],
+    "data": {
+      "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
+      "gasFee": 1,
+      "tradingFee": 0.0001,
+      "maxPrice": 0.01,
+      "minPrice": 0.005,
+      "point": 200,
+      "startTime": 1636019587,
+      "endTime": 99999999999999
+    }
+  },
+  {
+    "chainIdList": [
       515
     ],
     "symbolList": [
       "BNB"
+    ],
+    "data": {
+      "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
+      "gasFee": 1,
+      "tradingFee": 0.0001,
+      "maxPrice": 0.01,
+      "minPrice": 0.005,
+      "point": 200,
+      "startTime": 1636019587,
+      "endTime": 99999999999999
+    }
+  },
+  {
+    "chainIdList": [
+      33,
+      44,
+      88,
+      99,
+      512,
+      511,
+      513,
+      514,
+      517
+    ],
+    "symbolList": [
+      "ETH"
     ],
     "data": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",

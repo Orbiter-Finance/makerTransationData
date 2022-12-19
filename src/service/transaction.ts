@@ -405,17 +405,7 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
       const amount = String(
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
       );
-      // cross coin
-      const { target, toChain } = toChainInfo;
-      if (target.symbol !== toChain.symbol) {
-        const fromPrecision = target.precision;
-        const toPrecision = toChain.precision;
-        const expectValue = (new BigNumber(amount)).dividedBy(10 ** fromPrecision).multipliedBy(10 ** toPrecision);
-        txData.expectValue = (await exchangeToCoin(expectValue, target.symbol, toChain.symbol)).toFixed(0);
-        console.log(`FE expectValue: ${+params.data[3]},maker expectValue: ${txData.expectValue}`);
-      } else {
-        txData.expectValue = amount;
-      }
+      txData.expectValue = amount;
     }
   } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
     txData.side = 1;

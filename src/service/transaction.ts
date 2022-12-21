@@ -266,7 +266,8 @@ export async function bulkCreateTransaction(
         txData.lpId = market.id || null;
         txData.makerId = market.makerId || null;
         // ebc
-        saveExtra["ebcId"] = market.ebcId;
+        saveExtra.ebcId = market.ebcId;
+        saveExtra.toToken = market.toChain?.tokenAddress;
         txData.replySender = market.sender;
         // calc response amount
         try {

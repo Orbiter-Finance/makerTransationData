@@ -491,9 +491,11 @@ export async function processUserSendMakerTx(
       memo: trx.nonce,
       status: [0, 1],
       timestamp: {
-        [Op.gte]: dayjs(trx.timestamp).subtract(20, "m").toDate(),
+        [Op.gte]: dayjs(trx.timestamp)
+          .subtract(60 * 6, "m")
+          .toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 24 * 2, "m")
+          .add(60 * 24 * 6, "m")
           .toDate(),
       },
       value: needToAmount,
@@ -501,9 +503,11 @@ export async function processUserSendMakerTx(
     // Because of the delay of starknet network, the time will be longer if it is starknet
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
-        [Op.gte]: dayjs(trx.timestamp).subtract(120, "m").toDate(),
+        [Op.gte]: dayjs(trx.timestamp)
+          .subtract(60 * 6, "m")
+          .toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 24 * 2, "m")
+          .add(60 * 6, "m")
           .toDate(),
       };
     }
@@ -605,9 +609,11 @@ export async function processMakerSendUserTx(
         expectValue: trx.value,
         timestamp: {
           [Op.gte]: dayjs(trx.timestamp)
-            .subtract(24 * 60 * 2, "m")
+            .subtract(60 * 6, "m")
             .toDate(),
-          [Op.lte]: dayjs(trx.timestamp).add(60, "m").toDate(),
+          [Op.lte]: dayjs(trx.timestamp)
+            .add(60 * 6, "m")
+            .toDate(),
         },
         value: {
           [Op.gt]: Number(trx.value),

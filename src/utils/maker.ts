@@ -316,8 +316,8 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
       if (!symbolPairMap.hasOwnProperty(symbolPair)) continue;
       const makerData: IMakerDataCfg = symbolPairMap[symbolPair];
       const [fromChainSymbol, toChainSymbol] = symbolPair.split("-");
-      const fromToken = c1Chain.tokens.find(item => item.symbol === fromChainSymbol);
-      const toToken = c2Chain.tokens.find(item => item.symbol === toChainSymbol);
+      const fromToken = [...c1Chain.tokens, c1Chain.nativeCurrency].find(item => item.symbol === fromChainSymbol);
+      const toToken = [...c2Chain.tokens, c2Chain.nativeCurrency].find(item => item.symbol === toChainSymbol);
       if (!fromToken || !toToken) continue;
       // handle makerConfigs
       configs.push({

@@ -256,10 +256,9 @@ export function convertPool(pool: any): Array<IMarket> {
     },
   ];
 }
-
 export async function initMakerList() {
   await checkConfig(axios, path.join(__dirname, "/config"), testnetChains, maker, makerDefault);
-  const list:IMaker[] = convertMakerList(testnetChains as IChainCfg[], maker as IMakerCfg, makerDefault as IMakerDefaultCfg[]);
+  const list:IMaker[] = convertMakerList(testnetChains as IChainCfg[], <any>maker, <any>makerDefault);
   const newMakerList = [...list];
   for (const maker of oldMakerList) {
     if (!list.find(item=>((item.c1ID === maker.c1ID && item.c2ID === maker.c2ID) ||
@@ -302,6 +301,71 @@ async function checkConfig(curl: AxiosStatic, configPath: string, chains: any[],
   }
 }
 
+export function convertMakerConfig(ctx: Context): IMarket[] {
+  const makerMap: IMakerCfg = <any>maker;
+  const chainList: IChainCfg[] = ctx.NODE_ENV === "production" ? <IChainCfg[]>mainnetChains : <IChainCfg[]>testnetChains;
+  const configs: IMarket[] = [];
+  for (const chainIdPair in makerMap) {
+    if (!makerMap.hasOwnProperty(chainIdPair)) continue;
+    const symbolPairMap = makerMap[chainIdPair];
+    const [fromChainId, toChainId] = chainIdPair.split("-");
+    const c1Chain = chainList.find(item => +item.internalId === +fromChainId);
+    const c2Chain = chainList.find(item => +item.internalId === +toChainId);
+    if (!c1Chain || !c2Chain) continue;
+    for (const symbolPair in symbolPairMap) {
+      if (!symbolPairMap.hasOwnProperty(symbolPair)) continue;
+      const makerData: IMakerDataCfg = symbolPairMap[symbolPair];
+      const [fromChainSymbol, toChainSymbol] = symbolPair.split("-");
+      const fromToken = c1Chain.tokens.find(item => item.symbol === fromChainSymbol);
+      const toToken = c2Chain.tokens.find(item => item.symbol === toChainSymbol);
+      if (!fromToken || !toToken) continue;
+      // handle makerConfigs
+      configs.push({
+        id: "",
+        makerId: "",
+        ebcId: "",
+        recipient: makerData.makerAddress,
+        sender: makerData.sender,
+        fromChain: {
+          id: +fromChainId,
+          name: c1Chain.name,
+          tokenAddress: fromToken.address,
+          symbol: fromChainSymbol,
+          decimals: fromToken.decimals,
+          minPrice: makerData.minPrice,
+          maxPrice: makerData.maxPrice,
+        },
+        toChain: {
+          id: +toChainId,
+          name: c2Chain.name,
+          tokenAddress: toToken.address,
+          symbol: toChainSymbol,
+          decimals: fromToken.decimals,
+        },
+        times: [
+          makerData.startTime,
+          makerData.endTime,
+        ],
+        pool: {
+          makerAddress: makerData.makerAddress,
+          c1ID: fromChainId,
+          c2ID: toChainId,
+          c1Name: c1Chain.name,
+          c2Name: c2Chain.name,
+          t1Address: fromToken.address,
+          t2Address: toToken.address,
+          tName: fromToken.symbol,
+          minPrice: makerData.minPrice,
+          maxPrice: makerData.maxPrice,
+          precision: fromToken.decimals,
+          tradingFee: makerData.tradingFee,
+          gasFee: makerData.gasFee,
+        },
+      });
+    }
+  }
+  return configs;
+}
 function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefaultList?: IMakerDefaultCfg[]):IMaker[] {
   const v1makerList: IMaker[] = [];
   const noMatchMap:any = {};
@@ -327,7 +391,7 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
         }
       }
     }
-    Object.assign(makerMap, defaultMakerMap);
+    makerMap = merge(defaultMakerMap, makerMap);
   }
 
   for (const chain of chainList) {
@@ -359,6 +423,19 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
         handleV1MakerList(symbolPair, fromChainSymbol, toChainId, fromChainId, c1Chain, c2Chain, makerData);
       }
     }
+  }
+
+  function merge(obj1: any, obj2: any) {
+    let key;
+    for (key in obj2) {
+      obj1[key] =
+        obj1[key] &&
+        obj1[key].toString() === "[object Object]" &&
+        (obj2[key] && obj2[key].toString() === "[object Object]")
+          ? merge(obj1[key], obj2[key])
+          : (obj1[key] = obj2[key]);
+    }
+    return obj1;
   }
 
   function handleV1MakerList(symbolPair: string, symbol: string,

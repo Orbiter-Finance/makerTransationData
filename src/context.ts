@@ -5,13 +5,11 @@ import { Config, IMarket } from "./types";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Logger } from "winston";
 import {
-  convertMarketListToFile,
-  convertMarketListToXvmList,
-  initMakerList,
+  convertMakerConfig,
+  convertMarketListToXvmList
 } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
-import { makerList, makerListHistory } from "./maker";
 import Subgraphs from "./service/subgraphs";
 import db from "./db";
 import { RabbitMq } from "./service/RabbitMq";
@@ -83,7 +81,7 @@ export class Context {
     }, 3000);
   }
   async init() {
-    await initMakerList();
+    // await initMakerList();
     await this.initChannel();
     await this.initChainConfigs();
     const subApi = new Subgraphs(this.config.subgraphEndpoint);
@@ -141,10 +139,11 @@ export class Context {
 }
 export async function fetchFileMakerList(ctx: Context) {
   // -------------
-  ctx.makerConfigs = await convertMarketListToFile(makerList, ctx);
-  const makerConfigsHistory = await convertMarketListToFile(
-    makerListHistory,
-    ctx,
-  );
-  ctx.makerConfigs.push(...makerConfigsHistory);
+  // ctx.makerConfigs = await convertMarketListToFile(makerList, ctx);
+  // const makerConfigsHistory = await convertMarketListToFile(
+  //   makerListHistory,
+  //   ctx,
+  // );
+  // ctx.makerConfigs.push(...makerConfigsHistory);
+  ctx.makerConfigs = convertMakerConfig(ctx);
 }

@@ -112,11 +112,12 @@ export interface IMakerDefaultCfg {
 
 export interface IMakerDataCfg {
   makerAddress: string;
+  sender: string;
   gasFee: number;
   tradingFee: number;
   maxPrice: number;
   minPrice: number;
-  point: number;
+  slippage: number;
   startTime: number;
   endTime: number;
 }

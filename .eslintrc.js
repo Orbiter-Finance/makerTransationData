@@ -31,6 +31,8 @@ module.exports = {
         argsIgnorePattern: "^_",
       },
     ],
+    "@typescript-eslint/no-misused-promises":"off",
+    "@typescript-eslint/no-floating-promises":"off",
     "@typescript-eslint/no-unsafe-member-access": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-unsafe-call": "off",
@@ -41,6 +43,7 @@ module.exports = {
     "@typescript-eslint/no-unsafe-assignment": "off",
     "@typescript-eslint/no-unsafe-argument": "off",
     "@typescript-eslint/ban-types": "off",
+    "@typescript-eslint/no-floating-promises":"off",
     "@typescript-eslint/restrict-template-expressions": "off",
   },
 };

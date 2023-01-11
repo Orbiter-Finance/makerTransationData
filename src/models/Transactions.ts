@@ -1,105 +1,51 @@
-import * as Sequelize from "sequelize";
-import { DataTypes, Model, Optional } from "sequelize";
+import {
+  CreationOptional,
+  DataTypes,
+  InferCreationAttributes,
+  InferAttributes,
+  Model,
+  Sequelize,
+} from "sequelize";
+import { Json } from "../types";
 
-export interface transactionAttributes {
-  id: number;
-  hash: string;
-  nonce: string;
-  blockHash?: string;
-  blockNumber?: number;
-  transactionIndex?: number;
-  from: string;
-  to: string;
-  value: string;
-  symbol: string;
-  gasPrice?: number;
-  gas?: number;
-  input?: string;
-  status: number;
-  tokenAddress: string;
-  timestamp: Date;
-  fee?: string;
-  feeToken?: string;
-  chainId: number;
-  source?: string;
-  memo?: string;
-  extra?: object;
-  side?: number;
-  expectValue?: string;
-  makerId?: string;
-  lpId?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  replyAccount?: string;
-  replySender?: string;
-}
+export class Transaction extends Model<
+  InferAttributes<Transaction>,
+  InferCreationAttributes<Transaction>
+> {
+  declare id: CreationOptional<number>;
+  declare hash: string;
+  declare nonce: string;
+  declare blockHash: string | null;
+  declare blockNumber: number | null;
+  declare transactionIndex: number | null;
+  declare from: string;
+  declare to: string;
+  declare value: string;
+  declare symbol: string;
+  declare gasPrice: number | null;
+  declare gas: number | null;
+  declare input: string | null;
+  declare status: number;
+  declare tokenAddress: string | null;
+  declare timestamp: Date;
+  declare fee: string | null;
+  declare feeToken: string | null;
+  declare chainId: number;
+  declare source: string | null;
+  declare memo: string | null;
+  declare side: number;
+  declare makerId: string | null;
+  declare transferId: string;
+  declare expectValue: string | null;
+  declare lpId: string | null;
+  declare extra: Json | null;
+  declare replyAccount: string | null;
+  declare replySender: string | null;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-export type transactionPk = "id" | "timestamp";
-export type transactionId = transaction[transactionPk];
-export type transactionOptionalAttributes =
-  | "id"
-  | "blockHash"
-  | "blockNumber"
-  | "transactionIndex"
-  | "gasPrice"
-  | "gas"
-  | "input"
-  | "timestamp"
-  | "fee"
-  | "feeToken"
-  | "source"
-  | "memo"
-  | "extra"
-  | "side"
-  | "makerId"
-  | "expectValue"
-  | "lpId"
-  | "createdAt"
-  | "updatedAt"
-  | "replyAccount"
-  | "replySender";
-export type transactionCreationAttributes = Optional<
-  transactionAttributes,
-  transactionOptionalAttributes
->;
-
-export class transaction
-  extends Model<transactionAttributes, transactionCreationAttributes>
-  implements transactionAttributes
-{
-  id!: number;
-  hash!: string;
-  nonce!: string;
-  blockHash?: string;
-  blockNumber?: number;
-  transactionIndex?: number;
-  from!: string;
-  to!: string;
-  value!: string;
-  symbol!: string;
-  gasPrice?: number;
-  gas?: number;
-  input?: string;
-  status!: number;
-  tokenAddress!: string;
-  timestamp!: Date;
-  fee?: string;
-  feeToken?: string;
-  chainId!: number;
-  side!: number;
-  makerId!: string;
-  expectValue!: string;
-  lpId!: string;
-  source?: string;
-  memo?: string;
-  extra?: object;
-  createdAt!: Date;
-  updatedAt!: Date;
-  replyAccount?: string;
-  replySender?: string;
-
-  static initModel(sequelize: Sequelize.Sequelize): typeof transaction {
-    return transaction.init(
+  static initModel(sequelize: Sequelize): typeof Transaction {
+    return Transaction.init(
       {
         id: {
           autoIncrement: true,
@@ -182,8 +128,6 @@ export class transaction
         timestamp: {
           type: DataTypes.DATE,
           allowNull: false,
-          defaultValue: Sequelize.Sequelize.literal("CURRENT_TIMESTAMP"),
-          primaryKey: true,
           comment: "timestamp",
         },
         fee: {
@@ -221,9 +165,14 @@ export class transaction
           allowNull: true,
           comment: "maker id",
         },
+        transferId: {
+          type: DataTypes.STRING(32),
+          allowNull: true,
+          comment: "transferId",
+        },
         expectValue: {
           type: DataTypes.STRING(32),
-          allowNull: false,
+          allowNull: true,
           comment: "expectValue",
         },
         lpId: {
@@ -244,6 +193,12 @@ export class transaction
           type: DataTypes.STRING(255),
           allowNull: true,
         },
+        createdAt: {
+          type: DataTypes.DATE,
+        },
+        updatedAt: {
+          type: DataTypes.DATE,
+        },
       },
       {
         sequelize,
@@ -254,13 +209,15 @@ export class transaction
             name: "PRIMARY",
             unique: true,
             using: "BTREE",
-            fields: [{ name: "id" }, { name: "timestamp" }],
+            fields: [{ name: "id" }],
+            // fields: [{ name: "id" }, { name: "timestamp" }],
           },
           {
             name: "hash",
             unique: true,
             using: "BTREE",
-            fields: [{ name: "chainId" }, { name: "hash" }],
+            fields: [{ name: "hash" }, { name: "transferId" }],
+            // fields: [{ name: "chainId" }, { name: "hash" }],
           },
           {
             name: "symbol",

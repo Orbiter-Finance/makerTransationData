@@ -13,7 +13,7 @@ export class Application {
     await this.ctx.init();
     createServer(this.ctx);
     const watch = new Watch(this.ctx);
-    watch.start();
+    await watch.start();
     // watch.readDBMatch("2022-10-18 00:47:33", "2022-10-19 00:47:33")
     // .then(result => {
     //   this.ctx.logger.info(`readDBMatch end`, result);

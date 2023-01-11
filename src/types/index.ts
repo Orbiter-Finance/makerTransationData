@@ -4,6 +4,7 @@ export interface IMarket {
   ebcId: string;
   recipient: string;
   sender: string;
+  slippage: number;
   fromChain: {
     id: number;
     name: string;
@@ -12,6 +13,7 @@ export interface IMarket {
     decimals: number;
     maxPrice: number;
     minPrice: number;
+    xvmList?: string[];
   };
   toChain: {
     id: number;
@@ -19,6 +21,7 @@ export interface IMarket {
     tokenAddress: string;
     symbol: string;
     decimals: number;
+    xvmList?: string[];
   };
   times: Number[];
   pool?: any;
@@ -63,7 +66,7 @@ export interface IToChain {
   tokenAddress: string;
   symbol: string;
   precision: number;
-  rate: number; // Ten thousandth ratio
+  slippage: number; // Ten thousandth ratio
 }
 
 export interface IMaker {

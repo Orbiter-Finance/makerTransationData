@@ -92,6 +92,7 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
         sender: senderAddress,
         makerId: maker.id,
         ebcId: pair["ebcId"],
+        slippage: 200,
         fromChain: {
           id: Number(fromChainId),
           name: fromChain.name,
@@ -171,6 +172,7 @@ export function convertPool(pool: any): Array<IMarket> {
       ebcId: "",
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
+      slippage: 200,
       fromChain: {
         id: Number(pool.c1ID),
         name: pool.c1Name,
@@ -216,6 +218,7 @@ export function convertPool(pool: any): Array<IMarket> {
       ebcId: "",
       recipient: pool.makerAddress,
       sender: pool.makerAddress,
+      slippage: 200,
       fromChain: {
         id: Number(pool.c2ID),
         name: pool.c2Name,
@@ -375,6 +378,7 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
         id: "",
         makerId: "",
         ebcId: "",
+        slippage: makerData.slippage || 0,
         recipient: makerData.makerAddress,
         sender: makerData.sender,
         fromChain: {
@@ -385,6 +389,7 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
           decimals: fromToken.decimals,
           minPrice: makerData.minPrice,
           maxPrice: makerData.maxPrice,
+          xvmList: c1Chain.xvmList || [],
         },
         toChain: {
           id: +toChainId,
@@ -392,6 +397,7 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
           tokenAddress: toToken.address,
           symbol: toChainSymbol,
           decimals: fromToken.decimals,
+          xvmList: c2Chain.xvmList || [],
         },
         times: [makerData.startTime, makerData.endTime],
         pool: {
@@ -622,7 +628,10 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
     tokenAddress: string;
     symbol: string;
     decimals: number;
-  }[] = cloneMakerList.map(item => item.toChain);
+    slippage: number;
+  }[] = cloneMakerList.map(item => {
+    return { ...item.toChain, slippage: item.slippage };
+  });
   let fromChainIdList: number[] = [];
   for (const maker of cloneMakerList) {
     const chainId: number = maker.fromChain.id;
@@ -643,7 +652,7 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
           tokenAddress: toChain.tokenAddress,
           symbol: toChain.symbol,
           precision: toChain.decimals,
-          rate: 200,
+          slippage: toChain.slippage,
         });
       }
     }

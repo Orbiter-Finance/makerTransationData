@@ -23,7 +23,6 @@ import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket, ITarget, IToChain } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
-import Web3 from "web3";
 
 export async function findByHashTxMatch(
   ctx: Context,
@@ -337,7 +336,7 @@ export async function bulkCreateTransaction(
         attributes: ["id", "hash", "status", "expectValue"],
         where: {
           hash: row.hash,
-          transferId: row.transferId
+          transferId: row.transferId,
         },
       });
       if (!created) {
@@ -356,22 +355,38 @@ export async function bulkCreateTransaction(
   return upsertList;
 }
 
-async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: any, saveExtra: any, upsertList: Array<InferCreationAttributes<Transaction>>) {
+async function handleXVMTx(
+  ctx: Context,
+  txData: Partial<Transaction>,
+  txExtra: any,
+  saveExtra: any,
+  upsertList: Array<InferCreationAttributes<Transaction>>,
+) {
   saveExtra.xvm = txExtra.xvm;
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
   console.log("Handle XVM Tx", name, JSON.stringify(params));
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
-  if (name.toLowerCase() === "swap" && params?.data && params.data.length >= 3) {
+  if (
+    name.toLowerCase() === "swap" &&
+    params?.data &&
+    params.data.length >= 3
+  ) {
     txData.memo = String(+params.data[0]);
-    const toToken = saveExtra.toToken = params.data[1];
+    const toToken = (saveExtra.toToken = params.data[1]);
     if (params.data.length > 4) {
       saveExtra.rate = +params.data[4];
     }
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
     // xvm check
-    const toChainInfo: { target: ITarget, toChain: IToChain } = getXVMContractToChainInfo(fromChainId, toChainId, <string>txData.tokenAddress, toToken);
+    const toChainInfo: { target: ITarget; toChain: IToChain } =
+      getXVMContractToChainInfo(
+        fromChainId,
+        toChainId,
+        <string>txData.tokenAddress,
+        toToken,
+      );
     if (!toChainInfo?.toChain) {
       txData.status = 3;
       return;
@@ -408,11 +423,22 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
       );
     }
-  } else if (name.toLowerCase() === "swapok" || name.toLowerCase() === "swapfail") {
+  } else if (
+    name.toLowerCase() === "swapok" ||
+    name.toLowerCase() === "swapfail"
+  ) {
     txData.side = 1;
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
-      attributes: ["id", "hash", "status", "chainId", "transferId", "replyAccount", "replySender"],
+      attributes: [
+        "id",
+        "hash",
+        "status",
+        "chainId",
+        "transferId",
+        "replyAccount",
+        "replySender",
+      ],
       where: {
         hash: params.tradeId,
       },
@@ -431,7 +457,9 @@ async function handleXVMTx(ctx: Context, txData: Partial<Transaction>, txExtra: 
         upsertList.push(userTx);
       }
     } else {
-      console.log(`get userTx fail, hash:${txData.hash}, tradeId:${params.tradeId}`);
+      console.log(
+        `get userTx fail, hash:${txData.hash}, tradeId:${params.tradeId}`,
+      );
     }
   }
 }
@@ -450,7 +478,11 @@ async function getRates(currency: string): Promise<any> {
   return rates;
 }
 
-export async function exchangeToCoin(value: any, sourceCurrency: any, toCurrency: any) {
+export async function exchangeToCoin(
+  value: any,
+  sourceCurrency: any,
+  toCurrency: any,
+) {
   if (!sourceCurrency) return value;
   if (!(value instanceof BigNumber)) {
     value = new BigNumber(value);
@@ -461,7 +493,12 @@ export async function exchangeToCoin(value: any, sourceCurrency: any, toCurrency
   if (!fromRate || !fromRate) {
     return new BigNumber(0);
   }
-  console.log(`${sourceCurrency} fromRate`, fromRate, `${toCurrency} toRate`, toRate);
+  console.log(
+    `${sourceCurrency} fromRate`,
+    fromRate,
+    `${toCurrency} toRate`,
+    toRate,
+  );
   return value.dividedBy(fromRate).multipliedBy(toRate);
 }
 

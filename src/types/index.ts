@@ -46,16 +46,16 @@ export type JsonArray = Array<
 export type Json = JsonMap | JsonArray | string | number | boolean | null;
 
 export interface IXvm {
-  chainId: number,
-  contractAddress: string,
-  target: ITarget[]
+  chainId: number;
+  contractAddress: string;
+  target: ITarget[];
 }
 
 export interface ITarget {
   tokenAddress: string;
   symbol: string;
   precision: number;
-  toChains: IToChain[]
+  toChains: IToChain[];
 }
 
 export interface IToChain {
@@ -63,7 +63,7 @@ export interface IToChain {
   tokenAddress: string;
   symbol: string;
   precision: number;
-  rate: number;   // Ten thousandth ratio
+  rate: number; // Ten thousandth ratio
 }
 
 export interface IMaker {
@@ -89,19 +89,19 @@ export interface IMaker {
       startTime: number;
       endTime: number;
     },
-  ],
+  ];
   c2AvalibleTimes: [
     {
       startTime: number;
       endTime: number;
     },
-  ],
+  ];
 }
 
 export interface IMakerCfg {
   [chainIdPair: string]: {
     [symbolPair: string]: IMakerDataCfg;
-  }
+  };
 }
 
 export interface IMakerDefaultCfg {

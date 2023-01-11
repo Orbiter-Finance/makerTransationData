@@ -4,7 +4,9 @@ import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import {
   IChainCfg,
   IMaker,
-  IMakerCfg, IMakerDataCfg, IMakerDefaultCfg,
+  IMakerCfg,
+  IMakerDataCfg,
+  IMakerDefaultCfg,
   IMarket,
   ITarget,
   IToChain,
@@ -257,13 +259,28 @@ export function convertPool(pool: any): Array<IMarket> {
   ];
 }
 export async function initMakerList() {
-  await checkConfig(axios, path.join(__dirname, "/config"), testnetChains, maker, makerDefault);
-  const list:IMaker[] = convertMakerList(testnetChains as IChainCfg[], <any>maker, <any>makerDefault);
+  await checkConfig(
+    axios,
+    path.join(__dirname, "/config"),
+    testnetChains,
+    maker,
+    makerDefault,
+  );
+  const list: IMaker[] = convertMakerList(
+    testnetChains as IChainCfg[],
+    <any>maker,
+    <any>makerDefault,
+  );
   const newMakerList = [...list];
   for (const maker of oldMakerList) {
-    if (!list.find(item=>((item.c1ID === maker.c1ID && item.c2ID === maker.c2ID) ||
-      (item.c1ID === maker.c2ID && item.c2ID === maker.c1ID))
-      && item.tName === maker.tName)) {
+    if (
+      !list.find(
+        item =>
+          ((item.c1ID === maker.c1ID && item.c2ID === maker.c2ID) ||
+            (item.c1ID === maker.c2ID && item.c2ID === maker.c1ID)) &&
+          item.tName === maker.tName,
+      )
+    ) {
       newMakerList.push(maker);
     }
   }
@@ -271,39 +288,63 @@ export async function initMakerList() {
   return newMakerList;
 }
 
-async function checkConfig(curl: AxiosStatic, configPath: string, chains: any[], maker: any, makerDefault: any[]) {
-  if (!chains || !chains.length && process.env.IPFS_CHAINS) {
+async function checkConfig(
+  curl: AxiosStatic,
+  configPath: string,
+  chains: any[],
+  maker: any,
+  makerDefault: any[],
+) {
+  if (!chains || (!chains.length && process.env.IPFS_CHAINS)) {
     const { data } = await curl.get(process.env.IPFS_CHAINS as string);
     if (typeof data !== "object") {
       await new Promise(resolve => setTimeout(resolve, 3000));
       await checkConfig(curl, configPath, chains, maker, makerDefault);
     } else {
-      fs.writeFileSync(path.join(configPath, process.env.NODE_ENV === "production" ? "testnet.json" : "chain.json"), JSON.stringify(data));
+      fs.writeFileSync(
+        path.join(
+          configPath,
+          process.env.NODE_ENV === "production" ? "testnet.json" : "chain.json",
+        ),
+        JSON.stringify(data),
+      );
     }
   }
-  if (!maker || !Object.keys(maker).length && process.env.IPFS_MAKER) {
+  if (!maker || (!Object.keys(maker).length && process.env.IPFS_MAKER)) {
     const { data } = await curl.get(process.env.IPFS_MAKER as string);
     if (typeof data !== "object") {
       await new Promise(resolve => setTimeout(resolve, 3000));
       await checkConfig(curl, configPath, chains, maker, makerDefault);
     } else {
-      fs.writeFileSync(path.join(configPath, "maker.json"), JSON.stringify(data));
+      fs.writeFileSync(
+        path.join(configPath, "maker.json"),
+        JSON.stringify(data),
+      );
     }
   }
-  if (!makerDefault || !makerDefault.length && process.env.IPFS_MAKER_DEFAULT) {
+  if (
+    !makerDefault ||
+    (!makerDefault.length && process.env.IPFS_MAKER_DEFAULT)
+  ) {
     const { data } = await curl.get(process.env.IPFS_MAKER_DEFAULT as string);
     if (typeof data !== "object") {
       await new Promise(resolve => setTimeout(resolve, 3000));
       await checkConfig(curl, configPath, chains, maker, makerDefault);
     } else {
-      fs.writeFileSync(path.join(configPath, "maker_default.json"), JSON.stringify(data));
+      fs.writeFileSync(
+        path.join(configPath, "maker_default.json"),
+        JSON.stringify(data),
+      );
     }
   }
 }
 
 export function convertMakerConfig(ctx: Context): IMarket[] {
   const makerMap: IMakerCfg = <any>maker;
-  const chainList: IChainCfg[] = ctx.NODE_ENV === "production" ? <IChainCfg[]>mainnetChains : <IChainCfg[]>testnetChains;
+  const chainList: IChainCfg[] =
+    ctx.NODE_ENV === "production"
+      ? <IChainCfg[]>mainnetChains
+      : <IChainCfg[]>testnetChains;
   const configs: IMarket[] = [];
   for (const chainIdPair in makerMap) {
     if (!makerMap.hasOwnProperty(chainIdPair)) continue;
@@ -316,8 +357,12 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
       if (!symbolPairMap.hasOwnProperty(symbolPair)) continue;
       const makerData: IMakerDataCfg = symbolPairMap[symbolPair];
       const [fromChainSymbol, toChainSymbol] = symbolPair.split("-");
-      const fromToken = [...c1Chain.tokens, c1Chain.nativeCurrency].find(item => item.symbol === fromChainSymbol);
-      const toToken = [...c2Chain.tokens, c2Chain.nativeCurrency].find(item => item.symbol === toChainSymbol);
+      const fromToken = [...c1Chain.tokens, c1Chain.nativeCurrency].find(
+        item => item.symbol === fromChainSymbol,
+      );
+      const toToken = [...c2Chain.tokens, c2Chain.nativeCurrency].find(
+        item => item.symbol === toChainSymbol,
+      );
       if (!fromToken || !toToken) continue;
       // handle makerConfigs
       configs.push({
@@ -342,10 +387,7 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
           symbol: toChainSymbol,
           decimals: fromToken.decimals,
         },
-        times: [
-          makerData.startTime,
-          makerData.endTime,
-        ],
+        times: [makerData.startTime, makerData.endTime],
         pool: {
           makerAddress: makerData.makerAddress,
           c1ID: fromChainId,
@@ -366,12 +408,16 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
   }
   return configs;
 }
-function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefaultList?: IMakerDefaultCfg[]):IMaker[] {
+function convertMakerList(
+  chainList: IChainCfg[],
+  makerMap: IMakerCfg,
+  makerDefaultList?: IMakerDefaultCfg[],
+): IMaker[] {
   const v1makerList: IMaker[] = [];
-  const noMatchMap:any = {};
+  const noMatchMap: any = {};
 
   if (makerDefaultList) {
-    const defaultMakerMap:any = {};
+    const defaultMakerMap: any = {};
     for (const makerDefault of makerDefaultList) {
       const chainIdList = makerDefault.chainIdList;
       const symbolList = makerDefault.symbolList;
@@ -383,7 +429,8 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
               if (fromChainId !== toChainId) {
                 const chainIdPair = `${toChainId}-${fromChainId}`;
                 const symbolPair = `${fromSymbol}-${toSymbol}`;
-                defaultMakerMap[chainIdPair] = defaultMakerMap[chainIdPair] || {};
+                defaultMakerMap[chainIdPair] =
+                  defaultMakerMap[chainIdPair] || {};
                 defaultMakerMap[chainIdPair][symbolPair] = makerData;
               }
             }
@@ -420,7 +467,15 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
       const [fromChainSymbol, toChainSymbol] = symbolPair.split("-");
       // handle v1makerList
       if (fromChainSymbol === toChainSymbol) {
-        handleV1MakerList(symbolPair, fromChainSymbol, toChainId, fromChainId, c1Chain, c2Chain, makerData);
+        handleV1MakerList(
+          symbolPair,
+          fromChainSymbol,
+          toChainId,
+          fromChainId,
+          c1Chain,
+          c2Chain,
+          makerData,
+        );
       }
     }
   }
@@ -431,21 +486,32 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
       obj1[key] =
         obj1[key] &&
         obj1[key].toString() === "[object Object]" &&
-        (obj2[key] && obj2[key].toString() === "[object Object]")
+        obj2[key] &&
+        obj2[key].toString() === "[object Object]"
           ? merge(obj1[key], obj2[key])
           : (obj1[key] = obj2[key]);
     }
     return obj1;
   }
 
-  function handleV1MakerList(symbolPair: string, symbol: string,
-                             toChainId: string, fromChainId: string,
-                             c1Chain: IChainCfg, c2Chain: IChainCfg,
-                             c1MakerData: IMakerDataCfg) {
+  function handleV1MakerList(
+    symbolPair: string,
+    symbol: string,
+    toChainId: string,
+    fromChainId: string,
+    c1Chain: IChainCfg,
+    c2Chain: IChainCfg,
+    c1MakerData: IMakerDataCfg,
+  ) {
     // duplicate removal
-    if (v1makerList.find(item =>
-      item.c1ID === +toChainId && item.c2ID === +fromChainId &&
-      item.tName === symbol)) {
+    if (
+      v1makerList.find(
+        item =>
+          item.c1ID === +toChainId &&
+          item.c2ID === +fromChainId &&
+          item.tName === symbol,
+      )
+    ) {
       return;
     }
     const c1Token = c1Chain.tokens.find(item => item.symbol === symbol);
@@ -508,21 +574,27 @@ function convertMakerList(chainList: IChainCfg[], makerMap: IMakerCfg, makerDefa
       if (Object.keys(symbolMap).length) {
         for (const symbol in symbolMap) {
           if (!symbolMap.hasOwnProperty(symbol)) continue;
-          console.warn(`[chains,makerList] Matching failed：chainId-->${chainId},symbol-->${symbol}`);
+          console.warn(
+            `[chains,makerList] Matching failed：chainId-->${chainId},symbol-->${symbol}`,
+          );
         }
       } else {
-        console.warn(`[chains,makerList] Matching failed：chainId-->${chainId}`);
+        console.warn(
+          `[chains,makerList] Matching failed：chainId-->${chainId}`,
+        );
       }
     }
   } else {
     console.log("[chains,makerList] Matching succeeded");
   }
 
-
   return v1makerList;
 }
 export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
-  const chains: IChainCfg[] = process.env.NODE_ENV === "production" ? <IChainCfg[]>mainnetChains : <IChainCfg[]>testnetChains;
+  const chains: IChainCfg[] =
+    process.env.NODE_ENV === "production"
+      ? <IChainCfg[]>mainnetChains
+      : <IChainCfg[]>testnetChains;
   const xvmContractMap: any = {};
   for (const chain of chains) {
     if (chain.xvmList && chain.xvmList.length) {
@@ -531,9 +603,20 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
   }
   const cloneMakerList: Array<IMarket> = JSON.parse(JSON.stringify(makerList));
   const allXvmList: IXvm[] = [];
-  const targetList: { chainId: number, tokenAddress: string, symbol: string, precision: number, toChains: IToChain[] }[] = [];
-  const toChainList: { id: number, name: string, tokenAddress: string, symbol: string, decimals: number }[] =
-    cloneMakerList.map(item => item.toChain);
+  const targetList: {
+    chainId: number;
+    tokenAddress: string;
+    symbol: string;
+    precision: number;
+    toChains: IToChain[];
+  }[] = [];
+  const toChainList: {
+    id: number;
+    name: string;
+    tokenAddress: string;
+    symbol: string;
+    decimals: number;
+  }[] = cloneMakerList.map(item => item.toChain);
   let fromChainIdList: number[] = [];
   for (const maker of cloneMakerList) {
     const chainId: number = maker.fromChain.id;
@@ -544,7 +627,11 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
     const toChains: IToChain[] = [];
     for (const toChain of toChainList) {
       if (!xvmContractMap[toChain.id]) continue;
-      if (!toChains.find(item => item.chainId === toChain.id && item.symbol === toChain.symbol)) {
+      if (
+        !toChains.find(
+          item => item.chainId === toChain.id && item.symbol === toChain.symbol,
+        )
+      ) {
         toChains.push({
           chainId: toChain.id,
           tokenAddress: toChain.tokenAddress,
@@ -557,7 +644,7 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
     targetList.push({ chainId, tokenAddress, symbol, precision, toChains });
   }
   fromChainIdList = Array.from(new Set(fromChainIdList));
-  fromChainIdList = fromChainIdList.sort(function(a, b) {
+  fromChainIdList = fromChainIdList.sort(function (a, b) {
     return a - b;
   });
   for (const chainId of fromChainIdList) {
@@ -565,7 +652,10 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
     if (!contractAddress) continue;
     const target: ITarget[] = [];
     for (const tar of targetList) {
-      if (tar.chainId === chainId && !target.find(item => item.symbol === tar.symbol)) {
+      if (
+        tar.chainId === chainId &&
+        !target.find(item => item.symbol === tar.symbol)
+      ) {
         target.push({
           tokenAddress: tar.tokenAddress,
           symbol: tar.symbol,
@@ -579,13 +669,24 @@ export async function convertMarketListToXvmList(makerList: Array<IMarket>) {
   xvmList.push(...allXvmList);
   return allXvmList;
 }
-export function getXVMContractToChainInfo(fromChainID: number, toChainID: number, fromTokenAddress: string, toTokenAddress: string): any {
+export function getXVMContractToChainInfo(
+  fromChainID: number,
+  toChainID: number,
+  fromTokenAddress: string,
+  toTokenAddress: string,
+): any {
   const xvm = xvmList.find(item => item.chainId === fromChainID);
   const target = xvm?.target;
   if (!target) return null;
-  const targetData = target.find(item => item.tokenAddress.toLowerCase() === fromTokenAddress.toLowerCase());
+  const targetData = target.find(
+    item => item.tokenAddress.toLowerCase() === fromTokenAddress.toLowerCase(),
+  );
   const toChains = targetData?.toChains;
   if (!toChains) return null;
-  const toChain = toChains.find(item => item.chainId === toChainID && item.tokenAddress.toLowerCase() === toTokenAddress.toLowerCase());
+  const toChain = toChains.find(
+    item =>
+      item.chainId === toChainID &&
+      item.tokenAddress.toLowerCase() === toTokenAddress.toLowerCase(),
+  );
   return { target: targetData, toChain };
 }

@@ -23,43 +23,46 @@ export class RabbitMq {
   }
 
   async initConnect(): Promise<Connection> {
-    const self = this;
     try {
-      mqConnect = await amqp.connect({
-        protocol: "amqp",
-        hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || "localhost",
-        port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
-        vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
-        username: process.env.RABBITMQ_DEFAULT_USER || "guest",
-        password: process.env.RABBITMQ_DEFAULT_PASS || "guest",
-      }, {
-        clientProperties: {
-          connection_name: this.connectionName,
+      mqConnect = await amqp.connect(
+        {
+          protocol: "amqp",
+          hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || "localhost",
+          port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
+          vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
+          username: process.env.RABBITMQ_DEFAULT_USER || "guest",
+          password: process.env.RABBITMQ_DEFAULT_PASS || "guest",
         },
-      });
+        {
+          clientProperties: {
+            connection_name: this.connectionName,
+          },
+        },
+      );
 
-      mqConnect.on("error", async function(e: any) {
+      mqConnect.on("error", (e: any) => {
         console.error("RabbitMQ connection error ", e);
-        await self.reconnect();
+        this.reconnect();
       });
 
-      mqConnect.on("close", async function(e: any) {
+      mqConnect.on("close", (e: any) => {
         console.error("RabbitMQ close ", e);
-        await self.reconnect();
+        this.reconnect();
       });
     } catch (e: any) {
       console.error("RabbitMQ connection error ", e);
-      await self.reconnect();
+      await this.reconnect();
     }
     return mqConnect;
   }
 
   async reconnect() {
-    const self = this;
-    console.log(`RabbitMQ try reconnect 3 seconds later,current reconnect count:${self.reconnectCount}`);
+    console.log(
+      `RabbitMQ try reconnect 3 seconds later,current reconnect count:${this.reconnectCount}`,
+    );
     await new Promise(resolve => setTimeout(resolve, 3000));
-    self.reconnectCount++;
-    await self.initChannel();
+    this.reconnectCount++;
+    await this.initChannel();
     console.log(`${this.connectionName} reconnect success`);
   }
 
@@ -68,8 +71,14 @@ export class RabbitMq {
     for (const chain of chainList) {
       const topic = `chaincore:${chain.chainId}`;
       const str = JSON.stringify(chain);
-      const res = await channel.publish(this.exchangeName, chain.chainId + "", Buffer.from(str), { persistent: true });
-      if (res) console.log(`RabbitMq publish success ${topic} ${chain.source} ${res}`);
+      const res = await channel.publish(
+        this.exchangeName,
+        String(chain.chainId),
+        Buffer.from(str),
+        { persistent: true },
+      );
+      if (res)
+        console.log(`RabbitMq publish success ${topic} ${chain.source} ${res}`);
       else console.log(`RabbitMq publish fail ${topic} ${chain.source} ${res}`);
     }
   }

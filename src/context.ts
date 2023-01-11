@@ -4,10 +4,7 @@ import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Logger } from "winston";
-import {
-  convertMakerConfig,
-  convertMarketListToXvmList
-} from "./utils";
+import { convertMakerConfig, convertMarketListToXvmList } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import Subgraphs from "./service/subgraphs";
@@ -69,14 +66,13 @@ export class Context {
     });
   }
   private async initChannel() {
-    const self = this;
     setTimeout(async () => {
       try {
         await new RabbitMq(this).initChannel();
         console.log("RabbitMQ connect success !!!");
       } catch (e: any) {
         console.log("Reconnect rabbitMQ channel", e.message);
-        await self.initChannel();
+        await this.initChannel();
       }
     }, 3000);
   }
@@ -125,7 +121,7 @@ export class Context {
       await fetchFileMakerList(this);
     }
 
-    await convertMarketListToXvmList(this.makerConfigs)
+    await convertMarketListToXvmList(this.makerConfigs);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

@@ -85,7 +85,11 @@ export class Watch {
         pubSub.subscribe(`${id}:txlist`, (txList: Transaction[]) => {
           const result: Transaction[] = [];
           for (const tx of txList) {
-            if (tx.source == "xvm" && tx?.extra?.xvm?.name === "multicall" && tx?.extra.txList.length) {
+            if (
+              tx.source == "xvm" &&
+              tx?.extra?.xvm?.name === "multicall" &&
+              tx?.extra.txList.length
+            ) {
               result.push(...tx?.extra.txList);
             } else {
               result.push(tx);

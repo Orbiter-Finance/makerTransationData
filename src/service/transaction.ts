@@ -202,6 +202,7 @@ export async function bulkCreateTransaction(
       makerId: undefined,
       lpId: undefined,
       expectValue: undefined,
+      transferId: "",
     };
     const saveExtra: any = {
       ebcId: "",

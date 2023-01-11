@@ -22,6 +22,7 @@ const MAX_BITS: any = {
   scroll_l1_test: 256,
   scroll_l2_test: 256,
   orbiter: 256,
+  taiko_a1_test: 256,
 };
 const precisionResolverMap: any = {
   // pay attention:  the type of field "userAmount" in the following methods is not BigNumber
@@ -63,6 +64,7 @@ export const CHAIN_INDEX: any = {
   599: "orbiter",
   518: "scroll_l1_test",
   519: "scroll_l2_test",
+  520: "taiko_a1_test",
 };
 
 export const SIZE_OP = {

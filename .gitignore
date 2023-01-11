@@ -26,5 +26,4 @@ yalc.lock
 yarn.lock
 package.lock
 
-test-package.js
-/package_change
+

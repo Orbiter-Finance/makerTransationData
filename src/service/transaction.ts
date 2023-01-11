@@ -23,6 +23,8 @@ import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket, ITarget, IToChain } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
+import RLP from "rlp";
+import { ethers } from "ethers";
 
 export async function findByHashTxMatch(
   ctx: Context,
@@ -370,15 +372,12 @@ async function handleXVMTx(
   txData.value = params.value;
   console.log("Handle XVM Tx", name, JSON.stringify(params));
   // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
-  if (
-    name.toLowerCase() === "swap" &&
-    params?.data &&
-    params.data.length >= 3
-  ) {
-    txData.memo = String(+params.data[0]);
-    const toToken = (saveExtra.toToken = params.data[1]);
-    if (params.data.length > 4) {
-      saveExtra.rate = +params.data[4];
+  if (name.toLowerCase() === "swap") {
+    const decodeData = decodeXvmData(params.data);
+    txData.memo = String(decodeData.toChainId);
+    const toToken = (saveExtra.toToken = decodeData.toTokenAddress);
+    if (decodeData.slippage) {
+      saveExtra.slippage = decodeData.slippage;
     }
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
@@ -416,7 +415,7 @@ async function handleXVMTx(
       txData.replySender = market.sender;
       // user send
       txData.side = 0;
-      txData.replyAccount = String(params.data[2]);
+      txData.replyAccount = decodeData.toWalletAddress;
       txData.transferId = TransferIdV2(
         String(txData.chainId),
         String(txData.from),
@@ -426,10 +425,7 @@ async function handleXVMTx(
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
       );
     }
-  } else if (
-    name.toLowerCase() === "swapok" ||
-    name.toLowerCase() === "swapfail"
-  ) {
+  } else if (name.toLowerCase() === "swapanswer") {
     txData.side = 1;
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
@@ -446,7 +442,7 @@ async function handleXVMTx(
         hash: params.tradeId,
       },
     });
-    if (name.toLowerCase() === "swapfail") {
+    if (params.op == 2) {
       txData.status = 4;
     }
     if (userTx) {
@@ -455,7 +451,7 @@ async function handleXVMTx(
       txData.transferId = userTx.transferId;
       txData.replyAccount = userTx.replyAccount;
       txData.replySender = userTx.replySender;
-      if (name.toLowerCase() === "swapfail") {
+      if (params.op == 2) {
         userTx.status = 4;
         upsertList.push(userTx);
       }
@@ -465,6 +461,39 @@ async function handleXVMTx(
       );
     }
   }
+}
+
+function decodeXvmData(data: string): {
+  toChainId: number;
+  toTokenAddress: string;
+  toWalletAddress: string;
+  expectValue: number;
+  slippage: number;
+} {
+  const decoded: any = RLP.decode(data);
+  const result: any = {};
+  decoded.forEach((item: any, index: number) => {
+    switch (index) {
+      case 0:
+        result.toChainId = Number(item.toString());
+        break;
+      case 1:
+        result.toTokenAddress = ethers.utils.hexlify(item);
+        break;
+      case 2:
+        result.toWalletAddress = ethers.utils.hexlify(item);
+        break;
+      case 3:
+        result.expectValue = new BigNumber(
+          ethers.utils.hexlify(item),
+        ).toString();
+        break;
+      case 4:
+        result.slippage = Number(item.toString());
+        break;
+    }
+  });
+  return result;
 }
 
 async function getRates(currency: string): Promise<any> {

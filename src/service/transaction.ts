@@ -507,7 +507,7 @@ export async function processUserSendMakerTx(
           .subtract(60 * 6, "m")
           .toDate(),
         [Op.lte]: dayjs(trx.timestamp)
-          .add(60 * 6, "m")
+          .add(60 * 24 * 6, "m")
           .toDate(),
       };
     }

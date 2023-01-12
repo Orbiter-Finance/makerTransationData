@@ -87,13 +87,14 @@ export class Watch {
         this.ctx.logger.error("readQueneMatch error:", error);
       });
     }
-
-    // this.readDBMatch(
-    //   dayjs().subtract(5, "d").format("YYYY-MM-DD HH:mm"),
-    //   dayjs().subtract(10, "minute").format("YYYY-MM-DD HH:mm"),
-    // ).catch(error => {
-    //   console.log(error, "==error");
-    // });
+    setInterval(() => {
+      this.readDBMatch(
+        dayjs().subtract(2, "d").format("YYYY-MM-DD HH:mm"),
+        dayjs().subtract(30, "minute").format("YYYY-MM-DD HH:mm"),
+      ).catch(error => {
+        this.ctx.logger.error("readDBMatch error:", error);
+      });
+    }, 1000 * 60 * 5);
   }
   public async readDBMatch(
     startAt: any,
@@ -103,7 +104,7 @@ export class Watch {
     const txList = await this.ctx.models.transaction.findAll({
       raw: true,
       attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-      limit: 500,
+      limit: 200,
       order: [["timestamp", "desc"]],
       where: {
         side: 0,
@@ -125,8 +126,8 @@ export class Watch {
     if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {
       return { startAt, endAt, count: txList.length };
     }
-    await sleep(1000 * 5);
-    return await this.readDBMatch(startAt, endAt);
+    // await sleep(1000 * 30);
+    // return await this.readDBMatch(startAt, endAt);
   }
   public async initUnmatchedTransaction() {
     const where: any = {

@@ -62,7 +62,7 @@ export class Context {
         port: Number(DB_PORT) || 3306,
         dialect: "mysql",
         timezone: DB_TIMEZONE || "+00:00",
-        logging: true,
+        logging: false,
       },
     );
     this.models = initModels(this.sequelize);

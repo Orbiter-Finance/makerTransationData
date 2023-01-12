@@ -89,12 +89,12 @@ export class Watch {
     }
     setInterval(() => {
       this.readDBMatch(
-        dayjs().subtract(2, "d").format("YYYY-MM-DD HH:mm"),
+        dayjs().subtract(1, "d").format("YYYY-MM-DD HH:mm"),
         dayjs().subtract(30, "minute").format("YYYY-MM-DD HH:mm"),
       ).catch(error => {
         this.ctx.logger.error("readDBMatch error:", error);
       });
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 10);
   }
   public async readDBMatch(
     startAt: any,

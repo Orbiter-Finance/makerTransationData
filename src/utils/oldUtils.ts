@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 import { BigNumber } from "bignumber.js";
+import { IMarket } from "../types";
 
 const MAX_BITS: any = {
   eth: 256,
@@ -116,16 +117,16 @@ const performUserAmountLegality = (userAmount: BigNumber, chain: any) => {
 };
 function getToAmountFromUserAmount(
   userAmount: any,
-  selectMakerInfo: any,
+  market: IMarket,
   isWei: any,
 ) {
   let toAmount_tradingFee = new BigNumber(userAmount).minus(
-    new BigNumber(selectMakerInfo.tradingFee),
+    new BigNumber(market.tradingFee),
   );
   let gasFee = toAmount_tradingFee
-    .multipliedBy(new BigNumber(selectMakerInfo.gasFee))
+    .multipliedBy(new BigNumber(market.gasFee))
     .dividedBy(new BigNumber(1000));
-  let digit = selectMakerInfo.precision === 18 ? 5 : 2;
+  let digit = market.fromChain.decimals === 18 ? 5 : 2;
   // accessLogger.info('digit =', digit)
   let gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
   // accessLogger.info('gasFee_fix =', gasFee_fix.toString())
@@ -136,7 +137,7 @@ function getToAmountFromUserAmount(
   }
   if (isWei) {
     return toAmount_fee.multipliedBy(
-      new BigNumber(10 ** selectMakerInfo.precision),
+      new BigNumber(10 ** market.fromChain.decimals),
     );
   } else {
     return toAmount_fee;
@@ -379,7 +380,7 @@ function pTextFormatZero(num: string) {
  * @param fromChainID
  * @param toChainID
  * @param amountStr
- * @param pool
+ * @param market
  * @param nonce
  * @returns
  */
@@ -387,7 +388,7 @@ export function getAmountToSend(
   fromChainID: number,
   toChainID: number,
   amountStr: string,
-  pool: { precision: number; tradingFee: number; gasFee: number },
+  market: IMarket,
   nonce: string | number,
 ) {
   const realAmount = getRAmountFromTAmount(fromChainID, amountStr);
@@ -406,8 +407,10 @@ export function getAmountToSend(
   }
   const nonceStr = pTextFormatZero(String(nonce));
   const readyAmount = getToAmountFromUserAmount(
-    new BigNumber(rAmount).dividedBy(new BigNumber(10 ** pool.precision)),
-    pool,
+    new BigNumber(rAmount).dividedBy(
+      new BigNumber(10 ** market.fromChain.decimals),
+    ),
+    market,
     true,
   );
 

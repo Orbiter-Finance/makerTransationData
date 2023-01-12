@@ -287,21 +287,6 @@ export async function bulkCreateTransaction(
             String(txData.symbol),
             txData.expectValue,
           );
-
-          // if (new BigNumber(txData.expectValue).lt(new BigNumber(market.fromChain.minPrice)) || new BigNumber(txData.expectValue).gt(new BigNumber(market.fromChain.maxPrice))) {
-          //   // overflow
-          //   txData.status = 5;
-          // }
-          // TODO: valid maxPrice and minPrice
-          // const minPrice = new BigNumber(market.pool.minPrice)
-          //   .plus(new BigNumber(market.pool.tradingFee))
-          //   .multipliedBy(new BigNumber(10 ** market.fromChain.decimals));
-          // const maxPrice = new BigNumber(market.pool.maxPrice)
-          //   .plus(new BigNumber(market.pool.tradingFee))
-          //   .multipliedBy(new BigNumber(10 ** market.fromChain.decimals));
-          // if () {
-          //   // txData.status = 5;
-          // }
         } catch (error) {
           ctx.logger.error(
             "bulkCreateTransaction calcMakerSendAmount error:",
@@ -549,10 +534,10 @@ export async function calcMakerSendAmount(
   }
   const fromChainId = Number(trx.chainId);
   const toChainId = Number(trx.memo);
-  const market = makerConfigs.find(
+  const market: IMarket = makerConfigs.find(
     m =>
-      equals(m.fromChain.id, String(fromChainId)) &&
-      equals(m.toChain.id, String(toChainId)) &&
+      equals(m.fromChain.id, fromChainId) &&
+      equals(m.toChain.id, toChainId) &&
       equals(m.fromChain.symbol, trx.symbol) &&
       equals(m.fromChain.tokenAddress, trx.tokenAddress) &&
       dayjs(trx.timestamp).unix() >= m.times[0] &&
@@ -566,7 +551,7 @@ export async function calcMakerSendAmount(
       Number(fromChainId),
       Number(toChainId),
       trx.value.toString(),
-      market.pool,
+      market,
       trx.nonce,
     )?.tAmount || 0
   );

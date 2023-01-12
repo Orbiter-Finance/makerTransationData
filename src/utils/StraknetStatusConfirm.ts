@@ -54,10 +54,11 @@ export class StarknetStatusConfirm {
     return result;
   }
   async getStatusByTxid(txid: string) {
-    const service = new chainService.Starknet(
-      chains.getChainByInternalId(this.chainId),
-    );
-    const { tx_status } = await service.provider.getTransactionStatus(txid);
-    return tx_status;
+    const config = chains.getChainInfo(Number(this.chainId));
+    if (config) {
+      const service = new chainService.Starknet(config);
+      const { tx_status } = await service.provider.getTransactionStatus(txid);
+      return tx_status;
+    }
   }
 }

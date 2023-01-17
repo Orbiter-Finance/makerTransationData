@@ -54,8 +54,7 @@ export class Context {
   }
   private initLogger() {
     const dir = path.join(
-      process.cwd(),
-      "runtime",
+      process.env.logDir || process.cwd() + "/runtime",
       "mtx",
       this.instanceId.toString(),
     );

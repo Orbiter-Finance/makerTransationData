@@ -373,9 +373,19 @@ export async function bulkCreateTransaction(
     }
     txData.extra = saveExtra;
     txsList.push(txData);
+    if (equals(txData.chainId, 10) || equals(txData.chainId, 510)) {
+      const dbTx = await ctx.models.transaction.findOne({
+        attributes: ["status"],
+        where: {
+          hash: txData.hash,
+        },
+      });
+      if (dbTx && dbTx.status > 0) {
+        txData.status = dbTx.status;
+      }
+    }
   }
   // calc response amount
-
   try {
     await ctx.models.transaction.bulkCreate(<any>txsList, {
       // returning: true,

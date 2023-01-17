@@ -90,11 +90,11 @@ export class Watch {
     setInterval(() => {
       this.readDBMatch(
         dayjs().subtract(1, "d").format("YYYY-MM-DD HH:mm"),
-        dayjs().subtract(30, "minute").format("YYYY-MM-DD HH:mm"),
+        dayjs().subtract(10, "minute").format("YYYY-MM-DD HH:mm"),
       ).catch(error => {
         this.ctx.logger.error("readDBMatch error:", error);
       });
-    }, 1000 * 60 * 10);
+    }, 1000 * 60 * 2);
   }
   public async readDBMatch(
     startAt: any,
@@ -104,7 +104,7 @@ export class Watch {
     const txList = await this.ctx.models.transaction.findAll({
       raw: true,
       attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-      limit: 200,
+      limit: 100,
       order: [["timestamp", "desc"]],
       where: {
         side: 0,

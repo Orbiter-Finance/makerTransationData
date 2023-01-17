@@ -2,7 +2,6 @@ import Redis from "ioredis";
 import { readFile } from "fs/promises";
 import { initModels } from "./models";
 import { Config, IMarket } from "./types";
-import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Logger } from "winston";
 import { convertMakerConfig, convertMarketListToXvmList } from "./utils";
 import { TCPInject } from "./service/tcpInject";
@@ -10,6 +9,8 @@ import { chains } from "orbiter-chaincore";
 import Subgraphs from "./service/subgraphs";
 import db from "./db";
 import { RabbitMq } from "./service/RabbitMq";
+import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
+import path from "path";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -52,8 +53,14 @@ export class Context {
     return configs;
   }
   private initLogger() {
-    this.logger = LoggerService.createLogger({
-      dir: `${process.env.RUNTIME_DIR || ""}/logs${this.instanceId}`,
+    const dir = path.join(
+      process.cwd(),
+      "runtime",
+      "mtx",
+      this.instanceId.toString(),
+    );
+    this.logger = WinstonX.getLogger(this.instanceId.toString(), {
+      logDir: dir,
     });
   }
   private initRedis() {

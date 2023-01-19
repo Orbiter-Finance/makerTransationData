@@ -7,7 +7,6 @@ import {
 } from "./models/init-models";
 import { Config, IMarket } from "./types";
 
-import { LoggerService } from "orbiter-chaincore/src/utils";
 import { Sequelize } from "sequelize";
 import { Logger } from "winston";
 import { convertMarketListToFile } from "./utils";
@@ -15,6 +14,7 @@ import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import { makerList, makerListHistory } from "./maker";
 import Subgraphs from "./service/subgraphs";
+import { LoggerService } from "./utils/logger";
 
 export class Context {
   public models!: {
@@ -76,14 +76,15 @@ export class Context {
     }.json`;
     const result = await readFile(`./src/config/${file}`);
     const configs = JSON.parse(result.toString());
+    // for (const chain of configs) {
+    //   chain.api.key = "";
+    // }
     chains.fill(configs);
     this.config.chains = chains.getAllChains();
     return configs;
   }
   private initLogger() {
-    this.logger = LoggerService.createLogger({
-      dir: `${process.env.RUNTIME_DIR || ""}/logs${this.instanceId}`,
-    });
+    this.logger = LoggerService.createLogger(this.instanceId.toString());
   }
   private initRedis() {
     const { REDIS_PORT, REDIS_HOST, REDIS_DB } = <any>process.env;

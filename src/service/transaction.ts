@@ -563,42 +563,6 @@ export async function processUserSendMakerTx(
 ) {
   const t = await ctx.models.sequelize.transaction();
   try {
-    // const userTx = await ctx.models.Transaction.findOne({
-    //   attributes: [
-    //     "id",
-    //     "hash",
-    //     "transferId",
-    //     "chainId",
-    //     "from",
-    //     "to",
-    //     "tokenAddress",
-    //     "nonce",
-    //     "status",
-    //     "timestamp",
-    //     "value",
-    //     "expectValue",
-    //     "memo",
-    //     "symbol",
-    //     "makerId",
-    //     "lpId",
-    //     "replySender",
-    //     "replyAccount",
-    //   ],
-    //   where: {
-    //     hash,
-    //     // status: 1,
-    //     side: 0,
-    //   },
-    //   include: [
-    //     {
-    //       required: false,
-    //       attributes: ["id", "inId", "outId"],
-    //       model: ctx.models.MakerTransaction,
-    //       as: "maker_transaction",
-    //     },
-    //   ],
-    //   transaction: t,
-    // });
     if (!userTx || isEmpty(userTx.id)) {
       throw new Error("Missing Id Or Transaction does not exist");
     }

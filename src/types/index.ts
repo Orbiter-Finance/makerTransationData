@@ -5,6 +5,8 @@ export interface IMarket {
   recipient: string;
   sender: string;
   slippage: number;
+  tradingFee: number;
+  gasFee: number;
   fromChain: {
     id: number;
     name: string;
@@ -24,7 +26,6 @@ export interface IMarket {
     xvmList?: string[];
   };
   times: Number[];
-  pool?: any;
 }
 export interface Config {
   L1L2Mapping: {

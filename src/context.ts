@@ -11,6 +11,7 @@ import db from "./db";
 import { RabbitMq } from "./service/RabbitMq";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import path from "path";
+import axios from "axios";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -83,7 +84,6 @@ export class Context {
     }, 3000);
   }
   async init() {
-    // await initMakerList();
     await this.initChannel();
     await this.initChainConfigs();
     const subApi = new Subgraphs(this.config.subgraphEndpoint);
@@ -127,7 +127,7 @@ export class Context {
       await fetchFileMakerList(this);
     }
 
-    await convertMarketListToXvmList(this.makerConfigs);
+    convertMarketListToXvmList(this.makerConfigs);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";
@@ -147,5 +147,15 @@ export async function fetchFileMakerList(ctx: Context) {
   //   ctx,
   // );
   // ctx.makerConfigs.push(...makerConfigsHistory);
-  ctx.makerConfigs = convertMakerConfig(ctx);
+  let isLocalConfig = true;
+  if (process.env.OPEN_API_BASE_URL) {
+    const response: any = await axios.get(
+      `${process.env.OPEN_API_BASE_URL}/routes`,
+    );
+    if (response?.data?.code === 0) {
+      isLocalConfig = false;
+      ctx.makerConfigs = response.data.result;
+    }
+  }
+  if (isLocalConfig) ctx.makerConfigs = convertMakerConfig(ctx);
 }

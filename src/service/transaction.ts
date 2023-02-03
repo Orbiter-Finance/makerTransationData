@@ -355,15 +355,11 @@ async function handleXVMTx(
   saveExtra.xvm = txExtra.xvm;
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
-  console.log("Handle XVM Tx", name, JSON.stringify(params));
-  // params:{maker,token,value,data:[toChainId, t2Address, toWalletAddress, expectValue]}
   if (name.toLowerCase() === "swap") {
     const decodeData = decodeXvmData(params.data);
+    params.data = decodeData;
     txData.memo = String(decodeData.toChainId);
-    const toToken = (saveExtra.toToken = decodeData.toTokenAddress);
-    if (decodeData.slippage) {
-      saveExtra.slippage = decodeData.slippage;
-    }
+    const toToken = decodeData.toTokenAddress;
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
     // xvm check
@@ -446,6 +442,8 @@ async function handleXVMTx(
       );
     }
   }
+
+  console.log("Handle XVM Tx", name, JSON.stringify(params));
 }
 
 function decodeXvmData(data: string): {

@@ -269,7 +269,9 @@ export async function bulkCreateTransaction(
         txData.makerId = market.makerId || null;
         // ebc
         saveExtra.ebcId = market.ebcId;
-        saveExtra.toToken = market.toChain?.tokenAddress;
+        saveExtra.ua = {
+          toTokenAddress: market.toChain?.tokenAddress,
+        };
         txData.replySender = market.sender;
         // calc response amount
         try {
@@ -399,8 +401,9 @@ async function handleXVMTx(
         String(txData.from),
         String(txData.nonce),
       );
-      txData.expectValue = String(
-        await calcMakerSendAmount(ctx.makerConfigs, txData as any),
+      txData.expectValue = await getXVMExpectValue(
+        String(await calcMakerSendAmount(ctx.makerConfigs, txData as any)),
+        market,
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {
@@ -441,6 +444,20 @@ async function handleXVMTx(
   }
 
   console.log("Handle XVM Tx", name, JSON.stringify(params));
+}
+
+async function getXVMExpectValue(value: string, market: IMarket) {
+  const { fromChain, toChain } = market;
+  const fromCurrency = fromChain.symbol;
+  const toCurrency = toChain.symbol;
+  const fromPrecision = fromChain.decimals;
+  let expectValue = new BigNumber(value).multipliedBy(10 ** fromPrecision);
+  if (fromCurrency !== toCurrency) {
+    const toPrecision = toChain.decimals;
+    expectValue = new BigNumber(value).multipliedBy(10 ** toPrecision);
+    expectValue = await exchangeToCoin(expectValue, fromCurrency, toCurrency);
+  }
+  return expectValue.toFixed(0);
 }
 
 function decodeXvmData(data: string): {
@@ -505,12 +522,6 @@ export async function exchangeToCoin(
   if (!fromRate || !fromRate) {
     return new BigNumber(0);
   }
-  console.log(
-    `${sourceCurrency} fromRate`,
-    fromRate,
-    `${toCurrency} toRate`,
-    toRate,
-  );
   return value.dividedBy(fromRate).multipliedBy(toRate);
 }
 

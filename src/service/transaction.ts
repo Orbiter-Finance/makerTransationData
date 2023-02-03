@@ -401,7 +401,10 @@ async function handleXVMTx(
         String(txData.from),
         String(txData.nonce),
       );
-      txData.expectValue = decodeData.expectValue;
+      // txData.expectValue = decodeData.expectValue;
+      txData.expectValue = String(
+        await calcMakerSendAmount(ctx.makerConfigs, txData as any),
+      );
     }
   } else if (name.toLowerCase() === "swapanswer") {
     txData.side = 1;

@@ -401,10 +401,7 @@ async function handleXVMTx(
         String(txData.from),
         String(txData.nonce),
       );
-      txData.expectValue = await getXVMExpectValue(
-        String(await calcMakerSendAmount(ctx.makerConfigs, txData as any)),
-        market,
-      );
+      txData.expectValue = decodeData.expectValue;
     }
   } else if (name.toLowerCase() === "swapanswer") {
     txData.side = 1;
@@ -464,7 +461,7 @@ function decodeXvmData(data: string): {
   toChainId: number;
   toTokenAddress: string;
   toWalletAddress: string;
-  expectValue: number;
+  expectValue: string;
   slippage: number;
 } {
   const decoded: any = RLP.decode(data);

@@ -208,9 +208,6 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    if (tx.source == "xvm") {
-      Object.assign(saveExtra, txExtra.xvm || {});
-    }
     const isMakerSend =
       ctx.makerConfigs.findIndex((row: { sender: any }) =>
         equals(row.sender, tx.from),

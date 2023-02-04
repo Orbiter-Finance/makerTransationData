@@ -153,8 +153,11 @@ export async function fetchFileMakerList(ctx: Context) {
     if (response?.data?.code === 0) {
       isLocalConfig = false;
       ctx.makerConfigs = response.data.result;
-      console.log("Open api config");
+      console.log("Loading open api config");
     }
   }
-  if (isLocalConfig) ctx.makerConfigs = convertMakerConfig(ctx);
+  if (isLocalConfig) {
+    ctx.makerConfigs = convertMakerConfig(ctx);
+    console.log("Loading local config");
+  }
 }

@@ -454,7 +454,7 @@ function decodeXvmData(data: string): {
   decoded.forEach((item: any, index: number) => {
     switch (index) {
       case 0:
-        result.toChainId = Number(item.toString());
+        result.toChainId = Number(ethers.utils.hexlify(item));
         break;
       case 1:
         result.toTokenAddress = ethers.utils.hexlify(item);

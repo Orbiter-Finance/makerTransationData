@@ -148,11 +148,14 @@ export async function fetchFileMakerList(ctx: Context) {
   let isLocalConfig = true;
   if (process.env.OPEN_API_BASE_URL) {
     const response: any = await axios.get(
-      `${process.env.OPEN_API_BASE_URL}/routes`,
+      `${process.env.OPEN_API_BASE_URL}/routes?apiKey=1`,
     );
     if (response?.data?.code === 0) {
       isLocalConfig = false;
       ctx.makerConfigs = response.data.result;
+      console.log("Open api config");
+    } else {
+      ctx.makerConfigs = convertMakerConfig(ctx);
     }
   }
   if (isLocalConfig) ctx.makerConfigs = convertMakerConfig(ctx);

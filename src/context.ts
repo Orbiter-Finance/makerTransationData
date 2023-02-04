@@ -3,7 +3,7 @@ import { readFile } from "fs/promises";
 import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { Logger } from "winston";
-import { convertMakerConfig, convertMarketListToXvmList } from "./utils";
+import { convertMakerConfig } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import Subgraphs from "./service/subgraphs";
@@ -126,8 +126,6 @@ export class Context {
     } else {
       await fetchFileMakerList(this);
     }
-
-    convertMarketListToXvmList(this.makerConfigs);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

@@ -1,18 +1,9 @@
 import { Context } from "./../context";
 import { BigNumber } from "bignumber.js";
 import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
-import {
-  IChainCfg,
-  IMakerCfg,
-  IMakerDataCfg,
-  IMarket,
-  ITarget,
-  IToChain,
-  IXvm,
-} from "../types";
+import { IChainCfg, IMakerCfg, IMakerDataCfg, IMarket } from "../types";
 import { uniq, flatten } from "lodash";
 import { chains } from "orbiter-chaincore";
-import { xvmList } from "../maker";
 import testnetChains from "../config/testnet.json";
 import mainnetChains from "../config/chains.json";
 import maker from "../config/maker.json";
@@ -167,107 +158,4 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
     }
   }
   return configs;
-}
-export function convertMarketListToXvmList(makerList: Array<IMarket>) {
-  const chains: IChainCfg[] =
-    process.env.NODE_ENV === "production"
-      ? <IChainCfg[]>mainnetChains
-      : <IChainCfg[]>testnetChains;
-  const xvmContractMap: any = {};
-  for (const chain of chains) {
-    if (chain.xvmList && chain.xvmList.length) {
-      xvmContractMap[+chain.internalId] = chain.xvmList[0];
-    }
-  }
-  const cloneMakerList: Array<IMarket> = JSON.parse(JSON.stringify(makerList));
-  const allXvmList: IXvm[] = [];
-  const targetList: {
-    chainId: number;
-    tokenAddress: string;
-    symbol: string;
-    precision: number;
-    toChains: IToChain[];
-  }[] = [];
-  const toChainList: {
-    id: number;
-    name: string;
-    tokenAddress: string;
-    symbol: string;
-    decimals: number;
-    slippage: number;
-  }[] = cloneMakerList.map(item => {
-    return { ...item.toChain, slippage: item.slippage };
-  });
-  let fromChainIdList: number[] = [];
-  for (const maker of cloneMakerList) {
-    const chainId: number = maker.fromChain.id;
-    fromChainIdList.push(chainId);
-    const tokenAddress: string = maker.fromChain.tokenAddress;
-    const symbol: string = maker.fromChain.symbol;
-    const precision: number = maker.fromChain.decimals;
-    const toChains: IToChain[] = [];
-    for (const toChain of toChainList) {
-      if (!xvmContractMap[toChain.id]) continue;
-      if (
-        !toChains.find(
-          item => item.chainId === toChain.id && item.symbol === toChain.symbol,
-        )
-      ) {
-        toChains.push({
-          chainId: toChain.id,
-          tokenAddress: toChain.tokenAddress,
-          symbol: toChain.symbol,
-          precision: toChain.decimals,
-          slippage: toChain.slippage,
-        });
-      }
-    }
-    targetList.push({ chainId, tokenAddress, symbol, precision, toChains });
-  }
-  fromChainIdList = Array.from(new Set(fromChainIdList));
-  fromChainIdList = fromChainIdList.sort(function (a, b) {
-    return a - b;
-  });
-  for (const chainId of fromChainIdList) {
-    const contractAddress: string = xvmContractMap[chainId];
-    if (!contractAddress) continue;
-    const target: ITarget[] = [];
-    for (const tar of targetList) {
-      if (
-        tar.chainId === chainId &&
-        !target.find(item => item.symbol === tar.symbol)
-      ) {
-        target.push({
-          tokenAddress: tar.tokenAddress,
-          symbol: tar.symbol,
-          precision: tar.precision,
-          toChains: tar.toChains.filter(item => item.chainId !== chainId),
-        });
-      }
-    }
-    allXvmList.push({ chainId, contractAddress, target });
-  }
-  xvmList.push(...allXvmList);
-  return allXvmList;
-}
-export function getXVMContractToChainInfo(
-  fromChainID: number,
-  toChainID: number,
-  fromTokenAddress: string,
-  toTokenAddress: string,
-): any {
-  const xvm = xvmList.find(item => item.chainId === fromChainID);
-  const target = xvm?.target;
-  if (!target) return null;
-  const targetData = target.find(
-    item => item.tokenAddress.toLowerCase() === fromTokenAddress.toLowerCase(),
-  );
-  const toChains = targetData?.toChains;
-  if (!toChains) return null;
-  const toChain = toChains.find(
-    item =>
-      item.chainId === toChainID &&
-      item.tokenAddress.toLowerCase() === toTokenAddress.toLowerCase(),
-  );
-  return { target: targetData, toChain };
 }

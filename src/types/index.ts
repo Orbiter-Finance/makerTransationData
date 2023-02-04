@@ -49,27 +49,6 @@ export type JsonArray = Array<
 
 export type Json = JsonMap | JsonArray | string | number | boolean | null;
 
-export interface IXvm {
-  chainId: number;
-  contractAddress: string;
-  target: ITarget[];
-}
-
-export interface ITarget {
-  tokenAddress: string;
-  symbol: string;
-  precision: number;
-  toChains: IToChain[];
-}
-
-export interface IToChain {
-  chainId: number;
-  tokenAddress: string;
-  symbol: string;
-  precision: number;
-  slippage: number; // Ten thousandth ratio
-}
-
 export interface IMaker {
   makerAddress: string;
   c1ID: number;
@@ -106,12 +85,6 @@ export interface IMakerCfg {
   [chainIdPair: string]: {
     [symbolPair: string]: IMakerDataCfg;
   };
-}
-
-export interface IMakerDefaultCfg {
-  chainIdList: number[];
-  symbolList: string[];
-  data: IMakerDataCfg;
 }
 
 export interface IMakerDataCfg {

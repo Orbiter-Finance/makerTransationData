@@ -13,14 +13,9 @@ import {
 } from "orbiter-chaincore/src/utils/core";
 import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
-import {
-  getXVMContractToChainInfo,
-  TranferId,
-  TransactionID,
-  TransferIdV2,
-} from "../utils";
+import { TranferId, TransactionID, TransferIdV2 } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
-import { IMarket, ITarget, IToChain } from "../types";
+import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
 import RLP from "rlp";
@@ -358,21 +353,8 @@ async function handleXVMTx(
     const decodeData = decodeXvmData(params.data);
     params.data = decodeData;
     txData.memo = String(decodeData.toChainId);
-    const toToken = decodeData.toTokenAddress;
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
-    // xvm check
-    const toChainInfo: { target: ITarget; toChain: IToChain } =
-      getXVMContractToChainInfo(
-        fromChainId,
-        toChainId,
-        <string>txData.tokenAddress,
-        toToken,
-      );
-    if (!toChainInfo?.toChain) {
-      txData.status = 3;
-      return;
-    }
     const market = ctx.makerConfigs.find(
       m =>
         equals(m.fromChain.id, fromChainId) &&

@@ -178,7 +178,7 @@
     }
   },
   "66-5": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -189,7 +189,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDT": {
+    "ETH-USDT": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -200,7 +200,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDC": {
+    "ETH-USDC": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -211,7 +211,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-DAI": {
+    "ETH-DAI": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1068,7 +1068,7 @@
     }
   },
   "66-22": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1079,7 +1079,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDT": {
+    "ETH-USDT": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1090,7 +1090,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDC": {
+    "ETH-USDC": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1101,7 +1101,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-DAI": {
+    "ETH-DAI": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1780,7 +1780,7 @@
     }
   },
   "5-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1824,7 +1824,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDT-MATIC": {
+    "USDT-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1868,7 +1868,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDC-MATIC": {
+    "USDC-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1912,7 +1912,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "DAI-MATIC": {
+    "DAI-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -1958,7 +1958,7 @@
     }
   },
   "22-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2002,7 +2002,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDT-MATIC": {
+    "USDT-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2046,7 +2046,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDC-MATIC": {
+    "USDC-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2090,7 +2090,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "DAI-MATIC": {
+    "DAI-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2136,7 +2136,7 @@
     }
   },
   "77-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2180,7 +2180,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDT-MATIC": {
+    "USDT-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2224,7 +2224,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDC-MATIC": {
+    "USDC-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2268,7 +2268,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "DAI-MATIC": {
+    "DAI-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2314,7 +2314,7 @@
     }
   },
   "510-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2358,7 +2358,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDT-MATIC": {
+    "USDT-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2402,7 +2402,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDC-MATIC": {
+    "USDC-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2446,7 +2446,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "DAI-MATIC": {
+    "DAI-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2492,7 +2492,7 @@
     }
   },
   "515-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2536,7 +2536,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDT-MATIC": {
+    "USDT-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2580,7 +2580,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "USDC-MATIC": {
+    "USDC-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -2624,7 +2624,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "DAI-MATIC": {
+    "DAI-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3026,7 +3026,7 @@
     }
   },
   "66-77": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3037,7 +3037,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDT": {
+    "ETH-USDT": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3048,7 +3048,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDC": {
+    "ETH-USDC": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3059,7 +3059,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-DAI": {
+    "ETH-DAI": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3916,7 +3916,7 @@
     }
   },
   "66-510": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3927,7 +3927,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDT": {
+    "ETH-USDT": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3938,7 +3938,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDC": {
+    "ETH-USDC": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -3949,7 +3949,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-DAI": {
+    "ETH-DAI": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -4806,7 +4806,7 @@
     }
   },
   "66-515": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -4817,7 +4817,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDT": {
+    "ETH-USDT": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -4828,7 +4828,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-USDC": {
+    "ETH-USDC": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -4839,7 +4839,7 @@
       "startTime": 1636019587,
       "endTime": 99999999999999
     },
-    "MATIC-DAI": {
+    "ETH-DAI": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5574,7 +5574,7 @@
     }
   },
   "33-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5587,7 +5587,7 @@
     }
   },
   "88-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5600,7 +5600,7 @@
     }
   },
   "99-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5613,7 +5613,7 @@
     }
   },
   "511-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5626,7 +5626,7 @@
     }
   },
   "512-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5639,7 +5639,7 @@
     }
   },
   "513-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5652,7 +5652,7 @@
     }
   },
   "514-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5665,7 +5665,7 @@
     }
   },
   "519-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -5678,7 +5678,7 @@
     }
   },
   "520-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -6068,7 +6068,7 @@
     }
   },
   "66-33": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -6263,7 +6263,7 @@
     }
   },
   "44-66": {
-    "ETH-MATIC": {
+    "ETH-ETH": {
       "makerAddress": "0x050e5ba067562e87b47d87542159e16a627e85b00de331a53b471cee1a4e5a4f",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -6302,7 +6302,7 @@
     }
   },
   "66-44": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x050e5ba067562e87b47d87542159e16a627e85b00de331a53b471cee1a4e5a4f",
       "gasFee": 0.01,
@@ -6497,7 +6497,7 @@
     }
   },
   "66-88": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -6679,7 +6679,7 @@
     }
   },
   "66-99": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -6861,7 +6861,7 @@
     }
   },
   "66-511": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -7043,7 +7043,7 @@
     }
   },
   "66-512": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -7225,7 +7225,7 @@
     }
   },
   "66-513": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -7407,7 +7407,7 @@
     }
   },
   "66-514": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -7589,7 +7589,7 @@
     }
   },
   "66-519": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,
@@ -7771,7 +7771,7 @@
     }
   },
   "66-520": {
-    "MATIC-ETH": {
+    "ETH-ETH": {
       "makerAddress": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "sender": "0x0043d60e87c5dd08C86C3123340705a1556C4719",
       "gasFee": 0.01,

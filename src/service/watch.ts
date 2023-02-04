@@ -76,9 +76,9 @@ export class Watch {
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
-        // if (Number(id) % this.ctx.instanceCount !== this.ctx.instanceId) {
-        //   continue;
-        // }
+        if (Number(id) % this.ctx.instanceCount !== this.ctx.instanceId) {
+          continue;
+        }
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );

@@ -143,15 +143,13 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
           decimals: fromToken.decimals,
           minPrice: makerData.minPrice,
           maxPrice: makerData.maxPrice,
-          xvmList: c1Chain.xvmList || [],
         },
         toChain: {
           id: +toChainId,
           name: c2Chain.name,
           tokenAddress: toToken.address,
           symbol: toChainSymbol,
-          decimals: fromToken.decimals,
-          xvmList: c2Chain.xvmList || [],
+          decimals: toToken.decimals,
         },
         times: [makerData.startTime, makerData.endTime],
       });

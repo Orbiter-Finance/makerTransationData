@@ -15,7 +15,6 @@ export interface IMarket {
     decimals: number;
     maxPrice: number;
     minPrice: number;
-    xvmList?: string[];
   };
   toChain: {
     id: number;
@@ -23,7 +22,6 @@ export interface IMarket {
     tokenAddress: string;
     symbol: string;
     decimals: number;
-    xvmList?: string[];
   };
   times: Number[];
 }

@@ -142,7 +142,9 @@ export async function bulkCreateTransaction(
         equals(row.address, String(tx.tokenAddress)),
       ) < 0
     ) {
-      ctx.logger.error(`${tx.hash} Tx ${tx.tokenAddress} Token Not Found`);
+      ctx.logger.error(
+        `${tx.chainId} ${tx.hash} Tx ${tx.tokenAddress} Token Not Found`,
+      );
       continue;
     }
     // ctx.logger.info(

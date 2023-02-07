@@ -79,11 +79,11 @@ export class RabbitMq {
       );
       if (res)
         ctx.logger.info(
-          `RabbitMq publish success ${topic} ${chain.source} ${res}`,
+          `RabbitMq publish success ${topic} ${chain.source} ${chain.hash} ${res}`,
         );
       else
         ctx.logger.error(
-          `RabbitMq publish fail ${topic} ${chain.source} ${res}`,
+          `RabbitMq publish fail ${topic} ${chain.source} ${chain.hash} ${res}`,
         );
     }
   }

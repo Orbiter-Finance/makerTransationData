@@ -307,10 +307,10 @@ export async function bulkCreateTransaction(
     const mqList = upsertList.filter(item => item.side == 0);
     if (mqList.length) {
       const rbmq = new RabbitMq(ctx);
-      await rbmq.publish(mqList);
+      await rbmq.publish(ctx, mqList);
     }
   } catch (e: any) {
-    console.log("RabbitMQ error", e.message);
+    ctx.logger.error("RabbitMQ error", e.message);
   }
 
   for (const row of upsertList) {
@@ -425,7 +425,7 @@ async function handleXVMTx(
     }
   }
 
-  console.log("Handle XVM Tx", name, JSON.stringify(params));
+  ctx.logger.info("submit XVM Tx:", name, JSON.stringify(params));
 }
 
 async function getXVMExpectValue(value: string, market: IMarket) {

@@ -66,7 +66,7 @@ export class RabbitMq {
     console.log(`${this.connectionName} reconnect success`);
   }
 
-  async publish(chainList: any[]) {
+  async publish(ctx: Context, chainList: any[]) {
     const channel: ConfirmChannel = this.ctx.channel;
     for (const chain of chainList) {
       const topic = `chaincore:${chain.chainId}`;
@@ -78,8 +78,13 @@ export class RabbitMq {
         { persistent: true },
       );
       if (res)
-        console.log(`RabbitMq publish success ${topic} ${chain.source} ${res}`);
-      else console.log(`RabbitMq publish fail ${topic} ${chain.source} ${res}`);
+        ctx.logger.info(
+          `RabbitMq publish success ${topic} ${chain.source} ${res}`,
+        );
+      else
+        ctx.logger.error(
+          `RabbitMq publish fail ${topic} ${chain.source} ${res}`,
+        );
     }
   }
 }

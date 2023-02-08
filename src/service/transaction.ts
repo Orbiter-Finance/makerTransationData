@@ -226,6 +226,7 @@ export async function bulkCreateTransaction(
         String(txData.symbol),
         txData.value,
       );
+      saveExtra.toSymbol = txData.symbol;
     } else if (isUserSend) {
       txData.side = 0;
       const fromChainId = Number(txData.chainId);
@@ -311,9 +312,9 @@ export async function bulkCreateTransaction(
     ctx.logger.info(
       `instanceId:${ctx.instanceId} ${isMakerSend ? "maker" : "user"} ${
         txData.chainId
-      }:${txData.symbol}->${txData.memo}:${
-        txData.source === "xvm" ? saveExtra?.toSymbol : txData.symbol
-      } status:${txData.status} ${txData.source} ${txData.hash} ${detail}`,
+      }:${txData.symbol}->${txData.memo}:${saveExtra?.toSymbol} status:${
+        txData.status
+      } ${txData.source} ${txData.hash} ${detail}`,
     );
   }
   // MQ

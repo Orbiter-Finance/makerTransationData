@@ -95,16 +95,9 @@ export class Watch {
               result.push(tx);
             }
           }
-          this.processSubTxList(result)
-            .then(result => {
-              this.ctx.logger.info(
-                `Received subscription transaction,instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
-                result.map(tx => tx.hash),
-              );
-            })
-            .catch(error => {
-              ctx.logger.error(`${id} processSubTxList error:`, error);
-            });
+          this.processSubTxList(result).catch(error => {
+            ctx.logger.error(`${id} processSubTxList error:`, error);
+          });
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);

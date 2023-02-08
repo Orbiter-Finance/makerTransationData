@@ -247,15 +247,13 @@ export async function bulkCreateTransaction(
           txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
         }
       }
-      const market = ctx.makerConfigs.find(
-        m =>
-          equals(m.fromChain.id, fromChainId) &&
-          equals(m.toChain.id, toChainId) &&
-          equals(m.recipient, String(txData.to)) &&
-          equals(m.fromChain.symbol, String(txData.symbol)) &&
-          equals(m.fromChain.tokenAddress, String(txData.tokenAddress)) &&
-          dayjs(txData.timestamp).unix() >= m.times[0] &&
-          dayjs(txData.timestamp).unix() <= m.times[1],
+      const market = getMarket(
+        ctx,
+        fromChainId,
+        toChainId,
+        String(txData.tokenAddress),
+        String(txData.tokenAddress),
+        txData.timestamp,
       );
       if (!market) {
         // market not found
@@ -269,6 +267,7 @@ export async function bulkCreateTransaction(
         saveExtra.ua = {
           toTokenAddress: market.toChain?.tokenAddress,
         };
+        saveExtra.toSymbol = market.toChain.symbol;
         txData.replySender = market.sender;
         // calc response amount
         try {
@@ -303,6 +302,19 @@ export async function bulkCreateTransaction(
     }
     txData.extra = saveExtra;
     upsertList.push(<any>txData);
+    const detail = !isMakerSend
+      ? "detail:" +
+        (txData.source === "xvm"
+          ? JSON.stringify(saveExtra?.xvm || {})
+          : JSON.stringify(saveExtra?.ua || {}))
+      : "";
+    ctx.logger.info(
+      `instanceId:${ctx.instanceId} ${isMakerSend ? "maker" : "user"} ${
+        txData.chainId
+      }:${txData.symbol}->${txData.memo}:${
+        txData.source === "xvm" ? saveExtra?.toSymbol : txData.symbol
+      } status:${txData.status} ${txData.source} ${txData.hash} ${detail}`,
+    );
   }
   // MQ
   try {
@@ -357,15 +369,13 @@ async function handleXVMTx(
     txData.memo = String(decodeData.toChainId);
     const fromChainId = Number(txData.chainId);
     const toChainId = Number(txData.memo);
-    const market = ctx.makerConfigs.find(
-      m =>
-        equals(m.fromChain.id, fromChainId) &&
-        equals(m.toChain.id, toChainId) &&
-        equals(m.recipient, String(params.maker)) &&
-        equals(m.fromChain.symbol, String(txData.symbol)) &&
-        equals(m.fromChain.tokenAddress, String(txData.tokenAddress)) &&
-        dayjs(txData.timestamp).unix() >= m.times[0] &&
-        dayjs(txData.timestamp).unix() <= m.times[1],
+    const market = getMarket(
+      ctx,
+      fromChainId,
+      toChainId,
+      String(txData.tokenAddress),
+      decodeData.toTokenAddress,
+      txData.timestamp,
     );
     if (!market) {
       // market not found
@@ -376,6 +386,7 @@ async function handleXVMTx(
       txData.makerId = market.makerId || null;
       // ebc
       saveExtra["ebcId"] = market.ebcId;
+      saveExtra.toSymbol = market.toChain.symbol;
       txData.replySender = market.sender;
       // user send
       txData.side = 0;
@@ -410,8 +421,13 @@ async function handleXVMTx(
     if (params.op == 2) {
       txData.status = 4;
     }
+    const market = ctx.makerConfigs.find(item =>
+      equals(item.toChain.tokenAddress, params.token),
+    );
+    if (market) {
+      saveExtra.toSymbol = market.toChain.symbol;
+    }
     if (userTx) {
-      console.log("get userTx success");
       txData.memo = String(userTx.chainId);
       txData.transferId = userTx.transferId;
       txData.replyAccount = userTx.replyAccount;
@@ -421,27 +437,28 @@ async function handleXVMTx(
         upsertList.push(userTx);
       }
     } else {
-      console.log(
-        `get userTx fail, hash:${txData.hash}, tradeId:${params.tradeId}`,
-      );
+      ctx.logger.error(`get userTx fail, hash:${txData.hash}`);
     }
   }
-
-  ctx.logger.info("submit XVM Tx:", name, JSON.stringify(params));
 }
 
-async function getXVMExpectValue(value: string, market: IMarket) {
-  const { fromChain, toChain } = market;
-  const fromCurrency = fromChain.symbol;
-  const toCurrency = toChain.symbol;
-  const fromPrecision = fromChain.decimals;
-  let expectValue = new BigNumber(value).multipliedBy(10 ** fromPrecision);
-  if (fromCurrency !== toCurrency) {
-    const toPrecision = toChain.decimals;
-    expectValue = new BigNumber(value).multipliedBy(10 ** toPrecision);
-    expectValue = await exchangeToCoin(expectValue, fromCurrency, toCurrency);
-  }
-  return expectValue.toFixed(0);
+function getMarket(
+  ctx: Context,
+  fromChainId: number,
+  toChainId: number,
+  fromTokenAddress: string,
+  toTokenAddress: string,
+  timestamp: any,
+) {
+  return ctx.makerConfigs.find(
+    m =>
+      equals(m.fromChain.id, fromChainId) &&
+      equals(m.toChain.id, toChainId) &&
+      equals(m.fromChain.tokenAddress, fromTokenAddress) &&
+      equals(m.toChain.tokenAddress, toTokenAddress) &&
+      dayjs(timestamp).unix() >= m.times[0] &&
+      dayjs(timestamp).unix() <= m.times[1],
+  );
 }
 
 function decodeXvmData(data: string): {

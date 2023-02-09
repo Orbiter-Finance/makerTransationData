@@ -411,15 +411,16 @@ async function handleXVMTx(
     txData.side = 1;
     // params:{tradeId,token,to,value}
     const userTx = await ctx.models.Transaction.findOne(<any>{
-      attributes: [
-        "id",
-        "hash",
-        "status",
-        "chainId",
-        "transferId",
-        "replyAccount",
-        "replySender",
-      ],
+      // attributes: [
+      //   "id",
+      //   "hash",
+      //   "status",
+      //   "chainId",
+      //   "transferId",
+      //   "replyAccount",
+      //   "replySender",
+      //   "side",
+      // ],
       where: {
         hash: params.tradeId,
       },
@@ -444,6 +445,7 @@ async function handleXVMTx(
       }
       if (params.op == 3) {
         userTx.status = 95;
+        txData.status = 95;
         upsertList.push(userTx);
       }
     } else {

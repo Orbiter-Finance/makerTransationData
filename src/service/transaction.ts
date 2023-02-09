@@ -665,6 +665,7 @@ export async function processUserSendMakerTx(
       if (delayMin > maxReceiptTime) {
         upStatus = 98; //
       }
+      if (makerSendTx.status === 95) upStatus = 95;
       makerSendTx.status = upStatus;
       makerSendTx.lpId = userTx.lpId;
       makerSendTx.makerId = userTx.makerId;

@@ -3,13 +3,7 @@ import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
-import {
-  bulkCreateTransaction,
-  findByHashTxMatch,
-  processMakerSendUserTx,
-  processUserSendMakerTx,
-  quickMatchSuccess,
-} from "./transaction";
+import { bulkCreateTransaction, processUserSendMakerTx } from "./transaction";
 import dayjs from "dayjs";
 import {
   TRANSACTION_RAW,
@@ -173,75 +167,5 @@ export class Watch {
       await sleep(1000 * 10);
       return await this.readUserSendReMatch();
     }
-  }
-  public async readMakerTxCacheReMatch() {
-    const outIdList: Array<string> = await this.ctx.redis.zrangebyscore(
-      MAKERTX_WAIT_MATCH,
-      dayjs()
-        .subtract(60 * 24 * 7, "minute")
-        .unix(),
-      dayjs().unix(),
-    );
-    if (outIdList.length > 0) {
-      for (const outTxId of outIdList) {
-        const transferId = await this.ctx.redis.hget(
-          MAKERTX_TRANSFERID,
-          outTxId,
-        );
-        if (!transferId) {
-          continue;
-        }
-        let matchRes: any = {
-          inId: null,
-          outId: null,
-        };
-        try {
-          if (transferId.includes("_cross")) {
-            // tx
-            const txItem = await this.ctx.redis
-              .hget(TRANSACTION_RAW, outTxId)
-              .then(res => res && JSON.parse(res));
-            matchRes = await processMakerSendUserTx(this.ctx, txItem, true);
-          } else {
-            const inTxId = await this.ctx.redis.hget(
-              USERTX_WAIT_MATCH,
-              transferId,
-            );
-            if (inTxId) {
-              matchRes = await quickMatchSuccess(
-                this.ctx,
-                Number(inTxId),
-                Number(outTxId),
-                transferId,
-              );
-            } else {
-              await findByHashTxMatch(this.ctx, Number(outTxId)).catch(
-                error => {
-                  this.ctx.logger.info(
-                    `readMakerTxCacheReMatch findByHashTxMatch error:`,
-                    error,
-                  );
-                },
-              );
-            }
-          }
-          if (matchRes.inId && matchRes.outId) {
-            this.ctx.logger.info(`quickMatchSuccess result:`, matchRes);
-            await this.ctx.redis
-              .multi()
-              .zrem(MAKERTX_WAIT_MATCH, outTxId)
-              .hdel(MAKERTX_TRANSFERID, outTxId)
-              .hdel(USERTX_WAIT_MATCH, transferId)
-              .hset(MATCH_SUCCESS, matchRes.outId, matchRes.inId)
-              .exec();
-          }
-        } catch (error) {
-          this.ctx.logger.error(`readUserCacheSendReMatch error:`, error);
-        }
-      }
-    }
-    await sleep(1000 * 10);
-
-    return await this.readUserSendReMatch();
   }
 }

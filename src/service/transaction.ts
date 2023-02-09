@@ -21,110 +21,6 @@ import { RabbitMq } from "./RabbitMq";
 import RLP from "rlp";
 import { ethers } from "ethers";
 
-export async function findByHashTxMatch(
-  ctx: Context,
-  hashOrId: number | string,
-) {
-  const where: any = {};
-  if (typeof hashOrId == "string") {
-    where["hash"] = String(hashOrId);
-  } else {
-    where["id"] = Number(hashOrId);
-  }
-  const tx = await ctx.models.Transaction.findOne({
-    raw: true,
-    attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-    where,
-  });
-  if (!tx || !tx.id) {
-    throw new Error(` hash ${hashOrId} Tx Not Found`);
-  }
-  if (![1, 99].includes(tx.status)) {
-    ctx.logger.error(`Tx ${tx.hash} Incorrect transaction status`);
-    return {
-      inId: null,
-      outId: null,
-    };
-  }
-
-  if (
-    isEmpty(tx.from) ||
-    isEmpty(tx.to) ||
-    isEmpty(tx.value) ||
-    isEmpty(String(tx.nonce)) ||
-    isEmpty(tx.symbol)
-  ) {
-    ctx.logger.error(`Tx ${tx.hash} Missing required parameters`, {
-      from: tx.from,
-      to: tx.to,
-      value: tx.value,
-      nonce: tx.nonce,
-      symbol: tx.symbol,
-    });
-    return { inId: null, outId: null };
-  }
-  const isMakerSend =
-    ctx.makerConfigs.findIndex((row: IMarket) =>
-      equals(row.sender, tx.from),
-    ) !== -1;
-  const isUserSend =
-    ctx.makerConfigs.findIndex((row: IMarket) =>
-      equals(row.recipient, tx.to),
-    ) !== -1;
-  const mtTx = await ctx.models.MakerTransaction.findOne({
-    attributes: ["id", "inId", "outId"],
-    raw: true,
-    where: {
-      [Op.or]: {
-        inId: tx.id,
-        outId: tx.id,
-      },
-    },
-  });
-  if (mtTx && mtTx.inId && mtTx.outId) {
-    await ctx.models.Transaction.update(
-      {
-        status: 99,
-      },
-      {
-        where: {
-          id: {
-            [Op.in]: [mtTx.inId, mtTx.outId],
-          },
-        },
-      },
-    );
-    return {
-      inId: mtTx.inId,
-      outId: mtTx.outId,
-    };
-  }
-  if (isMakerSend) {
-    try {
-      return await processMakerSendUserTx(ctx, tx);
-    } catch (error: any) {
-      ctx.logger.error(`processMakerSendUserTx error: `, {
-        error,
-        tx,
-      });
-    }
-  } else if (isUserSend) {
-    try {
-      return await processUserSendMakerTx(ctx, tx);
-    } catch (error: any) {
-      ctx.logger.error(`processUserSendMakerTx error: `, {
-        error,
-        tx,
-      });
-    }
-  } else {
-    ctx.logger.error(
-      `findByHashTxMatch matchSourceData This transaction is not matched to the merchant address: ${tx.hash}`,
-      tx,
-    );
-  }
-}
-
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<ITransaction>,
@@ -147,9 +43,6 @@ export async function bulkCreateTransaction(
       );
       continue;
     }
-    // ctx.logger.info(
-    //   `[${chainConfig.name}] chain:${chainConfig.internalId}, hash:${tx.hash}`
-    // );
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
     const txExtra = tx.extra || {};
     if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
@@ -314,8 +207,14 @@ export async function bulkCreateTransaction(
           ? JSON.stringify(saveExtra?.xvm || {})
           : JSON.stringify(saveExtra?.ua || {}))
       : "";
+    let rb = "";
+    if (txData.status === 4) {
+      rb = "(update)";
+    } else if (txData.status === 95) {
+      rb = "(backtrack)";
+    }
     ctx.logger.info(
-      `instanceId:${ctx.instanceId} ${isMakerSend ? "maker" : "user"} ${
+      `instanceId:${ctx.instanceId} ${isMakerSend ? "maker" : "user"}${rb} ${
         txData.chainId
       }:${txData.symbol}->${txData.memo}:${saveExtra?.toSymbol} status:${
         txData.status
@@ -324,7 +223,13 @@ export async function bulkCreateTransaction(
   }
   // MQ
   try {
-    const mqList = upsertList.filter(item => item.side == 0);
+    const mqList = upsertList.filter(
+      item =>
+        item.side == 0 &&
+        item.status !== 3 &&
+        item.status !== 4 &&
+        item.status !== 95,
+    );
     if (mqList.length) {
       const rbmq = new RabbitMq(ctx);
       await rbmq.publish(ctx, mqList);
@@ -386,6 +291,7 @@ async function handleXVMTx(
     if (!market) {
       // market not found
       txData.status = 3;
+      ctx.logger.error("Market not found", txData.hash);
     } else {
       // valid timestamp
       txData.lpId = market.id || null;
@@ -669,10 +575,11 @@ export async function processUserSendMakerTx(
       upsertData.outId = makerSendTx.id;
       let upStatus = 99;
       const delayMin = dayjs(makerSendTx.timestamp).diff(userTx.timestamp, "s");
-      if (delayMin > maxReceiptTime) {
+      if (makerSendTx.status === 95) {
+        upStatus = 95;
+      } else if (delayMin > maxReceiptTime) {
         upStatus = 98; //
       }
-      if (makerSendTx.status === 95) upStatus = 95;
       makerSendTx.status = upStatus;
       makerSendTx.lpId = userTx.lpId;
       makerSendTx.makerId = userTx.makerId;

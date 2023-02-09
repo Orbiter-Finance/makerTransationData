@@ -303,6 +303,11 @@ export async function bulkCreateTransaction(
     }
     txData.extra = saveExtra;
     upsertList.push(<any>txData);
+  }
+  // log
+  for (const txData of <Transaction[]>upsertList) {
+    const isMakerSend = txData.side;
+    const saveExtra: any = txData.extra;
     const detail = !isMakerSend
       ? "detail:" +
         (txData.source === "xvm"

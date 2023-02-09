@@ -138,7 +138,7 @@ export class Watch {
     let endAt = dayjs().subtract(1, "minute").toDate();
     const where = {
       side: 0,
-      status: [0, 1, 97],
+      status: [0, 1, 95, 97],
       transferId: {
         [Op.not]: null,
       },

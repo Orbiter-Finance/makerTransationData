@@ -620,7 +620,7 @@ export async function processUserSendMakerTx(
 
     const where = {
       transferId: userTx.transferId,
-      status: [0, 1],
+      status: [0, 1, 95],
       side: 1,
       timestamp: {
         [Op.gte]: dayjs(userTx.timestamp).subtract(5, "m").toDate(),

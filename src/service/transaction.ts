@@ -687,6 +687,9 @@ export async function processUserSendMakerTx(
       transaction: t,
     });
     await t.commit();
+    ctx.logger.info(
+      `MakerTransaction Match success ==> from:${userTx.chainId}->to:${toChainId} status:${userTx.status} ${userTx.hash}`,
+    );
     return { inId: userTx.id, outId: makerSendTx?.id };
   } catch (error) {
     await t.rollback();

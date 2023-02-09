@@ -438,7 +438,8 @@ async function handleXVMTx(
         upsertList.push(userTx);
       }
       if (params.op == 3) {
-        txData.status = 95;
+        userTx.status = 95;
+        upsertList.push(userTx);
       }
     } else {
       ctx.logger.error(`get userTx fail, hash:${txData.hash}`);

@@ -543,12 +543,6 @@ export async function processUserSendMakerTx(
       where,
       order: [["timestamp", "asc"]],
       transaction: t,
-      // include: [{
-      //   required: false,
-      //   attributes: ['id', 'inId', 'outId'],
-      //   model: ctx.models.MakerTransaction,
-      //   as: 'out_maker_transaction'
-      // }]
     });
     const upsertData: Partial<InferAttributes<MakerTransaction>> = {
       transcationId,
@@ -606,51 +600,5 @@ export async function processUserSendMakerTx(
   } catch (error) {
     await t.rollback();
     ctx.logger.error("processUserSendMakerTx error", error);
-  }
-}
-
-export async function quickMatchSuccess(
-  ctx: Context,
-  inId: number,
-  outId: number,
-  _transferId: string,
-) {
-  const outTx = await ctx.models.Transaction.findOne({
-    attributes: ["id", "status"],
-    where: {
-      status: [0, 1],
-      id: outId,
-    },
-  });
-  if (!outTx) {
-    return {
-      inId,
-      outId: null,
-      errmsg: `No quick matching transactions found ${outId}`,
-    };
-  }
-  const rows = await ctx.models.MakerTransaction.update(
-    {
-      outId: outId,
-    },
-    {
-      where: {
-        inId: inId,
-        outId: null,
-      },
-    },
-  );
-  if (rows.length == 1) {
-    return {
-      inId,
-      outId,
-      errmsg: "ok",
-    };
-  } else {
-    return {
-      inId,
-      outId,
-      errmsg: "fail",
-    };
   }
 }

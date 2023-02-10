@@ -302,17 +302,16 @@ async function handleXVMTx(
       txData.side = 0;
       txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
+      txData.expectValue = String(
+        await calcMakerSendAmount(ctx.makerConfigs, txData as any),
+      );
       txData.transferId = TranferId(
         String(market.toChain.id),
         String(txData.replySender),
         String(txData.replyAccount),
         String(txData.nonce),
         String(market.toChain.symbol),
-        String(decodeData.expectValue),
-      );
-      // txData.expectValue = decodeData.expectValue;
-      txData.expectValue = String(
-        await calcMakerSendAmount(ctx.makerConfigs, txData as any),
+        String(txData.expectValue),
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {

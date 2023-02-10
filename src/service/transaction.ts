@@ -46,7 +46,8 @@ export async function bulkCreateTransaction(
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
     const txExtra = tx.extra || {};
     if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
-      memo = String(txExtra.memo % 9000);
+      const arr = txExtra.memo.split("_");
+      memo = String(+arr[0] % 9000);
     } else if (
       ["11", "511"].includes(chainConfig.internalId) &&
       txExtra["type"] === "TRANSFER_OUT"
@@ -139,6 +140,12 @@ export async function bulkCreateTransaction(
         txData.replyAccount = `0x${ext.substring(4)}`;
         if ([44, 4].includes(toChainId)) {
           txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
+        }
+      }
+      if ([99, 9].includes(fromChainId)) {
+        const arr = txExtra.memo.split("_");
+        if (arr.length > 1) {
+          txData.replyAccount = arr[1];
         }
       }
       const market = getMarket(

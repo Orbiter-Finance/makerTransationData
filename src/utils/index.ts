@@ -31,15 +31,15 @@ export function TransactionID(
 }
 
 export function TranferId(
-  toChainId: number | string,
+  toChainId: string,
   replySender: string,
   replyAccount: string,
   userNonce: number | string,
   toSymbol: string,
-  toValue?: string,
+  toValue: string,
 ) {
   return MD5(
-    `${toChainId}_${replySender}_${replyAccount}_${userNonce}_${toSymbol}_${toValue}`.toLowerCase(),
+    `${toChainId}_${replySender.toLowerCase()}_${replyAccount.toLowerCase()}_${userNonce}_${toSymbol}_${toValue}`.toLowerCase(),
   ).toString();
 }
 

@@ -13,7 +13,7 @@ import {
 } from "orbiter-chaincore/src/utils/core";
 import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
-import { TranferId, TransactionID, TransferIdV2 } from "../utils";
+import { TranferId, TransactionID } from "../utils";
 import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
@@ -117,7 +117,7 @@ export async function bulkCreateTransaction(
         String(txData.replyAccount),
         String(txData.memo),
         String(txData.symbol),
-        txData.value,
+        String(txData.value),
       );
       saveExtra.toSymbol = txData.symbol;
     } else if (isUserSend) {
@@ -169,7 +169,7 @@ export async function bulkCreateTransaction(
             await calcMakerSendAmount(ctx.makerConfigs, txData as any),
           );
           txData.transferId = TranferId(
-            toChainId,
+            String(toChainId),
             txData.replySender,
             String(txData.replyAccount),
             String(txData.nonce),
@@ -299,14 +299,16 @@ async function handleXVMTx(
       // ebc
       saveExtra["ebcId"] = market.ebcId;
       saveExtra.toSymbol = market.toChain.symbol;
-      txData.replySender = market.sender;
-      // user send
       txData.side = 0;
+      txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
-      txData.transferId = TransferIdV2(
-        String(txData.chainId),
-        String(txData.from),
+      txData.transferId = TranferId(
+        String(market.toChain.id),
+        String(txData.replySender),
+        String(txData.replyAccount),
         String(txData.nonce),
+        String(market.toChain.symbol),
+        String(decodeData.expectValue),
       );
       // txData.expectValue = decodeData.expectValue;
       txData.expectValue = String(

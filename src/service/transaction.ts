@@ -129,6 +129,7 @@ export async function bulkCreateTransaction(
       if (!count) {
         // backtrack
         const userTx = await ctx.models.Transaction.findOne(<any>{
+          attributes: ["transferId"],
           where: {
             replyAccount: txData.replyAccount,
             chainId: txData.chainId,
@@ -136,8 +137,9 @@ export async function bulkCreateTransaction(
           },
         });
         if (userTx) {
-          userTx.status = 95;
+          txData.transferId = userTx.transferId;
           txData.status = 95;
+          userTx.status = 95;
           upsertList.push(userTx);
         }
       }

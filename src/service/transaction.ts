@@ -121,6 +121,26 @@ export async function bulkCreateTransaction(
         String(txData.value),
       );
       saveExtra.toSymbol = txData.symbol;
+      const count: any = await ctx.models.Transaction.count(<any>{
+        where: {
+          transferId: txData.transferId,
+        },
+      });
+      if (!count) {
+        // backtrack
+        const userTx = await ctx.models.Transaction.findOne(<any>{
+          where: {
+            replyAccount: txData.replyAccount,
+            chainId: txData.chainId,
+            nonce: txData.memo,
+          },
+        });
+        if (userTx) {
+          userTx.status = 95;
+          txData.status = 95;
+          upsertList.push(userTx);
+        }
+      }
     } else if (isUserSend) {
       txData.side = 0;
       const fromChainId = Number(txData.chainId);

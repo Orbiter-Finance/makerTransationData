@@ -208,25 +208,20 @@ export async function bulkCreateTransaction(
   for (const txData of <Transaction[]>upsertList) {
     const isMakerSend = txData.side;
     const saveExtra: any = txData.extra;
-    const detail = !isMakerSend
-      ? "detail:" +
-        (txData.source === "xvm"
-          ? JSON.stringify(saveExtra?.xvm || {})
-          : JSON.stringify(saveExtra?.ua || {}))
-      : "";
-    let rb = "";
-    if (txData.status === 4) {
-      rb = "(update)";
-    } else if (txData.status === 95) {
-      rb = "(backtrack)";
+    const detail =
+      "detail:" +
+      (txData.source === "xvm"
+        ? JSON.stringify(saveExtra?.xvm || {})
+        : JSON.stringify(saveExtra?.ua || {}));
+    if (isMakerSend) {
+      ctx.logger.info(
+        `maker ${txData.chainId}:${txData.symbol}->${saveExtra?.toSymbol} status:${txData.status} ${txData.source} ${txData.hash}`,
+      );
+    } else {
+      ctx.logger.info(
+        `user ${txData.chainId}:${txData.symbol}->${txData.memo}:${saveExtra?.toSymbol} status:${txData.status} ${txData.source} ${txData.hash} ${detail}`,
+      );
     }
-    ctx.logger.info(
-      `instanceId:${ctx.instanceId} ${isMakerSend ? "maker" : "user"}${rb} ${
-        txData.chainId
-      }:${txData.symbol}->${txData.memo}:${saveExtra?.toSymbol} status:${
-        txData.status
-      } ${txData.source} ${txData.hash} ${detail}`,
-    );
   }
   // MQ
   try {

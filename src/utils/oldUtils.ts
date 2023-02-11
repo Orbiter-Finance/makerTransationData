@@ -2,6 +2,7 @@
 
 import { BigNumber } from "bignumber.js";
 import { IMarket } from "../types";
+import moment from "moment";
 
 const MAX_BITS: any = {
   eth: 256,
@@ -427,6 +428,22 @@ export function getAmountFlag(chainId: number, amount: string): string {
     return "0";
   }
   return (Number(rst.pText) % 9000) + "";
+}
+
+export function getFormatDate(date: number | string) {
+  if (date && String(date).length === 10) {
+    date = Number(date) * 1000;
+  }
+  const timestamp = new Date(date);
+  return moment(timestamp)
+    .utcOffset(getTimeZoneString(8))
+    .format("YYYY-MM-DD HH:mm:ss");
+}
+
+function getTimeZoneString(timeZone: any) {
+  return `${timeZone < 0 ? "-" : "+"}${
+    Math.abs(timeZone) < 10 ? "0" + Math.abs(timeZone) : Math.abs(timeZone)
+  }:00`;
 }
 
 export {

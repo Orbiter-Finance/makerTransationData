@@ -14,7 +14,11 @@ import {
 import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
 import { TranferId, TransactionID } from "../utils";
-import { getAmountFlag, getAmountToSend } from "../utils/oldUtils";
+import {
+  getAmountFlag,
+  getAmountToSend,
+  getFormatDate,
+} from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
@@ -39,14 +43,18 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        `${tx.chainId} ${tx.hash} Tx ${tx.tokenAddress} Token Not Found`,
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
+          tx.hash
+        } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
     }
     const value: string = new BigNumber(String(tx.value)).toFixed();
     if (value.length >= 32) {
       ctx.logger.error(
-        `Amount format error ${tx.chainId} ${tx.hash} ${tx.timestamp}`,
+        `Amount format error ${tx.chainId} ${tx.hash} ${getFormatDate(
+          tx.timestamp,
+        )}`,
       );
       continue;
     }
@@ -524,7 +532,9 @@ export async function processUserSendMakerTx(
     }
     if (!userTx || isEmpty(userTx.transferId)) {
       throw new Error(
-        `Missing transferId Or Transaction does not exist ${userTx.chainId} ${userTx.hash} ${userTx.timestamp}`,
+        `Missing transferId Or Transaction does not exist ${userTx.chainId} ${
+          userTx.hash
+        } ${getFormatDate(new Date(userTx.timestamp).valueOf())}`,
       );
     }
 

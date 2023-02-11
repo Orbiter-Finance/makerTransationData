@@ -43,6 +43,13 @@ export async function bulkCreateTransaction(
       );
       continue;
     }
+    const value: string = new BigNumber(String(tx.value)).toFixed();
+    if (value.length >= 32) {
+      ctx.logger.error(
+        `Amount format error ${tx.chainId} ${tx.hash} ${tx.timestamp}`,
+      );
+      continue;
+    }
     let memo = getAmountFlag(Number(chainConfig.internalId), String(tx.value));
     const txExtra = tx.extra || {};
     if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
@@ -72,7 +79,7 @@ export async function bulkCreateTransaction(
       transactionIndex: tx.transactionIndex,
       from: tx.from,
       to: tx.to,
-      value: new BigNumber(String(tx.value)).toFixed(),
+      value,
       symbol: tx.symbol,
       gasPrice: tx.gasPrice,
       gas: tx.gas,
@@ -516,7 +523,9 @@ export async function processUserSendMakerTx(
       throw new Error("Missing Id Or Transaction does not exist");
     }
     if (!userTx || isEmpty(userTx.transferId)) {
-      throw new Error("Missing transferId Or Transaction does not exist");
+      throw new Error(
+        `Missing transferId Or Transaction does not exist ${userTx.chainId} ${userTx.hash} ${userTx.timestamp}`,
+      );
     }
 
     const relInOut = (<any>userTx)["maker_transaction"];

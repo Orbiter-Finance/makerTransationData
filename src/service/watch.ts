@@ -13,6 +13,7 @@ import {
   MAKERTX_TRANSFERID,
 } from "../types/const";
 import { Op } from "sequelize";
+import BigNumber from "bignumber.js";
 
 export class Watch {
   constructor(public readonly ctx: Context) {}
@@ -84,7 +85,15 @@ export class Watch {
               tx?.extra?.xvm?.name === "multicall" &&
               tx?.extra.txList.length
             ) {
-              result.push(...tx?.extra.txList);
+              const multicallTxList: any[] = tx.extra.txList;
+              result.push(
+                ...multicallTxList.map(item => {
+                  item.fee = new BigNumber(item.fee)
+                    .dividedBy(multicallTxList.length)
+                    .toFixed(0);
+                  return item;
+                }),
+              );
             } else {
               result.push(tx);
             }

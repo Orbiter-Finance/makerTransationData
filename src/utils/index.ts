@@ -39,7 +39,7 @@ export function TranferId(
   toValue: string,
 ) {
   return MD5(
-    `${toChainId}_${replySender.toLowerCase()}_${replyAccount.toLowerCase()}_${userNonce}_${toSymbol}_${toValue}`.toLowerCase(),
+    `${toChainId}_${replySender}_${replyAccount}_${userNonce}_${toSymbol}_${toValue}`.toLowerCase(),
   ).toString();
 }
 

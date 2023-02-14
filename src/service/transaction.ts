@@ -359,11 +359,12 @@ async function handleXVMTx(
     }
   } else if (name.toLowerCase() === "swapanswer") {
     const dataDecode: any = RLP.decode(params.data);
-    console.log(dataDecode, "==dataDecode");
-    ctx.logger.info(`dataDecodedataDecode:${JSON.stringify(dataDecode)}`);
+    ctx.logger.info(`swapanswer decode data:${JSON.stringify(dataDecode)}`);
     txData.side = 1;
     // params:{tradeId,token,to,value}
     // TODO: maker veify
+    const tradeId = String(dataDecode[0]);
+    const op = Number(dataDecode[1]);
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [
       //   "id",
@@ -376,10 +377,10 @@ async function handleXVMTx(
       //   "side",
       // ],
       where: {
-        hash: params.tradeId,
+        hash: tradeId,
       },
     });
-    if (params.op == 2) {
+    if (op == 2) {
       txData.status = 4;
     }
     const market = ctx.makerConfigs.find(item =>
@@ -393,11 +394,11 @@ async function handleXVMTx(
       txData.transferId = userTx.transferId;
       txData.replyAccount = userTx.replyAccount;
       txData.replySender = userTx.replySender;
-      if (params.op == 2) {
+      if (op == 2) {
         userTx.status = 4;
         upsertList.push(userTx);
       }
-      if (params.op == 3) {
+      if (op == 3) {
         userTx.status = 95;
         txData.status = 95;
         upsertList.push(userTx);

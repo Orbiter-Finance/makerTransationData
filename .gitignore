@@ -16,8 +16,8 @@ local.*
 cache/
 runtime/
 src/maker.ts
-src/config/chains.json
-src/config/testnet.json
+src/config/chain.json
+src/config/maker.json
 pm2.json
 .yalc
 yalc.lock

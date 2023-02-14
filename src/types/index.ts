@@ -24,6 +24,12 @@ export interface IMarket {
     decimals: number;
   };
   times: Number[];
+  crossAddress?: {
+    recipient: string;
+    sender: string;
+    tradingFee: number;
+    gasFee: number;
+  };
 }
 export interface Config {
   L1L2Mapping: {
@@ -47,38 +53,6 @@ export type JsonArray = Array<
 
 export type Json = JsonMap | JsonArray | string | number | boolean | null;
 
-export interface IMaker {
-  makerAddress: string;
-  c1ID: number;
-  c2ID: number;
-  c1Name: string;
-  c2Name: string;
-  t1Address: string;
-  t2Address: string;
-  tName: string;
-  c1MinPrice: number;
-  c1MaxPrice: number;
-  c2MinPrice: number;
-  c2MaxPrice: number;
-  precision: number;
-  c1TradingFee: number;
-  c2TradingFee: number;
-  c1GasFee: number;
-  c2GasFee: number;
-  c1AvalibleTimes: [
-    {
-      startTime: number;
-      endTime: number;
-    },
-  ];
-  c2AvalibleTimes: [
-    {
-      startTime: number;
-      endTime: number;
-    },
-  ];
-}
-
 export interface IMakerCfg {
   [chainIdPair: string]: {
     [symbolPair: string]: IMakerDataCfg;
@@ -95,6 +69,12 @@ export interface IMakerDataCfg {
   slippage: number;
   startTime: number;
   endTime: number;
+  crossAddress: {
+    makerAddress: string;
+    sender: string;
+    gasFee: number;
+    tradingFee: number;
+  };
 }
 
 export interface IChainCfg {

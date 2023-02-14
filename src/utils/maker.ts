@@ -1,11 +1,9 @@
-import { Context } from "./../context";
 import { BigNumber } from "bignumber.js";
 import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IChainCfg, IMakerCfg, IMakerDataCfg, IMarket } from "../types";
 import { uniq, flatten } from "lodash";
 import { chains } from "orbiter-chaincore";
-import testnetChains from "../config/testnet.json";
-import mainnetChains from "../config/chains.json";
+import chain from "../config/chain.json";
 import maker from "../config/maker.json";
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   const marketList: Array<IMarket | null> = oldLpList.map(row => {
@@ -100,12 +98,9 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
   return chain;
 }
 
-export function convertMakerConfig(ctx: Context): IMarket[] {
+export function convertMakerConfig(): IMarket[] {
   const makerMap: IMakerCfg = <any>maker;
-  const chainList: IChainCfg[] =
-    ctx.NODE_ENV === "production"
-      ? <IChainCfg[]>mainnetChains
-      : <IChainCfg[]>testnetChains;
+  const chainList: IChainCfg[] = <any>chain;
   const configs: IMarket[] = [];
   for (const chainIdPair in makerMap) {
     if (!makerMap.hasOwnProperty(chainIdPair)) continue;
@@ -152,6 +147,12 @@ export function convertMakerConfig(ctx: Context): IMarket[] {
           decimals: toToken.decimals,
         },
         times: [makerData.startTime, makerData.endTime],
+        crossAddress: {
+          recipient: makerData.crossAddress?.makerAddress,
+          sender: makerData.crossAddress?.sender,
+          tradingFee: makerData.crossAddress?.tradingFee,
+          gasFee: makerData.crossAddress?.gasFee,
+        },
       });
     }
   }

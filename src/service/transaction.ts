@@ -114,14 +114,16 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    const isMakerSend =
-      ctx.makerConfigs.findIndex((row: { sender: any }) =>
-        equals(row.sender, tx.from),
-      ) !== -1;
-    const isUserSend =
-      ctx.makerConfigs.findIndex((row: { recipient: any }) =>
-        equals(row.recipient, tx.to),
-      ) !== -1;
+    const isMakerSend = !!ctx.makerConfigs.find(
+      item =>
+        equals(item.sender, tx.from) ||
+        equals(item.crossAddress?.sender, tx.from),
+    );
+    const isUserSend = !!ctx.makerConfigs.find(
+      item =>
+        equals(item.recipient, tx.to) ||
+        equals(item.crossAddress?.recipient, tx.to),
+    );
     if (isMakerSend) {
       txData.side = 1;
       // maker send
@@ -331,14 +333,17 @@ async function handleXVMTx(
       txData.status = 3;
       ctx.logger.error("Market not found", txData.hash);
     } else {
-      // valid timestamp
+      const isCrossAddressAndSameSymbol =
+        !equals(txData.from, decodeData.toWalletAddress) &&
+        equals(txData.symbol, market.toChain.symbol);
       txData.lpId = market.id || null;
       txData.makerId = market.makerId || null;
-      // ebc
       saveExtra["ebcId"] = market.ebcId;
       saveExtra.toSymbol = market.toChain.symbol;
       txData.side = 0;
-      txData.replySender = market.sender;
+      txData.replySender = isCrossAddressAndSameSymbol
+        ? market.crossAddress?.sender
+        : market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
       txData.expectValue = String(
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
@@ -406,6 +411,7 @@ function getMarket(
   fromTokenAddress: string,
   toTokenAddress: string,
   timestamp: any,
+  isCrossAddressAndSameSymbol?: boolean,
 ) {
   return ctx.makerConfigs.find(
     m =>

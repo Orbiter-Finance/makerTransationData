@@ -11,7 +11,6 @@ import db from "./db";
 import { RabbitMq } from "./service/RabbitMq";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import path from "path";
-import axios from "axios";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -44,10 +43,7 @@ export class Context {
   };
   public channel: any;
   private async initChainConfigs() {
-    const file = `${
-      this.NODE_ENV === "production" ? "chains" : "testnet"
-    }.json`;
-    const result = await readFile(`./src/config/${file}`);
+    const result = await readFile(`./src/config/chain.json`);
     const configs = JSON.parse(result.toString());
     chains.fill(configs);
     this.config.chains = chains.getAllChains();
@@ -139,26 +135,5 @@ export class Context {
   }
 }
 export async function fetchFileMakerList(ctx: Context) {
-  // -------------
-  // ctx.makerConfigs = await convertMarketListToFile(makerList, ctx);
-  // const makerConfigsHistory = await convertMarketListToFile(
-  //   makerListHistory,
-  //   ctx,
-  // );
-  // ctx.makerConfigs.push(...makerConfigsHistory);
-  let isLocalConfig = true;
-  if (process.env.OPEN_API_BASE_URL) {
-    const response: any = await axios.get(
-      `${process.env.OPEN_API_BASE_URL}/routes?apiKey=1`,
-    );
-    if (response?.data?.code === 0) {
-      isLocalConfig = false;
-      ctx.makerConfigs = response.data.result;
-      console.log("Loading open api config");
-    }
-  }
-  if (isLocalConfig) {
-    ctx.makerConfigs = convertMakerConfig(ctx);
-    console.log("Loading local config");
-  }
+  ctx.makerConfigs = convertMakerConfig();
 }

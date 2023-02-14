@@ -411,7 +411,6 @@ function getMarket(
   fromTokenAddress: string,
   toTokenAddress: string,
   timestamp: any,
-  isCrossAddressAndSameSymbol?: boolean,
 ) {
   return ctx.makerConfigs.find(
     m =>

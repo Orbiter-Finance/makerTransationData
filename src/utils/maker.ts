@@ -93,7 +93,22 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
     const senderAddress = uniq(
       makerList.filter(m => m.toChain.id === id).map(m => m.sender),
     );
-    chain[id] = uniq([...senderAddress, ...recipientAddress]);
+    const crossRecipientAddress = uniq(
+      makerList
+        .filter(m => m.fromChain.id === id)
+        .map(m => m.crossAddress?.recipient),
+    );
+    const crossSenderAddress = uniq(
+      makerList
+        .filter(m => m.toChain.id === id)
+        .map(m => m.crossAddress?.sender),
+    );
+    chain[id] = uniq([
+      ...senderAddress,
+      ...recipientAddress,
+      ...crossRecipientAddress,
+      ...crossSenderAddress,
+    ]);
   }
   return chain;
 }

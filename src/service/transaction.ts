@@ -358,8 +358,12 @@ async function handleXVMTx(
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {
+    const dataDecode: any = RLP.decode(params.data);
+    console.log(dataDecode, "==dataDecode");
+    ctx.logger.info(`dataDecodedataDecode:${JSON.stringify(dataDecode)}`);
     txData.side = 1;
     // params:{tradeId,token,to,value}
+    // TODO: maker veify
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [
       //   "id",

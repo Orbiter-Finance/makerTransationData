@@ -359,11 +359,9 @@ async function handleXVMTx(
     }
   } else if (name.toLowerCase() === "swapanswer") {
     const dataDecode: any = RLP.decode(params.data);
-    ctx.logger.info(`swapanswer decode data:${JSON.stringify(dataDecode)}`);
     txData.side = 1;
     // params:{tradeId,token,to,value}
-    // TODO: maker veify
-    const tradeId = String(dataDecode[0]);
+    const tradeId = ethers.utils.hexlify(dataDecode[0]);
     const op = Number(dataDecode[1]);
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [

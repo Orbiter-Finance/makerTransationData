@@ -87,10 +87,11 @@ export class Watch {
             ) {
               const multicallTxList: any[] = tx.extra.txList;
               result.push(
-                ...multicallTxList.map(item => {
+                ...multicallTxList.map((item, index) => {
                   item.fee = new BigNumber(item.fee)
                     .dividedBy(multicallTxList.length)
                     .toFixed(0);
+                  item.hash = `${item.hash}#${index + 1}`;
                   return item;
                 }),
               );

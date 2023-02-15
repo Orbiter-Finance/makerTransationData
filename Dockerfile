@@ -2,10 +2,6 @@ FROM node:16.15
 WORKDIR /app
 COPY package.json .
 
-RUN mkdir -p /app/src/config
-RUN echo "[]" > /app/src/config/chain.json
-RUN echo "{}" > /app/src/config/maker.json
-
 RUN apt-get update
 RUN apt-get install -y vim
 RUN yarn config set ignore-engines true

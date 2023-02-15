@@ -190,9 +190,10 @@ export async function bulkCreateTransaction(
         ctx,
         fromChainId,
         toChainId,
-        String(txData.tokenAddress),
-        String(txData.tokenAddress),
+        String(txData.symbol),
+        String(txData.symbol),
         txData.timestamp,
+        true,
       );
       if (!market) {
         // market not found
@@ -414,7 +415,18 @@ function getMarket(
   fromTokenAddress: string,
   toTokenAddress: string,
   timestamp: any,
+  isSymbol?: boolean,
 ) {
+  if (isSymbol)
+    return ctx.makerConfigs.find(
+      m =>
+        equals(m.fromChain.id, fromChainId) &&
+        equals(m.toChain.id, toChainId) &&
+        equals(m.fromChain.symbol, fromTokenAddress) &&
+        equals(m.toChain.symbol, toTokenAddress) &&
+        dayjs(timestamp).unix() >= m.times[0] &&
+        dayjs(timestamp).unix() <= m.times[1],
+    );
   return ctx.makerConfigs.find(
     m =>
       equals(m.fromChain.id, fromChainId) &&

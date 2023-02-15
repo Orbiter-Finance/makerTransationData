@@ -79,10 +79,10 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     } finally {
-      // this.ctx.instanceId === 0 &&
-      //   this.initUnmatchedTransaction().catch(error => {
-      //     this.ctx.logger.error("initUnmatchedTransaction error:", error);
-      //   });
+      this.ctx.instanceId === 0 &&
+        this.initUnmatchedTransaction().catch(error => {
+          this.ctx.logger.error("initUnmatchedTransaction error:", error);
+        });
       this.readQueneMatch().catch(error => {
         this.ctx.logger.error("readQueneMatch error:", error);
       });
@@ -94,7 +94,7 @@ export class Watch {
       ).catch(error => {
         this.ctx.logger.error("readDBMatch error:", error);
       });
-    }, 1000 * 60 * 2);
+    }, 1000 * 60 * 4);
   }
   public async readDBMatch(
     startAt: any,

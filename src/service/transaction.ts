@@ -619,10 +619,10 @@ export async function processMakerSendUserTx(
         expectValue: trx.value,
         timestamp: {
           [Op.gte]: dayjs(trx.timestamp)
-            .subtract(60 * 6, "m")
+            .subtract(24 * 4, "hour")
             .toDate(),
           [Op.lte]: dayjs(trx.timestamp)
-            .add(60 * 6, "m")
+            .add(24 * 4, "hour")
             .toDate(),
         },
         value: {

@@ -358,8 +358,11 @@ async function handleXVMTx(
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {
+    const dataDecode: any = RLP.decode(params.data);
     txData.side = 1;
     // params:{tradeId,token,to,value}
+    const tradeId = ethers.utils.hexlify(dataDecode[0]);
+    const op = Number(dataDecode[1]);
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [
       //   "id",
@@ -372,10 +375,10 @@ async function handleXVMTx(
       //   "side",
       // ],
       where: {
-        hash: params.tradeId,
+        hash: tradeId,
       },
     });
-    if (params.op == 2) {
+    if (op == 2) {
       txData.status = 4;
     }
     const market = ctx.makerConfigs.find(item =>
@@ -389,11 +392,11 @@ async function handleXVMTx(
       txData.transferId = userTx.transferId;
       txData.replyAccount = userTx.replyAccount;
       txData.replySender = userTx.replySender;
-      if (params.op == 2) {
+      if (op == 2) {
         userTx.status = 4;
         upsertList.push(userTx);
       }
-      if (params.op == 3) {
+      if (op == 3) {
         userTx.status = 95;
         txData.status = 95;
         upsertList.push(userTx);

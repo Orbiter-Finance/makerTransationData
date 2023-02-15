@@ -171,5 +171,26 @@ export function convertMakerConfig(): IMarket[] {
       });
     }
   }
-  return configs;
+  return JSON.parse(JSON.stringify(configs));
+}
+
+export function convertChainConfig(env_prefix: string): IChainCfg[] {
+  const chainList: IChainCfg[] = <any>chain;
+  for (const chain of chainList) {
+    chain.rpc = chain.rpc || [];
+    const apiKey =
+      process.env[`${env_prefix}_CHAIN_API_KEY_${chain.internalId}`];
+    const wpRpc = process.env[`${env_prefix}_WP_${chain.internalId}`];
+    const hpRpc = process.env[`${env_prefix}_HP_${chain.internalId}`];
+    if (chain.api && apiKey) {
+      chain.api.key = apiKey;
+    }
+    if (wpRpc) {
+      chain.rpc.unshift(wpRpc);
+    }
+    if (hpRpc) {
+      chain.rpc.unshift(hpRpc);
+    }
+  }
+  return JSON.parse(JSON.stringify(chainList));
 }

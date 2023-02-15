@@ -1,9 +1,8 @@
 import Redis from "ioredis";
-import { readFile } from "fs/promises";
 import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { Logger } from "winston";
-import { convertMakerConfig } from "./utils";
+import { convertChainConfig, convertMakerConfig } from "./utils";
 import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import Subgraphs from "./service/subgraphs";
@@ -43,8 +42,7 @@ export class Context {
   };
   public channel: any;
   private async initChainConfigs() {
-    const result = await readFile(`./src/config/chain.json`);
-    const configs = JSON.parse(result.toString());
+    const configs = <any>convertChainConfig("NODE_APP");
     chains.fill(configs);
     this.config.chains = chains.getAllChains();
     return configs;

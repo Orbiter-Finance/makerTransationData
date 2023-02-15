@@ -261,45 +261,45 @@ export async function bulkCreateTransaction(
       );
     }
   }
-  // MQ
-  try {
-    const mqList = upsertList.filter(
-      item =>
-        item.side == 0 &&
-        item.status !== 3 &&
-        item.status !== 4 &&
-        item.status !== 95,
-    );
-    if (mqList.length) {
-      const rbmq = new RabbitMq(ctx);
-      await rbmq.publish(ctx, mqList);
-    }
-  } catch (e: any) {
-    ctx.logger.error("RabbitMQ error", e.message);
-  }
-
+  const pushMQTxs = [];
   for (const row of upsertList) {
     try {
       const [newTx, created] = await ctx.models.Transaction.findOrCreate({
         defaults: row,
-        attributes: ["id", "hash", "status", "expectValue"],
+        attributes: ["id", "status"],
         where: {
           hash: row.hash,
           transferId: row.transferId,
         },
       });
       if (!created) {
-        if (![0, 1].includes(row.status)) {
+        // change
+        if ([0, 1].includes(newTx.status) && row.status != newTx.status) {
+          //
           newTx.status = row.status;
           await newTx.save();
         }
+        row.status = newTx.status;
       }
       row.id = newTx.id;
+      if (created) {
+        pushMQTxs.push(row);
+      }
     } catch (error: any) {
       console.log(row);
       ctx.logger.error("processSubTx error:", error);
       throw error;
     }
+  }
+  // push mq
+  try {
+    const mqList = pushMQTxs.filter(item => item.side == 0 && item.status == 1);
+    if (mqList.length) {
+      const rbmq = new RabbitMq(ctx);
+      await rbmq.publish(ctx, mqList);
+    }
+  } catch (e: any) {
+    ctx.logger.error("RabbitMQ error", e.message);
   }
   return upsertList;
 }

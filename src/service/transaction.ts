@@ -362,7 +362,7 @@ async function handleXVMTx(
     const dataDecode: any = RLP.decode(params.data);
     txData.side = 1;
     // params:{tradeId,token,to,value}
-    const tradeId = ethers.utils.hexlify(dataDecode[0]);
+    const tradeId = `0x${dataDecode[0].toString()}`;
     const op = Number(dataDecode[1]);
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [

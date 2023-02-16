@@ -362,8 +362,8 @@ async function handleXVMTx(
     const dataDecode: any = RLP.decode(params.data);
     txData.side = 1;
     // params:{tradeId,token,to,value}
-    const tradeId = `0x${dataDecode[0].toString()}`;
-    const op = Number(dataDecode[1]);
+    const tradeId = Buffer.from(dataDecode[0]).toString();
+    const op = Number(Buffer.from(dataDecode[1]).toString());
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [
       //   "id",

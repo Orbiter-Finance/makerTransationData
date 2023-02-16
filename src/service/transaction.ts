@@ -403,7 +403,9 @@ async function handleXVMTx(
         upsertList.push(userTx);
       }
     } else {
-      ctx.logger.error(`get userTx fail, hash:${txData.hash}`);
+      ctx.logger.error(
+        `get userTx fail,tradeId:${tradeId}, hash:${txData.hash}`,
+      );
     }
   }
 }

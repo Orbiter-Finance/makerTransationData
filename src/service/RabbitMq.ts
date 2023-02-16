@@ -1,8 +1,10 @@
 import { Buffer } from "buffer";
 import { Context } from "../context";
 import amqp, { ConfirmChannel, Connection } from "amqplib";
+import { getFormatDate } from "../utils/oldUtils";
 
 let mqConnect: Connection;
+const bootTime = new Date().valueOf();
 
 export class RabbitMq {
   private connectionName;
@@ -66,24 +68,32 @@ export class RabbitMq {
     console.log(`${this.connectionName} reconnect success`);
   }
 
-  async publish(ctx: Context, chainList: any[]) {
+  async publish(ctx: Context, mqList: any[]) {
     const channel: ConfirmChannel = this.ctx.channel;
-    for (const chain of chainList) {
-      const topic = `chaincore:${chain.chainId}`;
-      const str = JSON.stringify(chain);
+    for (const tx of mqList) {
+      if (new Date(tx.timestamp).valueOf() < bootTime) {
+        ctx.logger.warn(
+          `RabbitMq publish fail,Tx has expired ${tx.hash} ${getFormatDate(
+            tx.timestamp,
+          )}`,
+        );
+        continue;
+      }
+      const topic = `chaincore:${tx.chainId}`;
+      const str = JSON.stringify(tx);
       const res = await channel.publish(
         this.exchangeName,
-        String(chain.chainId),
+        String(tx.chainId),
         Buffer.from(str),
         { persistent: true },
       );
       if (res)
         ctx.logger.info(
-          `RabbitMq publish success ${topic} ${chain.source} ${chain.hash} ${res}`,
+          `RabbitMq publish success ${topic} ${tx.source} ${tx.hash} ${res}`,
         );
       else
         ctx.logger.error(
-          `RabbitMq publish fail ${topic} ${chain.source} ${chain.hash} ${res}`,
+          `RabbitMq publish fail ${topic} ${tx.source} ${tx.hash} ${res}`,
         );
     }
   }

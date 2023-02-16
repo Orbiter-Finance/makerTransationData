@@ -404,7 +404,7 @@ async function handleXVMTx(
       }
     } else {
       ctx.logger.error(
-        `get userTx fail,tradeId:${tradeId}, hash:${txData.hash}, ${params.data}`,
+        `get userTx fail,tradeId:${tradeId}, hash:${txData.hash}`,
       );
     }
   }

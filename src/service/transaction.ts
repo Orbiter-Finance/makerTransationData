@@ -346,6 +346,9 @@ async function handleXVMTx(
         ? market.crossAddress?.sender
         : market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
+      if ([44, 4].includes(toChainId)) {
+        txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
+      }
       txData.expectValue = String(
         await calcMakerSendAmount(ctx.makerConfigs, txData as any),
       );

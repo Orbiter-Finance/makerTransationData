@@ -4,4 +4,3 @@ PATH=$PATH:/usr/local/bin:/usr/local/sbin
 npm run prettier
 npm run lint
 npm run build
-git add -A

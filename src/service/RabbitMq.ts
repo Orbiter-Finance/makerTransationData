@@ -80,6 +80,7 @@ export class RabbitMq {
         continue;
       }
       const topic = `chaincore:${tx.chainId}`;
+      tx.pushTime = Date.now();
       const str = JSON.stringify(tx);
       const res = await channel.publish(
         this.exchangeName,

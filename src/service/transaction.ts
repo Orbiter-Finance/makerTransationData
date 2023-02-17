@@ -342,9 +342,10 @@ async function handleXVMTx(
       saveExtra["ebcId"] = market.ebcId;
       saveExtra.toSymbol = market.toChain.symbol;
       txData.side = 0;
-      txData.replySender = isCrossAddressAndSameSymbol
-        ? market.crossAddress?.sender
-        : market.sender;
+      txData.replySender =
+        isCrossAddressAndSameSymbol && market.crossAddress?.sender
+          ? market.crossAddress?.sender
+          : market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
       if ([44, 4].includes(toChainId)) {
         txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);

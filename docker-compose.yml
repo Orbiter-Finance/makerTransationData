@@ -11,8 +11,6 @@ services:
     container_name: data-server
     restart: always
     command: pm2-runtime start pm2.json
-    ports:
-      - '3000:3000'
     depends_on:
       - redis
     links:

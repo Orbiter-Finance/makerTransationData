@@ -6,15 +6,12 @@ services:
     restart: always
     volumes:
       - ./runtime/redis:/data:rw
-    ports:
-      - "6389:6379"
   data-server:
     build: .
     container_name: data-server
     restart: always
     command: pm2-runtime start pm2.json
     ports:
-      - '8001:8001'
       - '3000:3000'
     depends_on:
       - redis

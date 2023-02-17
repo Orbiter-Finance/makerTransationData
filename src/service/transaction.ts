@@ -269,8 +269,7 @@ export async function bulkCreateTransaction(
         defaults: row,
         attributes: ["id", "status"],
         where: {
-          hash: row.hash,
-          transferId: row.transferId,
+          hash: row.hash
         },
       });
       if (!created) {

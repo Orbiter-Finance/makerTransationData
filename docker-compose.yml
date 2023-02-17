@@ -16,6 +16,6 @@ services:
     links:
       - redis
     volumes:
-      - './runtime:/home/makerTransationData/runtime'
-      - './pm2.json:/home/makerTransationData/pm2.json'
+      - './runtime:/app/runtime'
+      - './pm2.json:/app/pm2.json'
 

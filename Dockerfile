@@ -11,8 +11,11 @@ RUN yarn global add pm2
 RUN yarn install --network-timeout 600000
 
 COPY ./ .
-RUN curl -o /app/src/config/chain.json https://openapi.orbiter.finance/mainnet/public/chain.json
-RUN curl -o /app/src/config/maker.json https://openapi.orbiter.finance/mainnet/public/maker.json
+RUN curl -o /app/src/config/chain.json http://openapi.orbiter.finance/mainnet/public/chain.json
+RUN curl -o /app/src/config/maker.json http://openapi.orbiter.finance/mainnet/public/maker.json
 RUN yarn run build
+
+RUN yarn run postinstall
+
 EXPOSE 8001
 CMD ["node","./dist/index.js"]

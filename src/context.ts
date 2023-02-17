@@ -55,7 +55,7 @@ export class Context {
     );
     this.logger = WinstonX.getLogger(this.instanceId.toString(), {
       logDir: dir,
-      debug: true,
+      debug: false,
     });
   }
   private initRedis() {

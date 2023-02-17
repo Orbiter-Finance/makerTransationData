@@ -294,7 +294,10 @@ export async function bulkCreateTransaction(
   }
   // push mq
   try {
-    const mqList = pushMQTxs.filter(item => item.side == 0 && item.status == 1);
+    // tag: filter tx
+    const mqList = pushMQTxs.filter(
+      item => item.side == 0 && item.status == 1 && item.source === "xvm",
+    );
     if (mqList.length) {
       const rbmq = new RabbitMq(ctx);
       await rbmq.publish(ctx, mqList);

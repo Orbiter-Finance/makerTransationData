@@ -3,7 +3,7 @@ import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { Logger } from "winston";
 import { convertChainConfig, convertMakerConfig } from "./utils";
-import { TCPInject } from "./service/tcpInject";
+// import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
 import Subgraphs from "./service/subgraphs";
 import db from "./db";
@@ -129,7 +129,7 @@ export class Context {
     this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
     this.initRedis();
-    new TCPInject(this);
+    // new TCPInject(this);
   }
 }
 export async function fetchFileMakerList(ctx: Context) {

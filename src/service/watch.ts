@@ -14,7 +14,6 @@ import {
 } from "../types/const";
 import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
-
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
@@ -130,8 +129,8 @@ export class Watch {
   }
   // read db
   public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(7, "d").startOf("d").toDate();
-    let endAt = dayjs().subtract(10, "minute").toDate();
+    const startAt = dayjs().subtract(60 * 6, "minute").startOf("d").toDate();
+    let endAt = dayjs().subtract(1, "minute").toDate();
     const where = {
       side: 0,
       status: 1,
@@ -145,17 +144,21 @@ export class Watch {
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-        order: [["timestamp", "desc"]],
+        order: [["timestamp", "asc"]],
         limit: 500,
         where,
       });
+      let i = 0;
+      console.log(`exec match:${startAt} - ${endAt}, length:${txList.length}`);
       for (const tx of txList) {
-        await processUserSendMakerTx(this.ctx, tx).catch(error => {
+        processUserSendMakerTx(this.ctx, tx).catch(error => {
           this.ctx.logger.error(
             `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
             error,
           );
         });
+        console.log('processUserSendMakerTx:', tx.hash, `max:${txList.length},current:${i}`);
+        i++;
         endAt = tx.timestamp;
       }
       // if (txList.length <= 0 || dayjs(endAt).isBefore(startAt)) {

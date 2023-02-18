@@ -277,8 +277,11 @@ export async function bulkCreateTransaction(
         if ([0, 1].includes(newTx.status) && row.status != newTx.status) {
           //
           newTx.status = row.status;
-          await newTx.save();
         }
+        if (newTx.transferId != row.transferId) {
+          newTx.transferId = row.transferId;
+        }
+        await newTx.save();
         row.status = newTx.status;
       }
       row.id = newTx.id;

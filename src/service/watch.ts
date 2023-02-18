@@ -34,8 +34,6 @@ export class Watch {
         continue;
       }
       const reidsT = await this.ctx.redis.multi();
-      // const reidsT = await this.ctx.redis.multi()
-      //   .hset(TRANSACTION_RAW, tx.id, JSON.stringify(tx));
       if (tx.side === 0) {
         const result = await processUserSendMakerTx(this.ctx, tx as any);
         if (result?.inId && result.outId) {
@@ -128,12 +126,7 @@ export class Watch {
       // setInterval(() => {
 
       // }, 1000 * 60);
-      // this.readQueneMatch().catch(error => {
-      //   this.ctx.logger.error("readQueneMatch error:", error);
-      // });
-      // this.readMakerTxCacheReMatch().catch(error => {
-      //   this.ctx.logger.error("readMakerTxCacheReMatch error:", error);
-      // });
+   
     }
   }
   // read db
@@ -142,10 +135,7 @@ export class Watch {
     let endAt = dayjs().subtract(1, "minute").toDate();
     const where = {
       side: 0,
-      status: [0, 1, 95, 97],
-      transferId: {
-        [Op.not]: null,
-      },
+      status:1,
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,

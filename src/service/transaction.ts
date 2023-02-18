@@ -269,7 +269,7 @@ export async function bulkCreateTransaction(
         defaults: row,
         attributes: ["id", "status"],
         where: {
-          hash: row.hash
+          hash: row.hash,
         },
       });
       if (!created) {
@@ -600,13 +600,13 @@ export async function processUserSendMakerTx(
       status: [0, 1, 95],
       side: 1,
       timestamp: {
-        [Op.gte]: dayjs(userTx.timestamp).subtract(5, "m").toDate(),
+        [Op.gte]: dayjs(userTx.timestamp).subtract(30, "m").toDate(),
       },
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
-        [Op.gte]: dayjs(userTx.timestamp).subtract(180, "m").toDate(),
+        [Op.gte]: dayjs(userTx.timestamp).subtract(60 * 24 * 7, "m").toDate(),
       };
     }
     const makerSendTx = await ctx.models.Transaction.findOne({

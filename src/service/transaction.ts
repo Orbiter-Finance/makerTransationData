@@ -562,11 +562,19 @@ export async function processUserSendMakerTx(
       throw new Error("Missing Id Or Transaction does not exist");
     }
     if (!userTx || isEmpty(userTx.transferId)) {
-      throw new Error(
-        `Missing transferId Or Transaction does not exist ${userTx.chainId} ${
-          userTx.hash
-        } ${getFormatDate(new Date(userTx.timestamp).valueOf())}`,
+      userTx.transferId = TranferId(
+        String(userTx.memo),
+        String(userTx.replySender),
+        String(userTx.replyAccount),
+        String(userTx.nonce),
+        String(userTx.symbol),
+        String(userTx.expectValue),
       );
+      // throw new Error(
+      //   `Missing transferId Or Transaction does not exist ${userTx.chainId} ${
+      //     userTx.hash
+      //   } ${getFormatDate(new Date(userTx.timestamp).valueOf())}`,
+      // );
     }
 
     const relInOut = (<any>userTx)["maker_transaction"];

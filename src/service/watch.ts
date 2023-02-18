@@ -126,16 +126,15 @@ export class Watch {
       // setInterval(() => {
 
       // }, 1000 * 60);
-   
     }
   }
   // read db
   public async readUserSendReMatch(): Promise<any> {
     const startAt = dayjs().subtract(7, "d").startOf("d").toDate();
-    let endAt = dayjs().subtract(1, "minute").toDate();
+    let endAt = dayjs().subtract(10, "minute").toDate();
     const where = {
       side: 0,
-      status:1,
+      status: 1,
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,

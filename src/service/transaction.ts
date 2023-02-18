@@ -606,7 +606,9 @@ export async function processUserSendMakerTx(
     // Because of the delay of starknet network, the time will be longer if it is starknet
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
-        [Op.gte]: dayjs(userTx.timestamp).subtract(60 * 24 * 7, "m").toDate(),
+        [Op.gte]: dayjs(userTx.timestamp)
+          .subtract(60 * 24 * 7, "m")
+          .toDate(),
       };
     }
     const makerSendTx = await ctx.models.Transaction.findOne({

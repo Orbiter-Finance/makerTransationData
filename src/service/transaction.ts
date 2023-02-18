@@ -43,8 +43,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -296,13 +295,20 @@ export async function bulkCreateTransaction(
   }
   // push mq
   try {
-    // tag: filter tx
-    const mqList = pushMQTxs.filter(
-      item => item.side == 0 && item.status == 1 && item.source === "xvm",
-    );
-    if (mqList.length) {
+    // tag: prod filter tx
+    let messageList = [];
+    if (ctx.NODE_ENV === 'production') {
+      messageList = pushMQTxs.filter(
+        item => item.side == 0 && item.status == 1 && item.source === "xvm",
+      );
+    } else {
+      messageList = pushMQTxs.filter(
+        item => item.side == 0 && item.status == 1
+      );
+    }
+    if (messageList.length > 0) {
       const rbmq = new RabbitMq(ctx);
-      await rbmq.publish(ctx, mqList);
+      await rbmq.publish(ctx, messageList);
     }
   } catch (e: any) {
     ctx.logger.error("RabbitMQ error", e.message);

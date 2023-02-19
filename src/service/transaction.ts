@@ -145,19 +145,19 @@ export async function bulkCreateTransaction(
       });
       if (!count) {
         // backtrack
-        const userTx = await ctx.models.Transaction.findOne(<any>{
-          where: {
-            replyAccount: txData.replyAccount,
-            chainId: txData.chainId,
-            nonce: txData.memo,
-          },
-        });
-        if (userTx) {
-          txData.transferId = userTx.transferId;
-          txData.status = 95;
-          userTx.status = 95;
-          upsertList.push(userTx);
-        }
+        // const userTx = await ctx.models.Transaction.findOne(<any>{
+        //   where: {
+        //     replyAccount: txData.replyAccount,
+        //     chainId: txData.chainId,
+        //     nonce: txData.memo,
+        //   },
+        // });
+        // if (userTx) {
+        //   txData.transferId = userTx.transferId;
+        //   txData.status = 95;
+        //   userTx.status = 95;
+        //   upsertList.push(userTx);
+        // }
       }
     } else if (isUserSend) {
       txData.side = 0;

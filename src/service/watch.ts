@@ -129,10 +129,7 @@ export class Watch {
   }
   // read db
   public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs()
-      .subtract(6, 'hour')
-      .startOf("d")
-      .toDate();
+    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 0,
@@ -151,7 +148,11 @@ export class Watch {
         limit: 500,
         where,
       });
-      console.log(`exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(txList.map(row=> row.hash))}`);
+      console.log(
+        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+          txList.map(row => row.hash),
+        )}`,
+      );
       for (const tx of txList) {
         processUserSendMakerTx(this.ctx, tx).catch(error => {
           this.ctx.logger.error(

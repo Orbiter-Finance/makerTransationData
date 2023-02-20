@@ -80,6 +80,16 @@ export class Watch {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
+      pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
+        try {
+          await this.processSubTxList([tx]);
+        } catch (error) {
+          ctx.logger.error(
+            `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
+            error,
+          );
+        }
+      });
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);

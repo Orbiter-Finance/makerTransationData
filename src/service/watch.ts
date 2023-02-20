@@ -49,7 +49,7 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        pubSub.subscribe(`${id}:txlist`, async(txList: Transaction[]) => {
+        pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           const result: Transaction[] = [];
           for (const tx of txList) {
             if (

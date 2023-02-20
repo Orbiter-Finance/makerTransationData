@@ -32,7 +32,7 @@ export async function bulkCreateTransaction(
   const upsertList: Array<InferCreationAttributes<Transaction>> = [];
   for (const tx of txlist) {
     // ctx.logger.info(`processSubTx:${tx.hash}`);
-    const chainConfig = chains.getChainInfo(Number(tx.chainId));
+    const chainConfig = chains.getChainInfo(String(tx.chainId));
     if (!chainConfig) {
       ctx.logger.error(`getChainByInternalId chainId ${tx.chainId} not found`);
       continue;

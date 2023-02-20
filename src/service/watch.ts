@@ -3,19 +3,16 @@ import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
-import { bulkCreateTransaction, processMakerSendUserTx, processUserSendMakerTx } from "./transaction";
+import {
+  bulkCreateTransaction,
+  processMakerSendUserTx,
+  processUserSendMakerTx,
+} from "./transaction";
 import dayjs from "dayjs";
-// import {
-//   TRANSACTION_RAW,
-//   MATCH_SUCCESS,
-//   USERTX_WAIT_MATCH,
-//   MAKERTX_WAIT_MATCH,
-//   MAKERTX_TRANSFERID,
-// } from "../types/const";
 import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 export class Watch {
-  constructor(public readonly ctx: Context) { }
+  constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -35,7 +32,7 @@ export class Watch {
           await processMakerSendUserTx(this.ctx, tx as any);
         }
       } catch (error) {
-        this.ctx.logger.error(`processUserSendMakerTx error:`)
+        this.ctx.logger.error(`processUserSendMakerTx error:`);
       }
     }
     return saveTxList;
@@ -52,7 +49,7 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        pubSub.subscribe(`${id}:txlist`, (txList: Transaction[]) => {
+        pubSub.subscribe(`${id}:txlist`, async(txList: Transaction[]) => {
           const result: Transaction[] = [];
           for (const tx of txList) {
             if (
@@ -74,10 +71,10 @@ export class Watch {
               result.push(tx);
             }
           }
-          this.processSubTxList(result).catch(error => {
+          await this.processSubTxList(result).catch(error => {
             ctx.logger.error(`${id} processSubTxList error:`, error);
           });
-          return
+          return true;
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);

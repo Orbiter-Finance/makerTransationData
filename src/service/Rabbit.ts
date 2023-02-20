@@ -33,16 +33,14 @@ export default class MQProducer {
     );
     const channel = await this.connection.createChannel();
     await channel.assertExchange(this.exchangeName, "direct", {
-      durable: false,
-      autoDelete: true,
+      durable: true,
     });
     for (const chainId of this.chainsIds) {
       const channel = await this.connection.createChannel();
       const queueName = `chaincore:${chainId}`;
       const routingKey = String(chainId);
       await channel.assertQueue(queueName, {
-        autoDelete: true,
-        durable: false,
+        durable: true,
       });
       await channel.bindQueue(queueName, this.exchangeName, routingKey);
       this.channels[routingKey] = channel;

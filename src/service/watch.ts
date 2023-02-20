@@ -12,7 +12,7 @@ import dayjs from "dayjs";
 import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 export class Watch {
-  constructor(public readonly ctx: Context) { }
+  constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -47,7 +47,7 @@ export class Watch {
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
-          if (Number(process.env['SingleChain']) != Number(id)) {
+          if (Number(process.env["SingleChain"]) != Number(id)) {
             console.log(`Single-chain configuration filtering ${id}`);
             continue;
           }

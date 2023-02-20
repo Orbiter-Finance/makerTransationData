@@ -27,12 +27,15 @@ export class Watch {
           continue;
         }
         if (tx.side === 0) {
-          // await processUserSendMakerTx(this.ctx, tx as any);
+          const result1= await processUserSendMakerTx(this.ctx, tx as any);
+          console.log('match result1:', result1);
         } else if (tx.side === 1) {
-          await processMakerSendUserTx(this.ctx, tx as any);
+          const result = await processMakerSendUserTx(this.ctx, tx as any);
+          console.log('match result2:', result);
         }
       } catch (error) {
-        this.ctx.logger.error(`processUserSendMakerTx error:`);
+        console.log(`processUserSendMakerTx error:`,error )
+        this.ctx.logger.error(`processUserSendMakerTx error:`, error);
       }
     }
     return saveTxList;
@@ -110,7 +113,7 @@ export class Watch {
     const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
-      side: 0,
+      side: 1,
       status: 1,
       timestamp: {
         [Op.gte]: startAt,
@@ -123,7 +126,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "asc"]],
-        limit: 500,
+        limit: 100,
         where,
       });
       console.log(
@@ -132,14 +135,16 @@ export class Watch {
         )}`,
       );
       for (const tx of txList) {
-        processUserSendMakerTx(this.ctx, tx).catch(error => {
+        const result = await processMakerSendUserTx(this.ctx, tx).catch(error => {
           this.ctx.logger.error(
             `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
             error,
           );
+          console.log(`hash:${tx.hash}，result:`, result);
         });
       }
     } catch (error) {
+      console.log('error:', error);
     } finally {
       await sleep(1000 * 20);
       return await this.readUserSendReMatch();

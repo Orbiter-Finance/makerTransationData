@@ -15,6 +15,7 @@ COPY pm2.json ./
 COPY ./ .
 RUN curl -o /app/src/config/chain.json http://openapi.orbiter.finance/mainnet/public/chain.json
 RUN curl -o /app/src/config/maker.json http://openapi.orbiter.finance/mainnet/public/maker.json
+
 RUN yarn run build
 
 RUN yarn run postinstall

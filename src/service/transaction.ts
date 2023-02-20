@@ -24,6 +24,7 @@ import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
 import RLP from "rlp";
 import { ethers } from "ethers";
+import Sequelize from "sequelize/types/sequelize";
 
 export async function bulkCreateTransaction(
   ctx: Context,
@@ -563,7 +564,7 @@ export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
 ) {
-  const t = await ctx.models.sequelize.transaction();
+  let t:any;
   try {
     if (!userTx || isEmpty(userTx.id)) {
       throw new Error("Missing Id Or Transaction does not exist");
@@ -615,7 +616,7 @@ export async function processUserSendMakerTx(
       timestamp: {
         [Op.gte]: dayjs(userTx.timestamp)
           .subtract(60 * 6, "m")
-          .toDate(),
+          .toDate (),
       },
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
@@ -624,6 +625,7 @@ export async function processUserSendMakerTx(
         [Op.gte]: dayjs(userTx.timestamp).subtract(30, "minute").toDate(),
       };
     }
+    t = await ctx.models.sequelize.transaction()
     const makerSendTx = await ctx.models.Transaction.findOne({
       attributes: ["id", "status", "timestamp"],
       where,
@@ -684,7 +686,9 @@ export async function processUserSendMakerTx(
     await t.commit();
     return { inId: userTx.id, outId: makerSendTx?.id };
   } catch (error) {
-    await t.rollback();
+    if (t) {
+      await t.rollback();
+    }
     ctx.logger.error("processUserSendMakerTx error", error);
   }
 }
@@ -693,13 +697,17 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
-  const t = await ctx.models.sequelize.transaction();
+  let t:any;
   try {
     if (!makerTx || isEmpty(makerTx.id)) {
-      throw new Error("Missing Id Or Transaction does not exist");
+      return {
+        errmsg: "Missing Id Or Transaction does not exist"
+      };
     }
     if (!makerTx || isEmpty(makerTx.transferId)) {
-      throw new Error("Missing transferId Or Transaction does not exist");
+      return {
+        errmsg: "Missing transferId Or Transaction does not exist",
+      };
     }
     const relInOut = (<any>makerTx)["out_maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
@@ -711,7 +719,9 @@ export async function processMakerSendUserTx(
       };
     }
     if (makerTx.status != 1) {
-      throw new Error(`${makerTx.hash} Current status cannot match`);
+       return {
+        errmsg: `${makerTx.hash} Current status cannot match`,
+      };
     }
     const models = ctx.models;
     const where: any = {
@@ -719,7 +729,7 @@ export async function processMakerSendUserTx(
       status: 1,
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(10, "m").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),
       },
     };
     const userSendTx = await models.Transaction.findOne({
@@ -771,7 +781,9 @@ export async function processMakerSendUserTx(
       );
       if (!chainData) {
         ctx.logger.error("processMakerSendUserTx getChain Not Found");
-        return;
+        return {
+          errmsg: "processMakerSendUserTx getChain Not Found",
+        };
       }
       maxReceiptTime = chainData.maxReceiptTime;
     }
@@ -781,6 +793,7 @@ export async function processMakerSendUserTx(
       upStatus = 98; //
     }
     userSendTx.status = upStatus;
+    t = await ctx.models.sequelize.transaction();
     await userSendTx.save({
       transaction: t,
     });
@@ -803,7 +816,12 @@ export async function processMakerSendUserTx(
     await t.commit();
     return { inId: userSendTx.id, outId: makerTx.id, errmsg: "ok" };
   } catch (error) {
-    t && (await t.rollback());
-    ctx.logger.error("processMakerTxCrossAddress error", error);
+    if (t) {
+      await t.rollback();
+    }
+    ctx.logger.error("processMakerSendUserTx error", error);
+    return {
+      errmsg: error
+    }
   }
 }

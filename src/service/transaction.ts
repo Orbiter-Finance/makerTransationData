@@ -24,7 +24,7 @@ import { Transaction as transactionAttributes } from "../models/Transactions";
 import { RabbitMq } from "./RabbitMq";
 import RLP from "rlp";
 import { ethers } from "ethers";
-import Sequelize from "sequelize/types/sequelize";
+import sequelize from "sequelize";
 
 export async function bulkCreateTransaction(
   ctx: Context,
@@ -564,7 +564,7 @@ export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
 ) {
-  let t:any;
+  let t: sequelize.Transaction | undefined;
   try {
     if (!userTx || isEmpty(userTx.id)) {
       throw new Error("Missing Id Or Transaction does not exist");
@@ -616,7 +616,7 @@ export async function processUserSendMakerTx(
       timestamp: {
         [Op.gte]: dayjs(userTx.timestamp)
           .subtract(60 * 6, "m")
-          .toDate (),
+          .toDate(),
       },
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
@@ -625,7 +625,7 @@ export async function processUserSendMakerTx(
         [Op.gte]: dayjs(userTx.timestamp).subtract(30, "minute").toDate(),
       };
     }
-    t = await ctx.models.sequelize.transaction()
+    t = await ctx.models.sequelize.transaction();
     const makerSendTx = await ctx.models.Transaction.findOne({
       attributes: ["id", "status", "timestamp"],
       where,
@@ -697,11 +697,11 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
-  let t:any;
+  let t: sequelize.Transaction | undefined;
   try {
     if (!makerTx || isEmpty(makerTx.id)) {
       return {
-        errmsg: "Missing Id Or Transaction does not exist"
+        errmsg: "Missing Id Or Transaction does not exist",
       };
     }
     if (!makerTx || isEmpty(makerTx.transferId)) {
@@ -719,7 +719,7 @@ export async function processMakerSendUserTx(
       };
     }
     if (makerTx.status != 1) {
-       return {
+      return {
         errmsg: `${makerTx.hash} Current status cannot match`,
       };
     }
@@ -821,7 +821,7 @@ export async function processMakerSendUserTx(
     }
     ctx.logger.error("processMakerSendUserTx error", error);
     return {
-      errmsg: error
-    }
+      errmsg: error,
+    };
   }
 }

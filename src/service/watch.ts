@@ -27,14 +27,14 @@ export class Watch {
           continue;
         }
         if (tx.side === 0) {
-          const result1= await processUserSendMakerTx(this.ctx, tx as any);
-          console.log('match result1:', result1);
+          const result1 = await processUserSendMakerTx(this.ctx, tx as any);
+          console.log("match result1:", result1);
         } else if (tx.side === 1) {
           const result = await processMakerSendUserTx(this.ctx, tx as any);
-          console.log('match result2:', result);
+          console.log("match result2:", result);
         }
       } catch (error) {
-        console.log(`processUserSendMakerTx error:`,error )
+        console.log(`processUserSendMakerTx error:`, error);
         this.ctx.logger.error(`processUserSendMakerTx error:`, error);
       }
     }
@@ -135,16 +135,18 @@ export class Watch {
         )}`,
       );
       for (const tx of txList) {
-        const result = await processMakerSendUserTx(this.ctx, tx).catch(error => {
-          this.ctx.logger.error(
-            `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
-            error,
-          );
-          console.log(`hash:${tx.hash}，result:`, result);
-        });
+        const result = await processMakerSendUserTx(this.ctx, tx).catch(
+          error => {
+            this.ctx.logger.error(
+              `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+              error,
+            );
+            console.log(`hash:${tx.hash}，result:`, result);
+          },
+        );
       }
     } catch (error) {
-      console.log('error:', error);
+      console.log("error:", error);
     } finally {
       await sleep(1000 * 20);
       return await this.readUserSendReMatch();

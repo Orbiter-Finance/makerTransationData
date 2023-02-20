@@ -32,7 +32,7 @@ export async function bulkCreateTransaction(
   const upsertList: Array<InferCreationAttributes<Transaction>> = [];
   for (const tx of txlist) {
     // ctx.logger.info(`processSubTx:${tx.hash}`);
-    const chainConfig = chains.getChainByChainId(tx.chainId);
+    const chainConfig = chains.getChainInfo(Number(tx.chainId));
     if (!chainConfig) {
       ctx.logger.error(`getChainByInternalId chainId ${tx.chainId} not found`);
       continue;
@@ -138,27 +138,27 @@ export async function bulkCreateTransaction(
         String(txData.value),
       );
       saveExtra.toSymbol = txData.symbol;
-      const count: any = await ctx.models.Transaction.count(<any>{
-        where: {
-          transferId: txData.transferId,
-        },
-      });
-      if (!count) {
-        // backtrack
-        // const userTx = await ctx.models.Transaction.findOne(<any>{
-        //   where: {
-        //     replyAccount: txData.replyAccount,
-        //     chainId: txData.chainId,
-        //     nonce: txData.memo,
-        //   },
-        // });
-        // if (userTx) {
-        //   txData.transferId = userTx.transferId;
-        //   txData.status = 95;
-        //   userTx.status = 95;
-        //   upsertList.push(userTx);
-        // }
-      }
+      // const count: any = await ctx.models.Transaction.count(<any>{
+      //   where: {
+      //     transferId: txData.transferId,
+      //   },
+      // });
+      // if (!count) {
+      //   // backtrack
+      //   const userTx = await ctx.models.Transaction.findOne(<any>{
+      //     where: {
+      //       replyAccount: txData.replyAccount,
+      //       chainId: txData.chainId,
+      //       nonce: txData.memo,
+      //     },
+      //   });
+      //   if (userTx) {
+      //     txData.transferId = userTx.transferId;
+      //     txData.status = 95;
+      //     userTx.status = 95;
+      //     upsertList.push(userTx);
+      //   }
+      // }
     } else if (isUserSend) {
       txData.side = 0;
       const fromChainId = Number(txData.chainId);
@@ -577,11 +577,6 @@ export async function processUserSendMakerTx(
         String(userTx.symbol),
         String(userTx.expectValue),
       );
-      // throw new Error(
-      //   `Missing transferId Or Transaction does not exist ${userTx.chainId} ${
-      //     userTx.hash
-      //   } ${getFormatDate(new Date(userTx.timestamp).valueOf())}`,
-      // );
     }
 
     const relInOut = (<any>userTx)["maker_transaction"];
@@ -618,15 +613,15 @@ export async function processUserSendMakerTx(
       status: [0, 1, 95],
       side: 1,
       timestamp: {
-        [Op.gte]: dayjs(userTx.timestamp)
-          .subtract(60 * 6, "m")
-          .toDate(),
+        [Op.gte]: dayjs(userTx.timestamp).subtract(60 * 6, "m").toDate(),
       },
     };
     // Because of the delay of starknet network, the time will be longer if it is starknet
     if ([4, 44].includes(fromChainId)) {
       where.timestamp = {
-        [Op.gte]: dayjs(userTx.timestamp).subtract(30, "minute").toDate(),
+        [Op.gte]: dayjs(userTx.timestamp)
+          .subtract(30, 'minute')
+          .toDate(),
       };
     }
     const makerSendTx = await ctx.models.Transaction.findOne({
@@ -691,5 +686,124 @@ export async function processUserSendMakerTx(
   } catch (error) {
     await t.rollback();
     ctx.logger.error("processUserSendMakerTx error", error);
+  }
+}
+
+export async function processMakerSendUserTx(
+  ctx: Context,
+  makerTx: Transaction
+) {
+  const t = await ctx.models.sequelize.transaction();
+  try {
+    if (!makerTx || isEmpty(makerTx.id)) {
+      throw new Error("Missing Id Or Transaction does not exist");
+    }
+    if (!makerTx || isEmpty(makerTx.transferId)) {
+      throw new Error("Missing transferId Or Transaction does not exist");
+    }
+    const relInOut = (<any>makerTx)["out_maker_transaction"];
+    if (relInOut && relInOut.inId && relInOut.outId) {
+      ctx.logger.error(`MakerTx %s Already matched`, relInOut.hash);
+      return {
+        inId: relInOut.inId,
+        outId: relInOut.outId,
+        errmsg: "MakerTx Already matched",
+      };
+    }
+    if (makerTx.status != 1) {
+      throw new Error(`${makerTx.hash} Current status cannot match`);
+    }
+    const models = ctx.models;
+    const where: any = {
+      transferId: makerTx.transferId,
+      status: 1,
+      side: 0,
+      timestamp: {
+        [Op.lte]: dayjs(makerTx.timestamp).add(10, "m").toDate(),
+      },
+    };
+    const userSendTx = await models.Transaction.findOne({
+      attributes: [
+        "id",
+        "from",
+        "to",
+        "chainId",
+        "symbol",
+        "nonce",
+        "timestamp",
+        "lpId",
+        "makerId",
+        "replyAccount",
+        "replySender",
+      ],
+      where,
+    });
+
+    if (isEmpty(userSendTx) || !userSendTx) {
+      return {
+        outId: makerTx.id,
+        inId: null,
+        errmsg: "User transaction not found",
+      };
+    }
+
+    const upsertData: Partial<InferAttributes<MakerTransaction>> = {
+      inId: userSendTx.id,
+      outId: makerTx.id,
+      toChain: makerTx.chainId,
+      toAmount: String(makerTx.value),
+      replySender: makerTx.replySender,
+      replyAccount: makerTx.replyAccount,
+      fromChain: userSendTx.chainId,
+    };
+    upsertData.transcationId = TransactionID(
+      String(userSendTx.from),
+      userSendTx.chainId,
+      userSendTx.nonce,
+      userSendTx.symbol,
+      dayjs(userSendTx.timestamp).valueOf(),
+    );
+    let upStatus = 99;
+    let maxReceiptTime = 1 * 60 * 60 * 24;
+    if (ctx.isSpv) {
+      const chainData = ctx.config.chainsTokens.find((row: any) =>
+        equals(row.id, userSendTx.chainId),
+      );
+      if (!chainData) {
+        ctx.logger.error("processMakerSendUserTx getChain Not Found");
+        return;
+      }
+      maxReceiptTime = chainData.maxReceiptTime;
+    }
+    // Check whether the payment is delayed in minutes
+    const delayMin = dayjs(makerTx.timestamp).diff(userSendTx.timestamp, "s");
+    if (delayMin > maxReceiptTime) {
+      upStatus = 98; //
+    }
+    userSendTx.status = upStatus;
+    await userSendTx.save({
+      transaction: t,
+    });
+    await ctx.models.Transaction.update(
+      {
+        status: upStatus,
+        lpId: userSendTx.lpId,
+        makerId: userSendTx.makerId,
+      },
+      {
+        where: {
+          id: userSendTx.id,
+        },
+        transaction: t,
+      },
+    );
+    await models.MakerTransaction.upsert(<any>upsertData, {
+      transaction: t,
+    });
+    await t.commit();
+    return { inId: userSendTx.id, outId: makerTx.id, errmsg: "ok" };
+  } catch (error) {
+    t && (await t.rollback());
+    ctx.logger.error("processMakerTxCrossAddress error", error);
   }
 }

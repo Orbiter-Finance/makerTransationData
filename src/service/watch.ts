@@ -74,7 +74,7 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        pubSub.subscribe(`${id}:txlist`, (txList: Transaction[]) => {
+        pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           const result: Transaction[] = [];
           for (const tx of txList) {
             if (
@@ -96,9 +96,10 @@ export class Watch {
               result.push(tx);
             }
           }
-          this.processSubTxList(result).catch(error => {
+          await this.processSubTxList(result).catch(error => {
             ctx.logger.error(`${id} processSubTxList error:`, error);
           });
+          return true;
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);

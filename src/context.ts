@@ -12,6 +12,7 @@ import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import path from "path";
 export class Context {
   public models = initModels(db);
+  public rabbitMq: any;
   public logger!: Logger;
   public redis!: Redis;
   public instanceId: number;
@@ -70,7 +71,8 @@ export class Context {
   private async initChannel() {
     setTimeout(async () => {
       try {
-        await new RabbitMq(this).initChannel();
+        this.rabbitMq = await new RabbitMq(this);
+        await this.rabbitMq.initChannel();
         console.log("RabbitMQ connect success !!!");
       } catch (e: any) {
         console.log("Reconnect rabbitMQ channel", e.message);

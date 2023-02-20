@@ -308,8 +308,7 @@ export async function bulkCreateTransaction(
       );
     }
     if (messageList.length > 0) {
-      const rbmq = new RabbitMq(ctx);
-      await rbmq.publish(ctx, messageList);
+      await ctx.rabbitMq.publish(ctx, messageList);
     }
   } catch (e: any) {
     ctx.logger.error("RabbitMQ error", e.message);

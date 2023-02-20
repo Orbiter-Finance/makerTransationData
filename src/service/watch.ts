@@ -12,7 +12,7 @@ import dayjs from "dayjs";
 import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
+  constructor(public readonly ctx: Context) { }
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -27,11 +27,11 @@ export class Watch {
           continue;
         }
         if (tx.side === 0) {
-          const result1 = await processUserSendMakerTx(this.ctx, tx as any);
-          console.log("match result1:", result1);
+          const result = await processUserSendMakerTx(this.ctx, tx as any);
+          console.log(`match result1:${tx.hash}`, result);
         } else if (tx.side === 1) {
           const result = await processMakerSendUserTx(this.ctx, tx as any);
-          console.log("match result2:", result);
+          console.log(`match result2:${tx.hash}`, result);
         }
       } catch (error) {
         console.log(`processUserSendMakerTx error:`, error);
@@ -103,18 +103,19 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     // if (this.ctx.instanceId === 0) {
-    //   this.readUserSendReMatch().catch(error => {
-    //     this.ctx.logger.error("readUserSendReMatch error:", error);
-    //   });
+    // this.readUserSendReMatch().catch(error => {
+    //   this.ctx.logger.error("readUserSendReMatch error:", error);
+    // });
     // }
   }
   // read db
   public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
+    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 1,
       status: 1,
+      memo: '16',
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,
@@ -125,8 +126,8 @@ export class Watch {
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-        order: [["timestamp", "asc"]],
-        limit: 100,
+        order: [["timestamp", "desc"]],
+        limit: 500,
         where,
       });
       console.log(
@@ -141,9 +142,9 @@ export class Watch {
               `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
               error,
             );
-            console.log(`hash:${tx.hash}，result:`, result);
           },
         );
+        console.log(`hash:${tx.hash}，result:`, result);
       }
     } catch (error) {
       console.log("error:", error);

@@ -21,11 +21,10 @@ import {
 } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
-import { RabbitMq } from "./RabbitMq";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import sequelize from "sequelize";
-
+const bootTime = Date.now();
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<ITransaction>,
@@ -44,8 +43,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -263,7 +261,6 @@ export async function bulkCreateTransaction(
       );
     }
   }
-  const pushMQTxs = [];
   for (const row of upsertList) {
     try {
       const [newTx, created] = await ctx.models.Transaction.findOrCreate({
@@ -287,33 +284,20 @@ export async function bulkCreateTransaction(
       }
       row.id = newTx.id;
       if (created) {
-        pushMQTxs.push(row);
+        if (row.side == 0 && row.status == 1) {
+          if (ctx.NODE_ENV === 'production' && row.source != 'xvm') {
+            console.log('not orbiterX tx, not push mq');
+            continue;
+          }
+          if (new Date(row.timestamp).valueOf() > bootTime) {
+            ctx.mq.publish(String(row.chainId), row);
+          }
+        }
       }
     } catch (error: any) {
-      console.log(row);
       ctx.logger.error("processSubTx error:", error);
       throw error;
     }
-  }
-  // push mq
-  try {
-    // tag: prod filter tx
-    let messageList = [];
-    if (ctx.NODE_ENV === "production") {
-      messageList = pushMQTxs.filter(
-        item => item.side == 0 && item.status == 1 && item.source === "xvm",
-      );
-    } else {
-      messageList = pushMQTxs.filter(
-        item => item.side == 0 && item.status == 1,
-      );
-    }
-    if (messageList.length > 0) {
-      const rbmq = new RabbitMq(ctx);
-      await rbmq.publish(ctx, messageList);
-    }
-  } catch (e: any) {
-    ctx.logger.error("RabbitMQ error", e.message);
   }
   return upsertList;
 }
@@ -774,19 +758,7 @@ export async function processMakerSendUserTx(
       dayjs(userSendTx.timestamp).valueOf(),
     );
     let upStatus = 99;
-    let maxReceiptTime = 1 * 60 * 60 * 24;
-    if (ctx.isSpv) {
-      const chainData = ctx.config.chainsTokens.find((row: any) =>
-        equals(row.id, userSendTx.chainId),
-      );
-      if (!chainData) {
-        ctx.logger.error("processMakerSendUserTx getChain Not Found");
-        return {
-          errmsg: "processMakerSendUserTx getChain Not Found",
-        };
-      }
-      maxReceiptTime = chainData.maxReceiptTime;
-    }
+    const maxReceiptTime = 1 * 60 * 60 * 24;
     // Check whether the payment is delayed in minutes
     const delayMin = dayjs(makerTx.timestamp).diff(userSendTx.timestamp, "s");
     if (delayMin > maxReceiptTime) {

@@ -69,7 +69,6 @@ export class Context {
     });
   }
   async init() {
-    
     await this.initChainConfigs();
     const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
@@ -111,8 +110,12 @@ export class Context {
     } else {
       await fetchFileMakerList(this);
     }
-    const chainList  = chains.getAllChains();
-    const chainsIds = chainList.filter(row=> Number(row.internalId) % this.instanceCount === this.instanceId).map(row=> row.internalId);
+    const chainList = chains.getAllChains();
+    const chainsIds = chainList
+      .filter(
+        row => Number(row.internalId) % this.instanceCount === this.instanceId,
+      )
+      .map(row => row.internalId);
     this.mq = new MQProducer(this, chainsIds);
   }
   constructor() {

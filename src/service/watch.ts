@@ -12,7 +12,7 @@ import dayjs from "dayjs";
 import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 export class Watch {
-  constructor(public readonly ctx: Context) { }
+  constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -115,7 +115,7 @@ export class Watch {
     const where = {
       side: 1,
       status: 1,
-      memo: '16',
+      memo: "16",
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,

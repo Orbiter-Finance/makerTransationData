@@ -43,7 +43,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
+          tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -285,8 +286,8 @@ export async function bulkCreateTransaction(
       row.id = newTx.id;
       if (created) {
         if (row.side == 0 && row.status == 1) {
-          if (ctx.NODE_ENV === 'production' && row.source != 'xvm') {
-            console.log('not orbiterX tx, not push mq');
+          if (ctx.NODE_ENV === "production" && row.source != "xvm") {
+            console.log("not orbiterX tx, not push mq");
             continue;
           }
           if (new Date(row.timestamp).valueOf() > bootTime) {

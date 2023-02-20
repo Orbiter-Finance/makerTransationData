@@ -9,7 +9,8 @@ const bootTime = new Date().valueOf();
 export class RabbitMq {
   private connectionName;
   private reconnectCount = 0;
-  private exchangeName = process.env.RABBITMQ_DEFAULT_EXCHANGE || "chaincore_txs";
+  private exchangeName =
+    process.env.RABBITMQ_DEFAULT_EXCHANGE || "chaincore_txs";
 
   constructor(public readonly ctx: Context) {
     this.connectionName = `Orbiter MQ ${ctx.instanceId}`;

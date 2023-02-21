@@ -7,16 +7,16 @@ import { convertChainConfig, convertMakerConfig } from "./utils";
 import { chains } from "orbiter-chaincore";
 import Subgraphs from "./service/subgraphs";
 import db from "./db";
-import { RabbitMq } from "./service/RabbitMq";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import path from "path";
+import MQProducer from "./service/Rabbit";
 export class Context {
   public models = initModels(db);
-  public rabbitMq: any;
   public logger!: Logger;
   public redis!: Redis;
   public instanceId: number;
   public instanceCount: number;
+  public mq!: MQProducer;
   public makerConfigs: Array<IMarket> = [];
   public NODE_ENV: "development" | "production" | "test" = <any>(
     (process.env["NODE_ENV"] || "development")
@@ -56,7 +56,7 @@ export class Context {
     );
     this.logger = WinstonX.getLogger(this.instanceId.toString(), {
       logDir: dir,
-      debug: false,
+      debug: true,
     });
   }
   private initRedis() {
@@ -68,20 +68,7 @@ export class Context {
       db: Number(REDIS_DB || this.instanceId), // Defaults to 0
     });
   }
-  private async initChannel() {
-    setTimeout(async () => {
-      try {
-        this.rabbitMq = await new RabbitMq(this);
-        await this.rabbitMq.initChannel();
-        console.log("RabbitMQ connect success !!!");
-      } catch (e: any) {
-        console.log("Reconnect rabbitMQ channel", e.message);
-        await this.initChannel();
-      }
-    }, 3000);
-  }
   async init() {
-    await this.initChannel();
     await this.initChainConfigs();
     const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
@@ -123,6 +110,13 @@ export class Context {
     } else {
       await fetchFileMakerList(this);
     }
+    const chainList = chains.getAllChains();
+    const chainsIds = chainList
+      .filter(
+        row => Number(row.internalId) % this.instanceCount === this.instanceId,
+      )
+      .map(row => row.internalId);
+    this.mq = new MQProducer(this, chainsIds);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

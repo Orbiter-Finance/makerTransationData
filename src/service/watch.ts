@@ -3,15 +3,12 @@ import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
-import { bulkCreateTransaction, processUserSendMakerTx } from "./transaction";
-import dayjs from "dayjs";
 import {
-  TRANSACTION_RAW,
-  MATCH_SUCCESS,
-  USERTX_WAIT_MATCH,
-  MAKERTX_WAIT_MATCH,
-  MAKERTX_TRANSFERID,
-} from "../types/const";
+  bulkCreateTransaction,
+  processMakerSendUserTx,
+  processUserSendMakerTx,
+} from "./transaction";
+import dayjs from "dayjs";
 import { Op } from "sequelize";
 import BigNumber from "bignumber.js";
 export class Watch {
@@ -24,41 +21,22 @@ export class Watch {
   public async processSubTxList(txlist: Array<Transaction>) {
     const saveTxList = await bulkCreateTransaction(this.ctx, txlist);
     for (const tx of saveTxList) {
-      // save log
-      // if (tx.status != 1) {
-      //   continue;
-      // }
-      if (!tx.id) {
-        this.ctx.logger.error(`Id non-existent`, tx);
-        continue;
-      }
-      const reidsT = await this.ctx.redis.multi();
-      if (tx.side === 0) {
-        const result = await processUserSendMakerTx(this.ctx, tx as any);
-        if (result?.inId && result.outId) {
-          // success
-          await reidsT
-            .hset(MATCH_SUCCESS, result.outId, result.inId)
-            .hdel(MAKERTX_TRANSFERID, result.outId)
-            .zrem(MAKERTX_WAIT_MATCH, result.outId);
-        } else {
-          await reidsT.hset(USERTX_WAIT_MATCH, tx.transferId, tx.id);
+      try {
+        if (!tx.id) {
+          this.ctx.logger.error(`Id non-existent`, tx);
+          continue;
         }
-      }
-      if (tx.side === 1 && tx.replySender) {
-        if (this.isMultiAddressPaymentCollection(tx.from)) {
-          // Multi address payment collection
-          await reidsT
-            .hset(TRANSACTION_RAW, tx.id, JSON.stringify(tx))
-            .hset(MAKERTX_TRANSFERID, tx.id, `${tx.transferId}_cross`)
-            .zadd(MAKERTX_WAIT_MATCH, dayjs(tx.timestamp).unix(), tx.id);
-        } else {
-          await reidsT
-            .hset(MAKERTX_TRANSFERID, tx.id, tx.transferId)
-            .zadd(MAKERTX_WAIT_MATCH, dayjs(tx.timestamp).unix(), tx.id);
+        if (tx.side === 0) {
+          const result = await processUserSendMakerTx(this.ctx, tx as any);
+          console.log(`match result1:${tx.hash}`, result);
+        } else if (tx.side === 1) {
+          const result = await processMakerSendUserTx(this.ctx, tx as any);
+          console.log(`match result2:${tx.hash}`, result);
         }
+      } catch (error) {
+        console.log(`processUserSendMakerTx error:`, error);
+        this.ctx.logger.error(`processUserSendMakerTx error:`, error);
       }
-      await reidsT.exec();
     }
     return saveTxList;
   }
@@ -68,6 +46,12 @@ export class Watch {
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
+        if (process.env["SingleChain"]) {
+          if (Number(process.env["SingleChain"]) != Number(id)) {
+            console.log(`Single-chain configuration filtering ${id}`);
+            continue;
+          }
+        }
         if (Number(id) % this.ctx.instanceCount !== this.ctx.instanceId) {
           continue;
         }
@@ -105,6 +89,16 @@ export class Watch {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
+      pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
+        try {
+          await this.processSubTxList([tx]);
+        } catch (error) {
+          ctx.logger.error(
+            `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
+            error,
+          );
+        }
+      });
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
           ctx.logger.error("chaincore pause error:", error);
@@ -114,27 +108,20 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    if (this.ctx.instanceId === 0) {
-      this.readUserSendReMatch().catch(error => {
-        this.ctx.logger.error("readUserSendReMatch error:", error);
-      });
-      // processMakerTxCrossAddress(this.ctx, "0x64282d53de4947ce61c44e702d44afde73d5135c8a7c5d3a5e56262e8af8913").then(result => {
-      //   console.log(result, '==result');
-      // }).catch(error => {
-      //   console.log(error, '======error');
-      // })
-      // setInterval(() => {
-
-      // }, 1000 * 60);
-    }
+    // if (this.ctx.instanceId === 0) {
+    // this.readUserSendReMatch().catch(error => {
+    //   this.ctx.logger.error("readUserSendReMatch error:", error);
+    // });
+    // }
   }
   // read db
   public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
+    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
-      side: 0,
+      side: 1,
       status: 1,
+      memo: "16",
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,
@@ -145,7 +132,7 @@ export class Watch {
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-        order: [["timestamp", "asc"]],
+        order: [["timestamp", "desc"]],
         limit: 500,
         where,
       });
@@ -155,14 +142,18 @@ export class Watch {
         )}`,
       );
       for (const tx of txList) {
-        processUserSendMakerTx(this.ctx, tx).catch(error => {
-          this.ctx.logger.error(
-            `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
-            error,
-          );
-        });
+        const result = await processMakerSendUserTx(this.ctx, tx).catch(
+          error => {
+            this.ctx.logger.error(
+              `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+              error,
+            );
+          },
+        );
+        console.log(`hash:${tx.hash}，result:`, result);
       }
     } catch (error) {
+      console.log("error:", error);
     } finally {
       await sleep(1000 * 20);
       return await this.readUserSendReMatch();

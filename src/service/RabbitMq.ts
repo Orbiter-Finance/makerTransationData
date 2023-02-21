@@ -9,7 +9,8 @@ const bootTime = new Date().valueOf();
 export class RabbitMq {
   private connectionName;
   private reconnectCount = 0;
-  private exchangeName = "chaincore_txs";
+  private exchangeName =
+    process.env.RABBITMQ_DEFAULT_EXCHANGE || "chaincore_txs";
 
   constructor(public readonly ctx: Context) {
     this.connectionName = `Orbiter MQ ${ctx.instanceId}`;
@@ -18,7 +19,7 @@ export class RabbitMq {
   async initChannel() {
     const channel = await this.initConnect();
     this.ctx.channel = await channel.createConfirmChannel();
-    await this.ctx.channel.assertExchange("chaincore_txs", "direct", {
+    await this.ctx.channel.assertExchange(this.exchangeName, "direct", {
       autoDelete: false,
       durable: true,
     });
@@ -26,6 +27,10 @@ export class RabbitMq {
 
   async initConnect(): Promise<Connection> {
     try {
+      if (mqConnect) {
+        // TAG: Exists conn
+        return mqConnect;
+      }
       mqConnect = await amqp.connect(
         {
           protocol: "amqp",

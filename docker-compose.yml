@@ -2,13 +2,11 @@ version: '3.8'
 services:
   redis:
     image: redis:latest
-    container_name: data-redis
     restart: always
     volumes:
       - ./runtime/redis:/data:rw
   data-server:
     build: .
-    container_name: data-server
     restart: always
     command: pm2-runtime start pm2.json
     depends_on:

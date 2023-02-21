@@ -58,13 +58,14 @@ export default class MQProducer {
     this.connection.on("reconnect", handleDisconnections);
     this.connection.on("error", handleDisconnections);
   }
-  public async publish(routingKey: string, msg: object | string) {
+  public async publish(routingKey: string, msg: any) {
     const channel = this.channels[routingKey];
     if (!channel) {
       console.log(`channel ${routingKey} not found`);
       return;
     }
     if (typeof msg === "object") {
+      msg.pushTime = Date.now();
       msg = JSON.stringify(msg);
     }
     const result = await channel.publish(

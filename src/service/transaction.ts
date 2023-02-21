@@ -21,7 +21,6 @@ import {
 } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
-import { RabbitMq } from "./RabbitMq";
 import RLP from "rlp";
 import { ethers } from "ethers";
 

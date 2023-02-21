@@ -711,7 +711,9 @@ export async function processMakerSendUserTx(
     const models = ctx.models;
     const where: any = {
       transferId: makerTx.transferId,
-      status: 1,
+      status: {
+        [Op.or]: [1, 97],
+      },
       side: 0,
       timestamp: {
         [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),

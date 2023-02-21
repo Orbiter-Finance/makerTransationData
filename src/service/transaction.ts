@@ -292,6 +292,8 @@ export async function bulkCreateTransaction(
           }
           if (new Date(row.timestamp).valueOf() > bootTime) {
             ctx.mq.publish(String(row.chainId), row);
+          } else {
+            ctx.logger.info(`Time before server start, not push mq ${row.hash}`);
           }
         }
       }

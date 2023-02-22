@@ -783,6 +783,17 @@ export async function processMakerSendUserTx(
         transaction: t,
       },
     );
+    await ctx.models.Transaction.update(
+      {
+        status: upStatus,
+      },
+      {
+        where: {
+          id: makerTx.id,
+        },
+        transaction: t,
+      },
+    );
     await models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
     });

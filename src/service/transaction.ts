@@ -350,9 +350,7 @@ async function handleXVMTx(
       if ([44, 4].includes(toChainId)) {
         txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
       }
-      txData.expectValue = String(
-        await calcMakerSendAmount(ctx.makerConfigs, txData as any),
-      );
+      txData.expectValue = decodeData.expectValue;
       txData.transferId = TranferId(
         String(market.toChain.id),
         String(txData.replySender),

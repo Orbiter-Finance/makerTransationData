@@ -85,9 +85,9 @@ export class Watch {
           });
           return true;
         });
-        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-        //   ctx.logger.error(`${id} startScanChain error:`, error);
-        // });
+        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+          ctx.logger.error(`${id} startScanChain error:`, error);
+        });
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         try {

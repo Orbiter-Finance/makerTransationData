@@ -109,9 +109,9 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     if (this.ctx.instanceId === 0) {
-    this.readMakerendReMatch().catch(error => {
-      this.ctx.logger.error("readUserSendReMatch error:", error);
-    });
+      // this.readMakerendReMatch().catch(error => {
+      //   this.ctx.logger.error("readUserSendReMatch error:", error);
+      // });
     }
   }
   // read db

@@ -43,8 +43,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -659,7 +658,7 @@ export async function processUserSendMakerTx(
         },
         {
           where: {
-            id: userTx.id,
+            id: [userTx.id, makerSendTx.id],
           },
           transaction: t,
         },
@@ -778,18 +777,7 @@ export async function processMakerSendUserTx(
       },
       {
         where: {
-          id: userSendTx.id,
-        },
-        transaction: t,
-      },
-    );
-    await ctx.models.Transaction.update(
-      {
-        status: upStatus,
-      },
-      {
-        where: {
-          id: makerTx.id,
+          id: [userSendTx.id, makerTx.id],
         },
         transaction: t,
       },

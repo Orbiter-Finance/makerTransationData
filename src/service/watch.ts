@@ -85,9 +85,9 @@ export class Watch {
           });
           return true;
         });
-        scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-          ctx.logger.error(`${id} startScanChain error:`, error);
-        });
+        // scanChain.startScanChain(id, chainGroup[id]).catch(error => {
+        //   ctx.logger.error(`${id} startScanChain error:`, error);
+        // });
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         try {
@@ -108,20 +108,19 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    // if (this.ctx.instanceId === 0) {
-    // this.readUserSendReMatch().catch(error => {
-    //   this.ctx.logger.error("readUserSendReMatch error:", error);
-    // });
-    // }
+    if (this.ctx.instanceId === 0) {
+    this.readMakerendReMatch().catch(error => {
+      this.ctx.logger.error("readUserSendReMatch error:", error);
+    });
+    }
   }
   // read db
-  public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
+  public async readMakerendReMatch(): Promise<any> {
+    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 1,
       status: 1,
-      memo: "16",
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,
@@ -133,7 +132,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
-        limit: 500,
+        limit: 100,
         where,
       });
       console.log(
@@ -155,8 +154,8 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 20);
-      return await this.readUserSendReMatch();
+      await sleep(1000 * 30);
+      return await this.readMakerendReMatch();
     }
   }
 }

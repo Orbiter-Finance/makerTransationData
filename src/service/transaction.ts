@@ -761,13 +761,10 @@ export async function processMakerSendUserTx(
       userSendTx.symbol,
       dayjs(userSendTx.timestamp).valueOf(),
     );
-    const upStatus = 99;
-    // const maxReceiptTime = 1 * 60 * 60 * 24;
-    // Check whether the payment is delayed in minutes
-    // const delayMin = dayjs(makerTx.timestamp).diff(userSendTx.timestamp, "s");
-    // if (delayMin > maxReceiptTime) {
-    //   upStatus = 98; //
-    // }
+    let upStatus = 99;
+    if (makerTx.status === 95) {
+      upStatus = 95;
+    }
     userSendTx.status = upStatus;
     t = await ctx.models.sequelize.transaction();
     await userSendTx.save({

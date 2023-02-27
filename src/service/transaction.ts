@@ -714,7 +714,7 @@ export async function processMakerSendUserTx(
     const models = ctx.models;
     const where: any = {
       transferId: makerTx.transferId,
-      status: [1, 97],
+      status: [1, 96, 97],
       side: 0,
       timestamp: {
         [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),
@@ -761,7 +761,7 @@ export async function processMakerSendUserTx(
       userSendTx.symbol,
       dayjs(userSendTx.timestamp).valueOf(),
     );
-    let upStatus = 99;
+    const upStatus = 99;
     // const maxReceiptTime = 1 * 60 * 60 * 24;
     // Check whether the payment is delayed in minutes
     // const delayMin = dayjs(makerTx.timestamp).diff(userSendTx.timestamp, "s");

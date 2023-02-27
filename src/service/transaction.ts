@@ -706,7 +706,7 @@ export async function processMakerSendUserTx(
         errmsg: "MakerTx Already matched",
       };
     }
-    if (makerTx.status != 1) {
+    if (makerTx.status != 1 && makerTx.status != 95) {
       return {
         errmsg: `${makerTx.hash} Current status cannot match`,
       };
@@ -714,7 +714,7 @@ export async function processMakerSendUserTx(
     const models = ctx.models;
     const where: any = {
       transferId: makerTx.transferId,
-      status: [1, 96, 97],
+      status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
         [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),

@@ -109,9 +109,9 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     if (this.ctx.instanceId === 0) {
-      // this.readMakerendReMatch().catch(error => {
-      //   this.ctx.logger.error("readUserSendReMatch error:", error);
-      // });
+      this.readMakerendReMatch().catch(error => {
+        this.ctx.logger.error("readUserSendReMatch error:", error);
+      });
     }
   }
   // read db
@@ -132,7 +132,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
-        limit: 100,
+        limit: 200,
         where,
       });
       console.log(

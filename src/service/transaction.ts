@@ -43,7 +43,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
+          tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -292,7 +293,9 @@ export async function bulkCreateTransaction(
           if (new Date(row.timestamp).valueOf() > bootTime) {
             ctx.mq.publish(String(row.chainId), row);
           } else {
-            ctx.logger.info(`Time before server start, not push mq ${row.hash}`);
+            ctx.logger.info(
+              `Time before server start, not push mq ${row.hash}`,
+            );
           }
         }
       }
@@ -713,7 +716,7 @@ export async function processMakerSendUserTx(
       status: [1, 97],
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(4, "hour").toDate(),
       },
     };
     const userSendTx = await models.Transaction.findOne({

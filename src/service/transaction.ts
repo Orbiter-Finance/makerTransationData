@@ -643,12 +643,13 @@ export async function processUserSendMakerTx(
       }
       upsertData.outId = makerSendTx.id;
       let upStatus = 99;
-      const delayMin = dayjs(makerSendTx.timestamp).diff(userTx.timestamp, "s");
+      // const delayMin = dayjs(makerSendTx.timestamp).diff(userTx.timestamp, "s");
       if (makerSendTx.status === 95) {
         upStatus = 95;
-      } else if (delayMin > maxReceiptTime) {
-        upStatus = 98; //
       }
+      // else if (delayMin > maxReceiptTime) {
+      //   upStatus = 98; //
+      // }
       makerSendTx.status = upStatus;
       makerSendTx.lpId = userTx.lpId;
       makerSendTx.makerId = userTx.makerId;
@@ -705,7 +706,7 @@ export async function processMakerSendUserTx(
         errmsg: "MakerTx Already matched",
       };
     }
-    if (makerTx.status != 1) {
+    if (makerTx.status != 1 && makerTx.status != 95) {
       return {
         errmsg: `${makerTx.hash} Current status cannot match`,
       };
@@ -713,7 +714,7 @@ export async function processMakerSendUserTx(
     const models = ctx.models;
     const where: any = {
       transferId: makerTx.transferId,
-      status: [1, 97],
+      status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
         [Op.lte]: dayjs(makerTx.timestamp).add(4, "hour").toDate(),
@@ -761,11 +762,8 @@ export async function processMakerSendUserTx(
       dayjs(userSendTx.timestamp).valueOf(),
     );
     let upStatus = 99;
-    const maxReceiptTime = 1 * 60 * 60 * 24;
-    // Check whether the payment is delayed in minutes
-    const delayMin = dayjs(makerTx.timestamp).diff(userSendTx.timestamp, "s");
-    if (delayMin > maxReceiptTime) {
-      upStatus = 98; //
+    if (makerTx.status === 95) {
+      upStatus = 95;
     }
     userSendTx.status = upStatus;
     t = await ctx.models.sequelize.transaction();

@@ -318,7 +318,7 @@ async function handleXVMTx(
   const { name, params } = txExtra.xvm;
   txData.value = params.value;
   if (name.toLowerCase() === "swap") {
-    const decodeData = decodeXvmData(params.data);
+    const decodeData = decodeSwapData(params.data);
     params.data = decodeData;
     txData.memo = String(decodeData.toChainId);
     const fromChainId = Number(txData.chainId);
@@ -363,11 +363,8 @@ async function handleXVMTx(
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {
-    const dataDecode: any = RLP.decode(params.data);
     txData.side = 1;
-    // params:{tradeId,token,to,value}
-    const tradeId = Buffer.from(dataDecode[0]).toString();
-    const op = Number(Buffer.from(dataDecode[1]).toString());
+    const { tradeId, op } = decodeSwapAnswerData(params.data);
     const userTx = await ctx.models.Transaction.findOne(<any>{
       // attributes: [
       //   "id",
@@ -444,7 +441,7 @@ function getMarket(
   );
 }
 
-function decodeXvmData(data: string): {
+function decodeSwapData(data: string): {
   toChainId: number;
   toTokenAddress: string;
   toWalletAddress: string;
@@ -477,36 +474,13 @@ function decodeXvmData(data: string): {
   return result;
 }
 
-async function getRates(currency: string): Promise<any> {
-  const resp: any = await axios.get(
-    `https://api.coinbase.com/v2/exchange-rates?currency=${currency}`,
-  );
-  const rates = resp.data?.data?.rates;
-  if (!rates) {
-    console.log("Get rate fail, try it again");
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    return await getRates(currency);
-  }
-  console.log("Get rate success !!!");
-  return rates;
-}
-
-export async function exchangeToCoin(
-  value: any,
-  sourceCurrency: any,
-  toCurrency: any,
-) {
-  if (!sourceCurrency) return value;
-  if (!(value instanceof BigNumber)) {
-    value = new BigNumber(value);
-  }
-  const exchangeRates = await getRates(sourceCurrency);
-  const fromRate = exchangeRates[sourceCurrency];
-  const toRate = exchangeRates[toCurrency];
-  if (!fromRate || !fromRate) {
-    return new BigNumber(0);
-  }
-  return value.dividedBy(fromRate).multipliedBy(toRate);
+function decodeSwapAnswerData(data: string): {
+  tradeId: string, op: number
+} {
+  const dataDecode: any = RLP.decode(data);
+  const tradeId = Buffer.from(dataDecode[0]).toString();
+  const op = Number(Buffer.from(dataDecode[1]).toString());
+  return { tradeId, op };
 }
 
 export async function calcMakerSendAmount(
@@ -720,6 +694,18 @@ export async function processMakerSendUserTx(
         [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),
       },
     };
+    if (makerTx.source == "xvm") {
+      try {
+        const extra: any = makerTx.extra;
+        const { tradeId } = decodeSwapAnswerData(extra?.xvm?.params?.data);
+        where["hash"] = tradeId;
+        delete where["transferId"];
+      } catch (e: any) {
+        return {
+          errmsg: `Orbiter X decode fail ${makerTx.hash} ${e.message}`,
+        };
+      }
+    }
     const userSendTx = await models.Transaction.findOne({
       attributes: [
         "id",

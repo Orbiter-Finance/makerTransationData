@@ -93,11 +93,12 @@ export default class MQProducer {
       this.ctx.logger.error(`channel txlist not found`);
       return;
     }
-    let hashList = [];
-    try {
-      hashList = (<any[]>msg).map(item => item.hash);
-    } catch (e) {
-    }
+    let hashList: any[] = [];
+      try {
+        hashList = (<any[]>msg).map(item => {
+          return { chainId: item.chainId, hash: item.hash };
+        });
+    } catch (e) {}
     if (typeof msg === "object") {
       msg = JSON.stringify(msg);
     }
@@ -148,9 +149,11 @@ export default class MQProducer {
             ctx.logger.error(`processSubTxList error:`, error);
           });
           ctx.logger.info(
-            `consume msg: ${JSON.stringify(txList.map(item => {
-              return { chainId: item.chainId, hash: item.hash };
-            }))}`
+            `consume msg: ${JSON.stringify(
+              txList.map(item => {
+                return { chainId: item.chainId, hash: item.hash };
+              }),
+            )}`,
           );
         } catch (e: any) {
           ctx.logger.error(`${msg.content.toString()}  ${e.message}`);

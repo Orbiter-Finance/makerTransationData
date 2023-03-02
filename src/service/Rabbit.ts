@@ -134,6 +134,7 @@ export default class MQProducer {
         await self.processSubTxList(result).catch((error: any) => {
           ctx.logger.error(`${chainId} processSubTxList error:`, error);
         });
+        console.log("consume msg", JSON.stringify(txList.map(item => item.hash)));
       }
       // ack
       msg && (await channel.ack(msg));

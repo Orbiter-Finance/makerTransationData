@@ -50,14 +50,13 @@ export default class MQProducer {
       });
       await channel.bindQueue(queueName, this.exchangeName, routingKey);
       this.channels[routingKey] = channel;
-
-      const txChannel = await this.connection.createChannel();
-      await txChannel.assertQueue(txQueueName, {
-        durable: true,
-      });
-      await channel.bindQueue(txQueueName, this.exchangeName, txRoutingKeyName);
-      this.channels[txRoutingKeyName] = txChannel;
     }
+    const txChannel = await this.connection.createChannel();
+    await txChannel.assertQueue(`${txQueueName}:${this.ctx.instanceId}`, {
+      durable: true,
+    });
+    await channel.bindQueue(`${txQueueName}:${this.ctx.instanceId}`, this.exchangeName, txRoutingKeyName);
+    this.channels[txRoutingKeyName] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
         this.ctx.logger.error(`handleDisconnections`, e);
@@ -163,6 +162,6 @@ export default class MQProducer {
       // ack
       msg && (await channel.ack(msg));
     };
-    await channel.consume(txQueueName, messageHandle, { noAck: false });
+    await channel.consume(`${txQueueName}:${this.ctx.instanceId}`, messageHandle, { noAck: false });
   }
 }

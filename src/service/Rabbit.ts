@@ -58,9 +58,9 @@ export default class MQProducer {
     await channel.bindQueue(
       `${txQueueName}:${this.ctx.instanceId}`,
       this.exchangeName,
-      txRoutingKeyName,
+      `${txRoutingKeyName}:${this.ctx.instanceId}`,
     );
-    this.channels[txRoutingKeyName] = txChannel;
+    this.channels[`${txRoutingKeyName}:${this.ctx.instanceId}`] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
         this.ctx.logger.error(`handleDisconnections`, e);
@@ -92,7 +92,7 @@ export default class MQProducer {
     this.ctx.logger.info(`mq send result msg:${msg}, result:${result}`);
   }
   public async publishTxList(msg: any) {
-    const channel = this.channels[txRoutingKeyName];
+    const channel = this.channels[`${txRoutingKeyName}:${this.ctx.instanceId}`];
     if (!channel) {
       this.ctx.logger.error(`channel txlist not found`);
       return;
@@ -108,14 +108,14 @@ export default class MQProducer {
     }
     const result = await channel.publish(
       this.exchangeName,
-      txRoutingKeyName,
+      `${txRoutingKeyName}:${this.ctx.instanceId}`,
       Buffer.from(msg),
     );
     this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
   }
   public async subscribe(self: any) {
     const ctx = self.ctx;
-    const channel = this.channels[txRoutingKeyName];
+    const channel = this.channels[`${txRoutingKeyName}:${this.ctx.instanceId}`];
     if (!channel) {
       console.log("reconnect channel...");
       setTimeout(() => {
@@ -166,10 +166,8 @@ export default class MQProducer {
       // ack
       msg && (await channel.ack(msg));
     };
-    await channel.consume(
-      `${txQueueName}:${ctx.instanceId}`,
-      messageHandle,
-      { noAck: false },
-    );
+    await channel.consume(`${txQueueName}:${this.ctx.instanceId}`, messageHandle, {
+      noAck: false,
+    });
   }
 }

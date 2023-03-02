@@ -5,7 +5,6 @@ import { chains } from "orbiter-chaincore";
 import { ITransaction, TransactionStatus } from "orbiter-chaincore/src/types";
 import { dydx } from "orbiter-chaincore/src/utils";
 import BigNumber from "bignumber.js";
-import axios from "axios";
 import {
   equals,
   fix0xPadStartAddress,

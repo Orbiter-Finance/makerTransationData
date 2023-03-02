@@ -50,13 +50,14 @@ export default class MQProducer {
       });
       await channel.bindQueue(queueName, this.exchangeName, routingKey);
       this.channels[routingKey] = channel;
+
+      const txChannel = await this.connection.createChannel();
+      await txChannel.assertQueue(txQueueName, {
+        durable: true,
+      });
+      await channel.bindQueue(txQueueName, this.exchangeName, txRoutingKeyName);
+      this.channels[txRoutingKeyName] = txChannel;
     }
-    const txChannel = await this.connection.createChannel();
-    await txChannel.assertQueue(txQueueName, {
-      durable: true,
-    });
-    await channel.bindQueue(txQueueName, this.exchangeName, txRoutingKeyName);
-    this.channels[txRoutingKeyName] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
         this.ctx.logger.error(`handleDisconnections`, e);

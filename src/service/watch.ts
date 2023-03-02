@@ -11,6 +11,7 @@ import {
 import dayjs from "dayjs";
 import { Op } from "sequelize";
 import { mqPrefixMap } from "./Rabbit";
+import BigNumber from "bignumber.js";
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
@@ -58,12 +59,36 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        await ctx.mq.subscribe(this, id);
+        // await ctx.mq.subscribe(this, id);
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          await ctx.mq.publish(
-            `${mqPrefixMap.transactionData.routingKey}${id}`,
-            txList,
-          );
+          // await ctx.mq.publish(
+          //   `${mqPrefixMap.transactionData.routingKey}${id}`,
+          //   txList,
+          // );
+          const result: Transaction[] = [];
+          for (const tx of txList) {
+            if (
+              tx.source == "xvm" &&
+              tx?.extra?.xvm?.name === "multicall" &&
+              tx?.extra.txList.length
+            ) {
+              const multicallTxList: any[] = tx.extra.txList;
+              result.push(
+                ...multicallTxList.map((item, index) => {
+                  item.fee = new BigNumber(item.fee)
+                    .dividedBy(multicallTxList.length)
+                    .toFixed(0);
+                  item.hash = `${item.hash}#${index + 1}`;
+                  return item;
+                }),
+              );
+            } else {
+              result.push(tx);
+            }
+          }
+          await this.processSubTxList(result).catch((error: any) => {
+            ctx.logger.error(`${id} processSubTxList error:`, error);
+          });
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);

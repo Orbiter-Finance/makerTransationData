@@ -106,7 +106,7 @@ export default class MQProducer {
       }, 1000);
       return;
     }
-    ctx.logger.info(`subscribe channels`, queueName, routingKey);
+    ctx.logger.info(`subscribe channels ${queueName} ${routingKey}`);
     const messageHandle = async (msg: any) => {
       if (msg) {
         const txList = JSON.parse(msg.content.toString()) as Transaction[];

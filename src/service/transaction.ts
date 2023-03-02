@@ -474,7 +474,8 @@ function decodeSwapData(data: string): {
 }
 
 function decodeSwapAnswerData(data: string): {
-  tradeId: string, op: number
+  tradeId: string;
+  op: number;
 } {
   const dataDecode: any = RLP.decode(data);
   const tradeId = Buffer.from(dataDecode[0]).toString();

@@ -60,7 +60,10 @@ export class Watch {
         );
         await ctx.mq.subscribe(this, id);
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          await ctx.mq.publish(`${mqPrefixMap.transactionData.routingKey}${id}`, txList);
+          await ctx.mq.publish(
+            `${mqPrefixMap.transactionData.routingKey}${id}`,
+            txList,
+          );
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);

@@ -136,12 +136,8 @@ export default class MQProducer {
         });
       }
       // ack
-      msg && await channel.ack(msg);
+      msg && (await channel.ack(msg));
     };
-    await channel.consume(
-      queueName,
-      messageHandle,
-      { noAck: false }
-    );
+    await channel.consume(queueName, messageHandle, { noAck: false });
   }
 }

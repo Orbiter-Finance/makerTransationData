@@ -10,8 +10,6 @@ import {
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
-import BigNumber from "bignumber.js";
-import { mqPrefixMap } from "./Rabbit";
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
@@ -44,6 +42,7 @@ export class Watch {
   public async start() {
     const ctx = this.ctx;
     try {
+      await ctx.mq.subscribe(this);
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
@@ -59,12 +58,8 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        await ctx.mq.subscribe(this, id);
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          await ctx.mq.publish(
-            `${mqPrefixMap.transactionData.routingKey}${id}`,
-            txList,
-          );
+          await ctx.mq.publishTxList(txList);
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);

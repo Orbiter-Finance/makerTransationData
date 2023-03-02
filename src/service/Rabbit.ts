@@ -3,16 +3,8 @@ import { Context } from "../context";
 import { Transaction } from "orbiter-chaincore/src/types";
 import BigNumber from "bignumber.js";
 
-export const mqPrefixMap: any = {
-  maker: {
-    queueName: "chaincore:",
-    routingKey: "",
-  },
-  transactionData: {
-    queueName: "tx:",
-    routingKey: "txkey:",
-  },
-};
+const txQueueName = "tx_list";
+const txRoutingKeyName = "txlist";
 
 export default class MQProducer {
   private connection?: Connection;
@@ -50,19 +42,21 @@ export default class MQProducer {
       durable: true,
     });
     for (const chainId of this.chainsIds) {
-      for (const key in mqPrefixMap) {
-        const queueNamePrefix: string = mqPrefixMap[key].queueName;
-        const routingKeyPrefix: string = mqPrefixMap[key].routingKey;
-        const channel = await this.connection.createChannel();
-        const queueName = `${queueNamePrefix}${chainId}`;
-        const routingKey = `${routingKeyPrefix}${String(chainId)}`;
-        await channel.assertQueue(queueName, {
-          durable: true,
-        });
-        await channel.bindQueue(queueName, this.exchangeName, routingKey);
-        this.channels[routingKey] = channel;
-      }
+      const channel = await this.connection.createChannel();
+      const queueName = `chaincore:${chainId}`;
+      const routingKey = String(chainId);
+      await channel.assertQueue(queueName, {
+        durable: true,
+      });
+      await channel.bindQueue(queueName, this.exchangeName, routingKey);
+      this.channels[routingKey] = channel;
     }
+    const txChannel = await this.connection.createChannel();
+    await txChannel.assertQueue(txQueueName, {
+      durable: true,
+    });
+    await channel.bindQueue(txQueueName, this.exchangeName, txRoutingKeyName);
+    this.channels[txRoutingKeyName] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
         this.ctx.logger.error(`handleDisconnections`, e);
@@ -79,7 +73,7 @@ export default class MQProducer {
   public async publish(routingKey: string, msg: any) {
     const channel = this.channels[routingKey];
     if (!channel) {
-      console.log(`channel ${routingKey} not found`);
+      this.ctx.logger.error(`channel ${routingKey} not found`);
       return;
     }
     if (typeof msg === "object") {
@@ -93,52 +87,78 @@ export default class MQProducer {
     );
     this.ctx.logger.info(`mq send result msg:${msg}, result:${result}`);
   }
-
-  public async subscribe(self: any, chainId: string) {
+  public async publishTxList(msg: any) {
+    const channel = this.channels[txRoutingKeyName];
+    if (!channel) {
+      this.ctx.logger.error(`channel txlist not found`);
+      return;
+    }
+    let hashList = [];
+    try {
+      hashList = (<any[]>msg).map(item => item.hash);
+    } catch (e) {
+    }
+    if (typeof msg === "object") {
+      msg = JSON.stringify(msg);
+    }
+    const result = await channel.publish(
+      this.exchangeName,
+      txRoutingKeyName,
+      Buffer.from(msg),
+    );
+    this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
+  }
+  public async subscribe(self: any) {
     const ctx = self.ctx;
-    const queueName = `${mqPrefixMap.transactionData.queueName}${chainId}`;
-    const routingKey = `${mqPrefixMap.transactionData.routingKey}${chainId}`;
-    const channel = this.channels[routingKey];
+    const channel = this.channels[txRoutingKeyName];
     if (!channel) {
       console.log("reconnect channel...");
       setTimeout(() => {
-        this.subscribe(self, chainId);
+        this.subscribe(self);
       }, 1000);
       return;
     }
-    ctx.logger.info(`subscribe channels ${queueName} ${routingKey}`);
+    ctx.logger.info(`subscribe channels txlist channel success`);
     const messageHandle = async (msg: any) => {
       if (msg) {
-        const txList = JSON.parse(msg.content.toString()) as Transaction[];
-        const result: Transaction[] = [];
-        for (const tx of txList) {
-          if (
-            tx.source == "xvm" &&
-            tx?.extra?.xvm?.name === "multicall" &&
-            tx?.extra.txList.length
-          ) {
-            const multicallTxList: any[] = tx.extra.txList;
-            result.push(
-              ...multicallTxList.map((item, index) => {
-                item.fee = new BigNumber(item.fee)
-                  .dividedBy(multicallTxList.length)
-                  .toFixed(0);
-                item.hash = `${item.hash}#${index + 1}`;
-                return item;
-              }),
-            );
-          } else {
-            result.push(tx);
+        try {
+          const txList = JSON.parse(msg.content.toString()) as Transaction[];
+          const result: Transaction[] = [];
+          for (const tx of txList) {
+            if (
+              tx.source == "xvm" &&
+              tx?.extra?.xvm?.name === "multicall" &&
+              tx?.extra.txList.length
+            ) {
+              const multicallTxList: any[] = tx.extra.txList;
+              result.push(
+                ...multicallTxList.map((item, index) => {
+                  item.fee = new BigNumber(item.fee)
+                    .dividedBy(multicallTxList.length)
+                    .toFixed(0);
+                  item.hash = `${item.hash}#${index + 1}`;
+                  return item;
+                }),
+              );
+            } else {
+              result.push(tx);
+            }
           }
+          await self.processSubTxList(result).catch((error: any) => {
+            ctx.logger.error(`processSubTxList error:`, error);
+          });
+          ctx.logger.info(
+            `consume msg: ${JSON.stringify(txList.map(item => {
+              return { chainId: item.chainId, hash: item.hash };
+            }))}`
+          );
+        } catch (e: any) {
+          ctx.logger.error(`${msg.content.toString()}  ${e.message}`);
         }
-        await self.processSubTxList(result).catch((error: any) => {
-          ctx.logger.error(`${chainId} processSubTxList error:`, error);
-        });
-        console.log("consume msg", JSON.stringify(txList.map(item => item.hash)));
       }
       // ack
       msg && (await channel.ack(msg));
     };
-    await channel.consume(queueName, messageHandle, { noAck: false });
+    await channel.consume(txQueueName, messageHandle, { noAck: false });
   }
 }

@@ -55,7 +55,11 @@ export default class MQProducer {
     await txChannel.assertQueue(`${txQueueName}:${this.ctx.instanceId}`, {
       durable: true,
     });
-    await channel.bindQueue(`${txQueueName}:${this.ctx.instanceId}`, this.exchangeName, txRoutingKeyName);
+    await channel.bindQueue(
+      `${txQueueName}:${this.ctx.instanceId}`,
+      this.exchangeName,
+      txRoutingKeyName,
+    );
     this.channels[txRoutingKeyName] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
@@ -162,6 +166,10 @@ export default class MQProducer {
       // ack
       msg && (await channel.ack(msg));
     };
-    await channel.consume(`${txQueueName}:${this.ctx.instanceId}`, messageHandle, { noAck: false });
+    await channel.consume(
+      `${txQueueName}:${ctx.instanceId}`,
+      messageHandle,
+      { noAck: false },
+    );
   }
 }

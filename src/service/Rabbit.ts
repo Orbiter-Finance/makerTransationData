@@ -94,10 +94,10 @@ export default class MQProducer {
       return;
     }
     let hashList: any[] = [];
-      try {
-        hashList = (<any[]>msg).map(item => {
-          return { chainId: item.chainId, hash: item.hash };
-        });
+    try {
+      hashList = (<any[]>msg).map(item => {
+        return { chainId: item.chainId, hash: item.hash };
+      });
     } catch (e) {}
     if (typeof msg === "object") {
       msg = JSON.stringify(msg);

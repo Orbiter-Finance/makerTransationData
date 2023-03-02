@@ -42,7 +42,6 @@ export class Watch {
   public async start() {
     const ctx = this.ctx;
     try {
-      await ctx.mq.subscribe(this);
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
@@ -61,6 +60,7 @@ export class Watch {
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           await ctx.mq.publishTxList(txList);
         });
+        await ctx.mq.subscribe(this);
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });

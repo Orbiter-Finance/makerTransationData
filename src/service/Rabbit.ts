@@ -123,7 +123,7 @@ export default class MQProducer {
       }, 1000);
       return;
     }
-    ctx.logger.info(`subscribe channels txlist channel success`);
+    ctx.logger.info(`subscribe ${txRoutingKeyName}:${this.ctx.instanceId} channel success`);
     const messageHandle = async (msg: any) => {
       if (msg) {
         try {
@@ -166,8 +166,12 @@ export default class MQProducer {
       // ack
       msg && (await channel.ack(msg));
     };
-    await channel.consume(`${txQueueName}:${this.ctx.instanceId}`, messageHandle, {
-      noAck: false,
-    });
+    await channel.consume(
+      `${txQueueName}:${this.ctx.instanceId}`,
+      messageHandle,
+      {
+        noAck: false,
+      },
+    );
   }
 }

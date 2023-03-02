@@ -60,11 +60,11 @@ export class Watch {
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           await ctx.mq.publishTxList(txList);
         });
-        await ctx.mq.subscribe(this);
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
+      await ctx.mq.subscribe(this);
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         try {
           await this.processSubTxList([tx]);

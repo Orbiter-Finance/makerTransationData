@@ -23,6 +23,7 @@ import { Transaction as transactionAttributes } from "../models/Transactions";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import sequelize from "sequelize";
+import { isProd } from "../config/config";
 const bootTime = Date.now();
 export async function bulkCreateTransaction(
   ctx: Context,
@@ -285,7 +286,7 @@ export async function bulkCreateTransaction(
       row.id = newTx.id;
       if (created) {
         if (row.side == 0 && row.status == 1) {
-          if (ctx.NODE_ENV === "production" && row.source != "xvm") {
+          if (isProd() && row.source != "xvm") {
             console.log("not orbiterX tx, not push mq");
             continue;
           }

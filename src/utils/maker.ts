@@ -3,8 +3,15 @@ import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IChainCfg, IMakerCfg, IMakerDataCfg, IMarket } from "../types";
 import { uniq, flatten } from "lodash";
 import { chains } from "orbiter-chaincore";
-import chain from "../config/chain.json";
-import maker from "../config/maker.json";
+import chainMain from "../config/chain.json";
+import makerMain from "../config/maker.json";
+import chainTest from "../config/chainTest.json";
+import makerTest from "../config/makerTest.json";
+import { isProd } from "../config/config";
+
+export const chain: IChainCfg[] = <any[]>(isProd() ? chainMain : chainTest);
+export const maker: IMakerCfg = <any>(isProd() ? makerMain : makerTest);
+
 export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   const marketList: Array<IMarket | null> = oldLpList.map(row => {
     try {
@@ -175,8 +182,8 @@ export function convertMakerConfig(): IMarket[] {
 }
 
 export function convertChainConfig(env_prefix: string): IChainCfg[] {
-  const chainList: IChainCfg[] = <any>chain;
-  for (const chain of chainList) {
+  chainConfigList = <any>chain;
+  for (const chain of chainConfigList) {
     chain.rpc = chain.rpc || [];
     const apiKey =
       process.env[`${env_prefix}_CHAIN_API_KEY_${chain.internalId}`];
@@ -192,5 +199,7 @@ export function convertChainConfig(env_prefix: string): IChainCfg[] {
       chain.rpc.unshift(hpRpc);
     }
   }
-  return JSON.parse(JSON.stringify(chainList));
+  return JSON.parse(JSON.stringify(chainConfigList));
 }
+
+export let chainConfigList: IChainCfg[] = [];

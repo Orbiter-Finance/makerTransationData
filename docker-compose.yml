@@ -16,4 +16,5 @@ services:
     volumes:
       - './runtime:/app/runtime'
       - './pm2.json:/app/pm2.json'
+      - './src/config/:/app/src/config/'
 

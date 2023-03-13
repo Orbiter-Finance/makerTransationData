@@ -5,7 +5,7 @@ COPY package.json .
 RUN apt-get update
 RUN apt-get install -y vim
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 RUN yarn config set ignore-engines true
 RUN yarn global add pm2
 RUN yarn install --network-timeout 600000

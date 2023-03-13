@@ -8,7 +8,7 @@ services:
   data-server:
     build: .
     restart: always
-    command: pm2-runtime start pm2.json
+    command: pm2-runtime start pm2.json && curl -o /app/boot-time.txt https://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp
     depends_on:
       - redis
     links:
@@ -16,5 +16,4 @@ services:
     volumes:
       - './runtime:/app/runtime'
       - './pm2.json:/app/pm2.json'
-      - './bootInfo.txt:/app/bootInfo.txt'
-
+      - './boot-time.txt:/app/boot-time.txt'

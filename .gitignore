@@ -27,6 +27,5 @@ yalc.lock
 
 yarn.lock
 package-lock.json
-bootInfo.txt
 
 chains.json

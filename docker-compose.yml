@@ -8,7 +8,12 @@ services:
   data-server:
     build: .
     restart: always
-    command: pm2-runtime start pm2.json && curl -o /app/boot-time.txt https://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp
+    command:
+      - sh
+      - -c
+      - |
+        curl -o /app/boot-time.txt https://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp &
+        pm2-runtime start pm2.json
     depends_on:
       - redis
     links:

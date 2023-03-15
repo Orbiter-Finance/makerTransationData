@@ -3,6 +3,7 @@ import { Context } from "../context";
 import { Transaction } from "orbiter-chaincore/src/types";
 import BigNumber from "bignumber.js";
 
+const makerTxChannel = "maker_txlist";
 const txQueueName = "tx_list";
 const txRoutingKeyName = "txlist";
 
@@ -42,15 +43,14 @@ export default class MQProducer {
       durable: true,
     });
     for (const chainId of this.chainsIds) {
-      const channel = await this.connection.createChannel();
       const queueName = `chaincore:${chainId}`;
       const routingKey = String(chainId);
       await channel.assertQueue(queueName, {
         durable: true,
       });
       await channel.bindQueue(queueName, this.exchangeName, routingKey);
-      this.channels[routingKey] = channel;
     }
+    this.channels[makerTxChannel] = channel;
     const txChannel = await this.connection.createChannel();
     await txChannel.assertQueue(txQueueName, {
       durable: true,
@@ -70,9 +70,9 @@ export default class MQProducer {
     this.connection.on("error", handleDisconnections);
   }
   public async publish(routingKey: string, msg: any) {
-    const channel = this.channels[routingKey];
+    const channel = this.channels[makerTxChannel];
     if (!channel) {
-      this.ctx.logger.error(`channel ${routingKey} not found`);
+      this.ctx.logger.error(`channel ${makerTxChannel} not found`);
       return;
     }
     if (typeof msg === "object") {
@@ -101,10 +101,7 @@ export default class MQProducer {
     if (typeof msg === "object") {
       msg = JSON.stringify(msg);
     }
-    const result = await channel.sendToQueue(
-      txQueueName,
-      Buffer.from(msg),
-    );
+    const result = await channel.sendToQueue(txQueueName, Buffer.from(msg));
     this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
   }
   public async subscribe(self: any) {
@@ -117,9 +114,7 @@ export default class MQProducer {
       }, 1000);
       return;
     }
-    ctx.logger.info(
-      `subscribe ${txRoutingKeyName} channel success`,
-    );
+    ctx.logger.info(`subscribe ${txRoutingKeyName} channel success`);
     const messageHandle = async (msg: any) => {
       if (msg) {
         try {
@@ -162,12 +157,8 @@ export default class MQProducer {
       // ack
       msg && (await channel.ack(msg));
     };
-    await channel.consume(
-      txQueueName,
-      messageHandle,
-      {
-        noAck: false,
-      },
-    );
+    await channel.consume(txQueueName, messageHandle, {
+      noAck: false,
+    });
   }
 }

@@ -63,8 +63,8 @@ export class Watch {
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
-        await ctx.mq.subscribe(this);
       }
+      await ctx.mq.subscribe(this);
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         try {
           await this.processSubTxList([tx]);

@@ -52,15 +52,10 @@ export default class MQProducer {
       this.channels[routingKey] = channel;
     }
     const txChannel = await this.connection.createChannel();
-    await txChannel.assertQueue(`${txQueueName}:${this.ctx.instanceId}`, {
+    await txChannel.assertQueue(txQueueName, {
       durable: true,
     });
-    await channel.bindQueue(
-      `${txQueueName}:${this.ctx.instanceId}`,
-      this.exchangeName,
-      `${txRoutingKeyName}:${this.ctx.instanceId}`,
-    );
-    this.channels[`${txRoutingKeyName}:${this.ctx.instanceId}`] = txChannel;
+    this.channels[txRoutingKeyName] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
         this.ctx.logger.error(`handleDisconnections`, e);
@@ -92,7 +87,7 @@ export default class MQProducer {
     this.ctx.logger.info(`mq send result msg:${msg}, result:${result}`);
   }
   public async publishTxList(msg: any) {
-    const channel = this.channels[`${txRoutingKeyName}:${this.ctx.instanceId}`];
+    const channel = this.channels[txRoutingKeyName];
     if (!channel) {
       this.ctx.logger.error(`channel txlist not found`);
       return;
@@ -106,16 +101,15 @@ export default class MQProducer {
     if (typeof msg === "object") {
       msg = JSON.stringify(msg);
     }
-    const result = await channel.publish(
-      this.exchangeName,
-      `${txRoutingKeyName}:${this.ctx.instanceId}`,
+    const result = await channel.sendToQueue(
+      txQueueName,
       Buffer.from(msg),
     );
     this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
   }
   public async subscribe(self: any) {
     const ctx = self.ctx;
-    const channel = this.channels[`${txRoutingKeyName}:${this.ctx.instanceId}`];
+    const channel = this.channels[txRoutingKeyName];
     if (!channel) {
       console.log("reconnect channel...");
       setTimeout(() => {
@@ -124,7 +118,7 @@ export default class MQProducer {
       return;
     }
     ctx.logger.info(
-      `subscribe ${txRoutingKeyName}:${this.ctx.instanceId} channel success`,
+      `subscribe ${txRoutingKeyName} channel success`,
     );
     const messageHandle = async (msg: any) => {
       if (msg) {
@@ -169,7 +163,7 @@ export default class MQProducer {
       msg && (await channel.ack(msg));
     };
     await channel.consume(
-      `${txQueueName}:${this.ctx.instanceId}`,
+      txQueueName,
       messageHandle,
       {
         noAck: false,

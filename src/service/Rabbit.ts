@@ -6,6 +6,7 @@ import BigNumber from "bignumber.js";
 const makerTxChannel = "chaincore_maker_txlist";
 const txQueueName = "chaincore_tx_list";
 const txRoutingKeyName = "chaincore_txlist";
+const txExchangeName = 'chaincore_exchange';
 
 export default class MQProducer {
   private connection?: Connection;
@@ -52,6 +53,9 @@ export default class MQProducer {
     }
     this.channels[makerTxChannel] = channel;
     const txChannel = await this.connection.createChannel();
+    await txChannel.assertExchange(txExchangeName, "direct", {
+      durable: true,
+    });
     await txChannel.assertQueue(txQueueName, {
       durable: true,
     });

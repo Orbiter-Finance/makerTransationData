@@ -3,9 +3,9 @@ import { Context } from "../context";
 import { Transaction } from "orbiter-chaincore/src/types";
 import BigNumber from "bignumber.js";
 
-const makerTxChannel = "maker_txlist";
-const txQueueName = "tx_list";
-const txRoutingKeyName = "txlist";
+const makerTxChannel = "chaincore_maker_txlist";
+const txQueueName = "chaincore_tx_list";
+const txRoutingKeyName = "chaincore_txlist";
 
 export default class MQProducer {
   private connection?: Connection;

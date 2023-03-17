@@ -18,13 +18,14 @@ runtime/
 src/maker.ts
 src/config/chain.json
 src/config/maker.json
+src/config/chainTest.json
+src/config/makerTest.json
 pm2.json
 .yalc
 yalc.lock
 .env
 
 yarn.lock
-package.lock
-
+package-lock.json
 
 chains.json

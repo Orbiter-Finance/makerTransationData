@@ -3,6 +3,7 @@
 import { BigNumber } from "bignumber.js";
 import { IMarket } from "../types";
 import moment from "moment";
+import { chainConfigList } from "./maker";
 
 const MAX_BITS: any = {
   eth: 256,
@@ -283,11 +284,17 @@ function getRAmountFromTAmount(chain: number, amount: string) {
   }
 }
 
-function isChainSupport(chain: string | number) {
-  if (CHAIN_INDEX[chain] && MAX_BITS[CHAIN_INDEX[chain]]) {
-    return true;
-  }
-  return false;
+function isChainSupport(chainId: string | number) {
+  // if (CHAIN_INDEX[chain] && MAX_BITS[CHAIN_INDEX[chain]]) {
+  //   return true;
+  // }
+  return !!getChainInfo(chainId);
+}
+
+function getChainInfo(chainId: string | number) {
+  const chainInfo = chainConfigList.find(item => +item.internalId === +chainId);
+  if (!chainInfo) return null;
+  return JSON.parse(JSON.stringify(chainInfo));
 }
 
 /**

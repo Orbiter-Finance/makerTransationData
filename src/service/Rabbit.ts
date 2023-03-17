@@ -6,7 +6,7 @@ import BigNumber from "bignumber.js";
 const makerTxChannel = "chaincore_maker_txlist";
 const txQueueName = "chaincore_tx_list";
 const txRoutingKeyName = "chaincore_txlist";
-const txExchangeName = 'chaincore_exchange';
+const txExchangeName = "chaincore_exchange";
 
 export default class MQProducer {
   private connection?: Connection;
@@ -59,6 +59,7 @@ export default class MQProducer {
     await txChannel.assertQueue(txQueueName, {
       durable: true,
     });
+    await txChannel.bindQueue(txQueueName, txExchangeName, txRoutingKeyName);
     this.channels[txRoutingKeyName] = txChannel;
     const handleDisconnections = (e: any) => {
       try {
@@ -105,7 +106,11 @@ export default class MQProducer {
     if (typeof msg === "object") {
       msg = JSON.stringify(msg);
     }
-    const result = await channel.sendToQueue(txQueueName, Buffer.from(msg));
+    const result = await channel.publish(
+      txExchangeName,
+      txRoutingKeyName,
+      Buffer.from(msg),
+    );
     this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
   }
   public async subscribe(self: any) {

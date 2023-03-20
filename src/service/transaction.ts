@@ -229,6 +229,8 @@ export async function bulkCreateTransaction(
           );
         }
       }
+    } else {
+      return [] as any;
     }
 
     if (

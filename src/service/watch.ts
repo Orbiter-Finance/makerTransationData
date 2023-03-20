@@ -26,8 +26,8 @@ export class Watch {
           continue;
         }
         if (tx.side === 0) {
-          const result = await processUserSendMakerTx(this.ctx, tx as any);
-          console.log(`match result1:${tx.hash}`, result);
+          // const result = await processUserSendMakerTx(this.ctx, tx as any);
+          // console.log(`match result1:${tx.hash}`, result);
         } else if (tx.side === 1) {
           const result = await processMakerSendUserTx(this.ctx, tx as any);
           console.log(`match result2:${tx.hash}`, result);
@@ -46,7 +46,8 @@ export class Watch {
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
-          if (Number(process.env["SingleChain"]) != Number(id)) {
+          const isScan = process.env["SingleChain"].split(',').includes(String(id));
+          if (!isScan) {
             console.log(`Single-chain configuration filtering ${id}`);
             continue;
           }
@@ -58,7 +59,7 @@ export class Watch {
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          await ctx.mq.publishTxList(txList);
+          ctx.mq.publishTxList(txList);
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
@@ -92,8 +93,8 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(10, "second").toDate();
+    const startAt = dayjs().subtract(12, "hour").startOf("d").toDate();
+    const endAt = dayjs().subtract(30, 'minute').toDate();
     const where = {
       side: 1,
       status: 1,
@@ -116,6 +117,7 @@ export class Watch {
           txList.map(row => row.hash),
         )}`,
       );
+      let index=0;
       for (const tx of txList) {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
           error => {
@@ -125,7 +127,8 @@ export class Watch {
             );
           },
         );
-        console.log(`hash:${tx.hash}，result:`, result);
+        console.log(`index:${index}/${txList.length},hash:${tx.hash}，result:`, result);
+        index++;
       }
     } catch (error) {
       console.log("error:", error);

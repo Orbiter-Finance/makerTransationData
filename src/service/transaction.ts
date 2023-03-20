@@ -301,6 +301,7 @@ export async function bulkCreateTransaction(
       }
     } catch (error: any) {
       ctx.logger.error("processSubTx error:", error);
+      ctx.logger.error("tx:", row);
       throw error;
     }
   }

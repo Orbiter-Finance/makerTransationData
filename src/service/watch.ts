@@ -6,6 +6,7 @@ import { Context } from "../context";
 import {
   bulkCreateTransaction,
   processMakerSendUserTx,
+  processUserSendMakerTx,
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
@@ -25,8 +26,8 @@ export class Watch {
           continue;
         }
         if (tx.side === 0) {
-          // const result = await processUserSendMakerTx(this.ctx, tx as any);
-          // console.log(`match result1:${tx.hash}`, result);
+          const result = await processUserSendMakerTx(this.ctx, tx as any);
+          console.log(`match result1:${tx.hash}`, result);
         } else if (tx.side === 1) {
           const result = await processMakerSendUserTx(this.ctx, tx as any);
           console.log(`match result2:${tx.hash}`, result);
@@ -95,7 +96,7 @@ export class Watch {
   // read db
   public async readMakerendReMatch(): Promise<any> {
     const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(1, "minute").toDate();
+    const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 1,
       status: 1,
@@ -121,6 +122,54 @@ export class Watch {
       let index = 0;
       for (const tx of txList) {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
+          error => {
+            this.ctx.logger.error(
+              `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+              error,
+            );
+          },
+        );
+        console.log(
+          `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+          result,
+        );
+        index++;
+      }
+    } catch (error) {
+      console.log("error:", error);
+    } finally {
+      await sleep(1000 * 30);
+      return await this.readMakerendReMatch();
+    }
+  }
+  public async readUserTxReMatch(): Promise<any> {
+    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
+    const endAt = dayjs().subtract(10, "second").toDate();
+    const where = {
+      side: 0,
+      status: 1,
+      timestamp: {
+        [Op.gte]: startAt,
+        [Op.lte]: endAt,
+      },
+    };
+    try {
+      // read
+      const txList = await this.ctx.models.Transaction.findAll({
+        raw: true,
+        attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
+        order: [["timestamp", "desc"]],
+        limit: 200,
+        where,
+      });
+      console.log(
+        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+          txList.map(row => row.hash),
+        )}`,
+      );
+      let index = 0;
+      for (const tx of txList) {
+        const result = await processUserSendMakerTx(this.ctx, tx).catch(
           error => {
             this.ctx.logger.error(
               `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,

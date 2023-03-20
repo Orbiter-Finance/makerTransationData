@@ -20,8 +20,8 @@ export default class MQProducer {
     void this.connectionMqServer();
   }
   public async connectionMqServer(): Promise<void> {
-    if(!process.env.RABBITMQ_DEFAULT_HOSTNAME) {
-      throw new Error('Missing configuration rabbitmq')
+    if (!process.env.RABBITMQ_DEFAULT_HOSTNAME) {
+      throw new Error("Missing configuration rabbitmq");
     }
     this.connection = await connect(
       {
@@ -152,17 +152,20 @@ export default class MQProducer {
               result.push(tx);
             }
           }
-          await self.processSubTxList(result).catch((error: any) => {
-            ctx.logger.error(`processSubTxList error:`, error);
-          }).then(()=> {
-            ctx.logger.info(
-              `consume msg: ${JSON.stringify(
-                txList.map(item => {
-                  return { chainId: item.chainId, hash: item.hash };
-                }),
-              )}`,
-            );
-          })
+          await self
+            .processSubTxList(result)
+            .catch((error: any) => {
+              ctx.logger.error(`processSubTxList error:`, error);
+            })
+            .then(() => {
+              ctx.logger.info(
+                `consume msg: ${JSON.stringify(
+                  txList.map(item => {
+                    return { chainId: item.chainId, hash: item.hash };
+                  }),
+                )}`,
+              );
+            });
         } catch (e: any) {
           ctx.logger.error(`${msg.content.toString()}  ${e.message}`);
         }

@@ -6,7 +6,6 @@ import { Context } from "../context";
 import {
   bulkCreateTransaction,
   processMakerSendUserTx,
-  processUserSendMakerTx,
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
@@ -46,7 +45,9 @@ export class Watch {
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
-          const isScan = process.env["SingleChain"].split(',').includes(String(id));
+          const isScan = process.env["SingleChain"]
+            .split(",")
+            .includes(String(id));
           if (!isScan) {
             console.log(`Single-chain configuration filtering ${id}`);
             continue;
@@ -94,7 +95,7 @@ export class Watch {
   // read db
   public async readMakerendReMatch(): Promise<any> {
     const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(1, 'minute').toDate();
+    const endAt = dayjs().subtract(1, "minute").toDate();
     const where = {
       side: 1,
       status: 1,
@@ -117,7 +118,7 @@ export class Watch {
           txList.map(row => row.hash),
         )}`,
       );
-      let index=0;
+      let index = 0;
       for (const tx of txList) {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
           error => {
@@ -127,7 +128,10 @@ export class Watch {
             );
           },
         );
-        console.log(`index:${index}/${txList.length},hash:${tx.hash}，result:`, result);
+        console.log(
+          `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+          result,
+        );
         index++;
       }
     } catch (error) {

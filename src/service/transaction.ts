@@ -26,7 +26,10 @@ import sequelize from "sequelize";
 import { isProd } from "../config/config";
 const bootTime = Date.now();
 
-export async function processSubTxList(ctx: Context, txlist: Array<ITransaction>) {
+export async function processSubTxList(
+  ctx: Context,
+  txlist: Array<ITransaction>,
+) {
   const saveTxList = await bulkCreateTransaction(ctx, txlist);
   for (const tx of saveTxList) {
     try {
@@ -34,9 +37,13 @@ export async function processSubTxList(ctx: Context, txlist: Array<ITransaction>
         ctx.logger.error(`Id non-existent`, tx);
         continue;
       }
-      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}_1`);
+      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
-        console.log(`match result${tx.side ? "1" : "2"}: already processed`, tx.hash, tx.status);
+        console.log(
+          `match result${tx.side ? "1" : "2"}: already processed`,
+          tx.hash,
+          tx.status,
+        );
       } else {
         let result: any;
         if (tx.side === 0) {
@@ -162,8 +169,11 @@ export async function bulkCreateTransaction(
       txData.replyAccount = txData.to;
       txData.replySender = txData.from;
       let originReplySender: string = <string>txData.from;
-      if (ctx.config.crossAddressTransferMap[originReplySender?.toLowerCase()]) {
-        originReplySender = ctx.config.crossAddressTransferMap[originReplySender.toLowerCase()];
+      if (
+        ctx.config.crossAddressTransferMap[originReplySender?.toLowerCase()]
+      ) {
+        originReplySender =
+          ctx.config.crossAddressTransferMap[originReplySender.toLowerCase()];
       }
       txData.transferId = TranferId(
         String(txData.chainId),

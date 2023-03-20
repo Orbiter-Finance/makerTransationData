@@ -4,9 +4,7 @@ import { Transaction } from "orbiter-chaincore/src/types";
 import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
 import {
-  bulkCreateTransaction,
   processMakerSendUserTx,
-  processUserSendMakerTx,
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op } from "sequelize";

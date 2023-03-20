@@ -3,7 +3,9 @@ import Web3 from "web3";
 import { getChainInfo } from "../src/utils/oldUtils";
 import BigNumber from "bignumber.js";
 import {
-  decodeInputContractTransferResponse, HashOrBlockNumber, ITransaction,
+  decodeInputContractTransferResponse,
+  HashOrBlockNumber,
+  ITransaction,
   TransactionStatus,
 } from "orbiter-chaincore/src/types";
 import { isEmpty } from "orbiter-chaincore/src/utils/core";
@@ -15,20 +17,20 @@ import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
 
-
 // const chainId = "5";
 // const hash = "0x7ea5555bb72a353dfaff46111887a62fa117bb7a1208f883ba74913789d53d87";
 const chainId = "22";
-const hash = "0xbfdeb9225473d4d3f7b17d6e81f585e41f8f3f72143da671e906e119c84979c6";
+const hash =
+  "0xbfdeb9225473d4d3f7b17d6e81f585e41f8f3f72143da671e906e119c84979c6";
 
 let chainConfig: IChainCfg;
 let web3: any;
 
-describe("Transaction test", function() {
-  it("Get chaincore tx", async function() {
+describe("Transaction test", function () {
+  it("Get chaincore tx", async function () {
     // ...
   });
-  it("Submit tx", async function() {
+  it("Submit tx", async function () {
     // Ensure consistent configuration
     const ctx: Context = new Context();
     await ctx.init();
@@ -42,13 +44,17 @@ describe("Transaction test", function() {
       return;
     }
     await processSubTxList(ctx, [tx]);
-    console.log('---------------------------- exec end ----------------------------');
+    console.log(
+      "---------------------------- exec end ----------------------------",
+    );
   });
-  it("Clear Cache", async function() {
+  it("Clear Cache", async function () {
     const ctx: Context = new Context();
     await ctx.init();
     ctx.redis.del(`subTx_${hash}_1`);
-    console.log('---------------------------- exec end ----------------------------');
+    console.log(
+      "---------------------------- exec end ----------------------------",
+    );
   });
 });
 
@@ -76,9 +82,7 @@ async function imitateChainCoreTx(hash: string) {
     return null;
   }
   const xvmList = chainConfig?.xvmList || [];
-  const isXVM = !!xvmList.find(
-    item => item.toLowerCase() === to.toLowerCase(),
-  );
+  const isXVM = !!xvmList.find(item => item.toLowerCase() === to.toLowerCase());
   // status
   const block = await web3.eth.getBlock(Number(blockNumber), false);
   const confirmations = await getConfirmations(Number(blockNumber));
@@ -125,10 +129,7 @@ async function imitateChainCoreTx(hash: string) {
         } else {
           txData.tokenAddress = to;
           txData.to = "";
-          const inputData = await decodeInputContractTransfer(
-            txData.input,
-            to,
-          );
+          const inputData = await decodeInputContractTransfer(txData.input, to);
           // transferData
           if (inputData && inputData.transferData) {
             const { tokenAddress, recipient, amount, ...inputExtra } =
@@ -215,8 +216,7 @@ async function decodeInputContractTransfer(
       case "0x29723511": // transfer
         result.transferData.recipient = result.data["to"];
         result.transferData.ext = result.data["ext"];
-        result.transferData.tokenAddress =
-          chainConfig.nativeCurrency.address;
+        result.transferData.tokenAddress = chainConfig.nativeCurrency.address;
         break;
       case "0x46f506ad": // transfer erc20
         result.transferData.recipient = result.data["to"];
@@ -231,7 +231,7 @@ async function decodeInputContractTransfer(
     result.transferData.amount = new BigNumber(result.data["amount"]);
     result.transferData.tokenAddress = contractAddress;
   }
-// delete result.data;
+  // delete result.data;
   return result;
 }
 

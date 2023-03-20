@@ -2,6 +2,7 @@ import { Channel, connect, Connection } from "amqplib";
 import { Context } from "../context";
 import { Transaction } from "orbiter-chaincore/src/types";
 import BigNumber from "bignumber.js";
+import { processSubTxList } from "./transaction";
 
 const makerTxChannel = "chaincore_maker_txlist";
 const txQueueName = "chaincore_tx_list";
@@ -149,7 +150,7 @@ export default class MQProducer {
               result.push(tx);
             }
           }
-          await self.processSubTxList(result).catch((error: any) => {
+          await processSubTxList(ctx, result).catch((error: any) => {
             ctx.logger.error(`processSubTxList error:`, error);
           });
           ctx.logger.info(

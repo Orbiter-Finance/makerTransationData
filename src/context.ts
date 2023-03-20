@@ -27,6 +27,8 @@ export class Context {
     chainsTokens: [],
     subgraphEndpoint: "",
     crossAddressTransferMap: {
+      "0x3fbd1e8cfc71b5b8814525e7129a3f41870a238b": "0x0043d60e87c5dd08c86c3123340705a1556c4719",
+      "0x0043d60e87c5dd08c86c3123340705a1556c4719": "0x3fbd1e8cfc71b5b8814525e7129a3f41870a238b",
       "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b":
         "0x06d1d401ae235ba01e5d8a6ade82a0f17aba7db4f8780194b4d65315071be10b", // eth
       "0x001709eA381e87D4c9ba5e4A67Adc9868C05e82556A53FD1b3A8b1F21e098143":
@@ -66,6 +68,31 @@ export class Context {
       host: REDIS_HOST || "127.0.0.1", // Redis host
       password: REDIS_PASS,
       db: Number(REDIS_DB || this.instanceId), // Defaults to 0
+    });
+  }
+  async setCache(key: string, value: any, time?: number): Promise<void> {
+    if (key) {
+      if (typeof value == "object") {
+        value = JSON.stringify(value);
+      }
+      this.redis.set(key, value || "");
+      // In seconds
+      this.redis.expire(key, time || 86400);
+    }
+  }
+  async getCache(key: string): Promise<any> {
+    return await new Promise(resolve => {
+      this.redis.get(key, function (err, result) {
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        try {
+          resolve(JSON.parse(result));
+        } catch (e) {
+          resolve(result);
+        }
+      });
     });
   }
   async init() {

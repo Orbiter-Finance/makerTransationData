@@ -25,6 +25,38 @@ import { ethers } from "ethers";
 import sequelize from "sequelize";
 import { isProd } from "../config/config";
 const bootTime = Date.now();
+
+export async function processSubTxList(ctx: Context, txlist: Array<ITransaction>) {
+  const saveTxList = await bulkCreateTransaction(ctx, txlist);
+  for (const tx of saveTxList) {
+    try {
+      if (!tx.id) {
+        ctx.logger.error(`Id non-existent`, tx);
+        continue;
+      }
+      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}_1`);
+      if (txCache) {
+        console.log(`match result${tx.side ? "1" : "2"}: already processed`, tx.hash, tx.status);
+      } else {
+        let result: any;
+        if (tx.side === 0) {
+          result = await processUserSendMakerTx(ctx, tx as any);
+          console.log(`match result1:${tx.hash}`, result);
+        } else if (tx.side === 1) {
+          result = await processMakerSendUserTx(ctx, tx as any);
+          console.log(`match result2:${tx.hash}`, result);
+        }
+        if (result?.code === 0) {
+          await ctx.setCache(`subTx_${tx.hash}_${tx.status}`, 1);
+        }
+      }
+    } catch (error) {
+      console.log(`processUserSendMakerTx error:`, error);
+      ctx.logger.error(`processUserSendMakerTx error:`, error);
+    }
+  }
+  return saveTxList;
+}
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<ITransaction>,
@@ -129,9 +161,13 @@ export async function bulkCreateTransaction(
       // maker send
       txData.replyAccount = txData.to;
       txData.replySender = txData.from;
+      let originReplySender: string = <string>txData.from;
+      if (ctx.config.crossAddressTransferMap[originReplySender?.toLowerCase()]) {
+        originReplySender = ctx.config.crossAddressTransferMap[originReplySender.toLowerCase()];
+      }
       txData.transferId = TranferId(
         String(txData.chainId),
-        String(txData.replySender),
+        String(originReplySender),
         String(txData.replyAccount),
         String(txData.memo),
         String(txData.symbol),
@@ -281,7 +317,7 @@ export async function bulkCreateTransaction(
           newTx.transferId = row.transferId;
         }
         await newTx.save();
-        row.status = newTx.status;
+        // row.status = newTx.status;
       }
       row.id = newTx.id;
       if (created) {
@@ -647,7 +683,7 @@ export async function processUserSendMakerTx(
       transaction: t,
     });
     await t.commit();
-    return { inId: userTx.id, outId: makerSendTx?.id };
+    return { inId: userTx.id, outId: makerSendTx?.id, code: 0 };
   } catch (error) {
     if (t) {
       await t.rollback();
@@ -785,7 +821,7 @@ export async function processMakerSendUserTx(
       transaction: t,
     });
     await t.commit();
-    return { inId: userSendTx.id, outId: makerTx.id, errmsg: "ok" };
+    return { inId: userSendTx.id, outId: makerTx.id, errmsg: "ok", code: 0 };
   } catch (error) {
     if (t) {
       await t.rollback();

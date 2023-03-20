@@ -17,28 +17,6 @@ export class Watch {
       makerAddress.toLowerCase(),
     );
   }
-  public async processSubTxList(txlist: Array<Transaction>) {
-    const saveTxList = await bulkCreateTransaction(this.ctx, txlist);
-    for (const tx of saveTxList) {
-      try {
-        if (!tx.id) {
-          this.ctx.logger.error(`Id non-existent`, tx);
-          continue;
-        }
-        if (tx.side === 0) {
-          const result = await processUserSendMakerTx(this.ctx, tx as any);
-          console.log(`match result1:${tx.hash}`, result);
-        } else if (tx.side === 1) {
-          const result = await processMakerSendUserTx(this.ctx, tx as any);
-          console.log(`match result2:${tx.hash}`, result);
-        }
-      } catch (error) {
-        console.log(`processUserSendMakerTx error:`, error);
-        this.ctx.logger.error(`processUserSendMakerTx error:`, error);
-      }
-    }
-    return saveTxList;
-  }
   public async start() {
     const ctx = this.ctx;
     try {
@@ -64,10 +42,9 @@ export class Watch {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
-      await ctx.mq.subscribe(this);
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         try {
-          await this.processSubTxList([tx]);
+          await ctx.mq.publishTxList([tx]);
         } catch (error) {
           ctx.logger.error(
             `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
@@ -81,6 +58,7 @@ export class Watch {
         });
         process.exit(0);
       });
+      await ctx.mq.subscribe(this);
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }

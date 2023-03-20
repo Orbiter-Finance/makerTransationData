@@ -291,7 +291,7 @@ function isChainSupport(chainId: string | number) {
   return !!getChainInfo(chainId);
 }
 
-function getChainInfo(chainId: string | number) {
+export function getChainInfo(chainId: string | number) {
   const chainInfo = chainConfigList.find(item => +item.internalId === +chainId);
   if (!chainInfo) return null;
   return JSON.parse(JSON.stringify(chainInfo));

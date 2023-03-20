@@ -93,8 +93,8 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(12, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(30, 'minute').toDate();
+    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
+    const endAt = dayjs().subtract(1, 'minute').toDate();
     const where = {
       side: 1,
       status: 1,

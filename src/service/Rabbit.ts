@@ -20,8 +20,8 @@ export default class MQProducer {
     void this.connectionMqServer();
   }
   public async connectionMqServer(): Promise<void> {
-    if(!process.env.RABBITMQ_DEFAULT_HOSTNAME) {
-      throw new Error('Missing configuration rabbitmq')
+    if (!process.env.RABBITMQ_DEFAULT_HOSTNAME) {
+      throw new Error("Missing configuration rabbitmq");
     }
     this.connection = await connect(
       {

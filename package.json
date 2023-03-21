@@ -66,14 +66,14 @@
     "merkletreejs": "^0.2.32",
     "moment": "^2.29.4",
     "mysql2": "^2.3.3",
-    "orbiter-chaincore": "1.3.9-32",
-    "patch-package": "^6.4.7",
+    "orbiter-chaincore": "1.3.9-36",
+    "patch-package": "^6.5.1",
     "postinstall-postinstall": "^2.1.0",
     "prompt": "^1.3.0",
     "rlp": "^3.0.0",
     "sequelize": "^6.21.0",
     "sequelize-auto": "^0.8.8",
     "sequelize-typescript": "^2.1.3",
-    "web3": "^1.7.5"
+    "web3": "^1.9.0"
   }
 }

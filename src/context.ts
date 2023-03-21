@@ -3,12 +3,9 @@ import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { Logger } from "winston";
 import { convertChainConfig, convertMakerConfig } from "./utils";
-// import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
-import Subgraphs from "./service/subgraphs";
 import db from "./db";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
-import path from "path";
 import MQProducer from "./service/Rabbit";
 export class Context {
   public models = initModels(db);
@@ -51,13 +48,13 @@ export class Context {
     return configs;
   }
   private initLogger() {
-    const dir = path.join(
-      process.env.logDir || process.cwd() + "/runtime",
-      "mtx",
-      this.instanceId.toString(),
-    );
+    // const dir = path.join(
+    //   process.env.logDir || process.cwd() + "/runtime",
+    //   "mtx",
+    //   this.instanceId.toString(),
+    // );
     this.logger = WinstonX.getLogger(this.instanceId.toString(), {
-      logDir: dir,
+      logDir: process.env.logDir,
       debug: true,
     });
   }
@@ -72,53 +69,15 @@ export class Context {
   }
   async init() {
     await this.initChainConfigs();
-    const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
-    if (this.isSpv) {
-      try {
-        this.makerConfigs = await subApi.getAllLp();
-      } catch (error) {
-        this.logger.error("init LP error", error);
-      }
-      this.config.chainsTokens = await subApi.getChains();
-      setInterval(() => {
-        try {
-          subApi
-            .getAllLp()
-            .then(result => {
-              if (result && result.length > 0) {
-                this.makerConfigs = result;
-              }
-            })
-            .catch(error => {
-              this.logger.error("setInterval getAllLp error:", error);
-            });
-          if (Date.now() % 6 === 0) {
-            subApi
-              .getChains()
-              .then(chainsTokens => {
-                if (chainsTokens) {
-                  this.config.chainsTokens = chainsTokens;
-                }
-              })
-              .catch(error => {
-                this.logger.error("setInterval getChains error:", error);
-              });
-          }
-        } catch (error) {
-          this.logger.error("setInterval error:", error);
-        }
-      }, 1000 * 10);
-    } else {
-      await fetchFileMakerList(this);
-    }
+    await fetchFileMakerList(this);
     const chainList = chains.getAllChains();
     const chainsIds = chainList
       .filter(
         row => Number(row.internalId) % this.instanceCount === this.instanceId,
       )
       .map(row => row.internalId);
-    this.mq = new MQProducer(this, chainsIds);
+    // this.mq = new MQProducer(this, chainsIds);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

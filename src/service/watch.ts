@@ -43,7 +43,7 @@ export class Watch {
     const ctx = this.ctx;
     try {
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
-      
+
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
@@ -62,7 +62,10 @@ export class Watch {
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          ctx.logger.info('subscribe tx', txList.map(tx=> tx.hash));
+          ctx.logger.info(
+            "subscribe tx",
+            txList.map(tx => tx.hash),
+          );
           return ctx.mq.publishTxList(txList);
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {

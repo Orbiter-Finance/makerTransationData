@@ -1,6 +1,5 @@
 import { Watch } from "./src/service/watch";
 import "dotenv/config";
-import { SPV } from "./src/service/spv";
 import { Context } from "./src/context";
 import { createServer } from "./src/server";
 import utc from "dayjs/plugin/utc";
@@ -23,7 +22,7 @@ process.on("uncaughtException", (err: Error) => {
   console.error("Global Uncaught exception:", err);
 });
 process.on("unhandledRejection", (err: Error) => {
-  console.error(  
+  console.error(
     "There are failed functions where promise is not captured：",
     err,
   );

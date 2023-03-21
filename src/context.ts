@@ -77,7 +77,7 @@ export class Context {
         row => Number(row.internalId) % this.instanceCount === this.instanceId,
       )
       .map(row => row.internalId);
-    // this.mq = new MQProducer(this, chainsIds);
+    this.mq = new MQProducer(this, chainsIds);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

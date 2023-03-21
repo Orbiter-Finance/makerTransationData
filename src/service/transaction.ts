@@ -43,7 +43,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
+          tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -671,7 +672,6 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
-
   const makerConfig = ctx.makerConfigs.find(
     item =>
       equals(item.sender, makerTx.from) ||

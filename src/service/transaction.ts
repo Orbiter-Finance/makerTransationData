@@ -15,7 +15,8 @@ import { Context } from "../context";
 import { TranferId, TransactionID } from "../utils";
 import {
   getAmountFlag,
-  getAmountToSend, getChainInfo,
+  getAmountToSend,
+  getChainInfo,
   getFormatDate,
 } from "../utils/oldUtils";
 import { IChainCfg, IMarket } from "../types";
@@ -154,18 +155,18 @@ export async function bulkCreateTransaction(
       ebcId: "",
     };
     const chainInfo: IChainCfg | null = getChainInfo(Number(txData?.chainId));
-    const xvmList:string[] = chainInfo?.xvmList || [];
+    const xvmList: string[] = chainInfo?.xvmList || [];
     const isMakerSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.sender, tx.from) ||
         equals(item.crossAddress?.sender, tx.from) ||
-        xvmList.find(xvm => xvm.toLowerCase() === tx.from.toLowerCase())
+        xvmList.find(xvm => xvm.toLowerCase() === tx.from.toLowerCase()),
     );
     const isUserSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.recipient, tx.to) ||
         equals(item.crossAddress?.recipient, tx.to) ||
-        xvmList.find(xvm => xvm.toLowerCase() === tx.to.toLowerCase())
+        xvmList.find(xvm => xvm.toLowerCase() === tx.to.toLowerCase()),
     );
     if (!isMakerSend && !isUserSend) {
       return {} as any;

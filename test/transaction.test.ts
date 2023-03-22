@@ -40,8 +40,8 @@ describe("Transaction test", function () {
     console.log(rpc);
 
     const tx: ITransaction | null = await imitateChainCoreTx(hash);
-    const value = tx?.value?.toString()
-    console.log('value ===>>',value);
+    const value = tx?.value?.toString();
+    console.log("value ===>>", value);
     console.log("Tx =====>>>", tx);
     if (!tx) {
       return;

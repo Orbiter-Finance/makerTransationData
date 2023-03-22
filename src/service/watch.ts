@@ -3,7 +3,7 @@ import { pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { groupWatchAddressByChain } from "../utils";
 import { Context } from "../context";
-import { processMakerSendUserTx } from "./transaction";
+import { processMakerSendUserTx, processUserSendMakerTx } from "./transaction";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
 export class Watch {

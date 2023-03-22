@@ -153,7 +153,7 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    const isOrbiterX = tx.source == "xvm" && txExtra?.xvm;
+    const isOrbiterX = !!(tx.source == "xvm" && txExtra?.xvm);
     const isMakerSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.sender, tx.from) ||
@@ -279,8 +279,6 @@ export async function bulkCreateTransaction(
           );
         }
       }
-    } else {
-      return [] as any;
     }
 
     if (

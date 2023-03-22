@@ -16,10 +16,9 @@ import { TranferId, TransactionID } from "../utils";
 import {
   getAmountFlag,
   getAmountToSend,
-  getChainInfo,
   getFormatDate,
 } from "../utils/oldUtils";
-import { IChainCfg, IMarket } from "../types";
+import { IMarket } from "../types";
 import { Transaction as transactionAttributes } from "../models/Transactions";
 import RLP from "rlp";
 import { ethers } from "ethers";
@@ -154,21 +153,18 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    const chainInfo: IChainCfg | null = getChainInfo(Number(txData?.chainId));
-    const xvmList: string[] = chainInfo?.xvmList || [];
+    const isOrbiterX = tx.source == "xvm" && txExtra?.xvm;
     const isMakerSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.sender, tx.from) ||
-        equals(item.crossAddress?.sender, tx.from) ||
-        xvmList.find(xvm => xvm.toLowerCase() === tx.from.toLowerCase()),
+        equals(item.crossAddress?.sender, tx.from)
     );
     const isUserSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.recipient, tx.to) ||
-        equals(item.crossAddress?.recipient, tx.to) ||
-        xvmList.find(xvm => xvm.toLowerCase() === tx.to.toLowerCase()),
+        equals(item.crossAddress?.recipient, tx.to)
     );
-    if (!isMakerSend && !isUserSend) {
+    if (!isMakerSend && !isUserSend && !isOrbiterX) {
       return {} as any;
     }
     if (isMakerSend) {

@@ -157,15 +157,15 @@ export async function bulkCreateTransaction(
     const isMakerSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.sender, tx.from) ||
-        equals(item.crossAddress?.sender, tx.from)
+        equals(item.crossAddress?.sender, tx.from),
     );
     const isUserSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.recipient, tx.to) ||
-        equals(item.crossAddress?.recipient, tx.to)
+        equals(item.crossAddress?.recipient, tx.to),
     );
     if (!isMakerSend && !isUserSend && !isOrbiterX) {
-      return {} as any;
+      return [] as any[];
     }
     if (isMakerSend) {
       txData.side = 1;

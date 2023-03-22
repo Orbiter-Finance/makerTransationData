@@ -351,6 +351,7 @@ export async function bulkCreateTransaction(
       }
     } catch (error: any) {
       ctx.logger.error("processSubTx error:", error);
+      ctx.logger.error("tx:", row);
       throw error;
     }
   }
@@ -687,7 +688,7 @@ export async function processUserSendMakerTx(
         },
         {
           where: {
-            id: userTx.id,
+            id: [userTx.id, makerSendTx.id],
           },
           transaction: t,
         },
@@ -742,7 +743,7 @@ export async function processMakerSendUserTx(
       status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(30, "m").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(4, "hour").toDate(),
       },
     };
     if (makerTx.source == "xvm") {
@@ -815,18 +816,7 @@ export async function processMakerSendUserTx(
       },
       {
         where: {
-          id: userSendTx.id,
-        },
-        transaction: t,
-      },
-    );
-    await ctx.models.Transaction.update(
-      {
-        status: upStatus,
-      },
-      {
-        where: {
-          id: makerTx.id,
+          id: [userSendTx.id, makerTx.id],
         },
         transaction: t,
       },

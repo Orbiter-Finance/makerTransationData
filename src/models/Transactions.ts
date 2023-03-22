@@ -216,7 +216,7 @@ export class Transaction extends Model<
             name: "hash",
             unique: true,
             using: "BTREE",
-            fields: [{ name: "hash" }, { name: "transferId" }],
+            fields: [{ name: "hash" }],
             // fields: [{ name: "chainId" }, { name: "hash" }],
           },
           {

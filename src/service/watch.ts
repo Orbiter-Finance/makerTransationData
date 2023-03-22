@@ -20,7 +20,10 @@ export class Watch {
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
-          if (Number(process.env["SingleChain"]) != Number(id)) {
+          const isScan = process.env["SingleChain"]
+            .split(",")
+            .includes(String(id));
+          if (!isScan) {
             console.log(`Single-chain configuration filtering ${id}`);
             continue;
           }
@@ -32,7 +35,7 @@ export class Watch {
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          await ctx.mq.publishTxList(txList);
+          ctx.mq.publishTxList(txList);
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
@@ -58,20 +61,19 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    // if (this.ctx.instanceId === 0) {
-    // this.readUserSendReMatch().catch(error => {
-    //   this.ctx.logger.error("readUserSendReMatch error:", error);
-    // });
-    // }
+    if (this.ctx.instanceId === 0) {
+      this.readMakerendReMatch().catch(error => {
+        this.ctx.logger.error("readUserSendReMatch error:", error);
+      });
+    }
   }
   // read db
-  public async readUserSendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
+  public async readMakerendReMatch(): Promise<any> {
+    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 1,
       status: 1,
-      memo: "16",
       timestamp: {
         [Op.gte]: startAt,
         [Op.lte]: endAt,
@@ -83,7 +85,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
-        limit: 500,
+        limit: 200,
         where,
       });
       console.log(
@@ -91,6 +93,7 @@ export class Watch {
           txList.map(row => row.hash),
         )}`,
       );
+      let index = 0;
       for (const tx of txList) {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
           error => {
@@ -100,13 +103,65 @@ export class Watch {
             );
           },
         );
-        console.log(`hash:${tx.hash}，result:`, result);
+        console.log(
+          `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+          result,
+        );
+        index++;
       }
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 20);
-      return await this.readUserSendReMatch();
+      await sleep(1000 * 30);
+      return await this.readMakerendReMatch();
+    }
+  }
+  public async readUserTxReMatch(): Promise<any> {
+    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
+    const endAt = dayjs().subtract(10, "second").toDate();
+    const where = {
+      side: 0,
+      status: 1,
+      timestamp: {
+        [Op.gte]: startAt,
+        [Op.lte]: endAt,
+      },
+    };
+    try {
+      // read
+      const txList = await this.ctx.models.Transaction.findAll({
+        raw: true,
+        attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
+        order: [["timestamp", "desc"]],
+        limit: 200,
+        where,
+      });
+      console.log(
+        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+          txList.map(row => row.hash),
+        )}`,
+      );
+      let index = 0;
+      for (const tx of txList) {
+        const result = await processUserSendMakerTx(this.ctx, tx).catch(
+          error => {
+            this.ctx.logger.error(
+              `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+              error,
+            );
+          },
+        );
+        console.log(
+          `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+          result,
+        );
+        index++;
+      }
+    } catch (error) {
+      console.log("error:", error);
+    } finally {
+      await sleep(1000 * 30);
+      return await this.readMakerendReMatch();
     }
   }
 }

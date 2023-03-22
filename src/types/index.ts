@@ -1,3 +1,5 @@
+import { IChainConfig } from "orbiter-chaincore/src/types";
+
 export interface IMarket {
   id: string;
   makerId: string;
@@ -40,7 +42,7 @@ export interface Config {
   };
   chainsTokens: Array<any>;
   subgraphEndpoint: string;
-  chains: Array<any>;
+  chains: IChainConfig[];
 }
 
 export interface JsonMap {

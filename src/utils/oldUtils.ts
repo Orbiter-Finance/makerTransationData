@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import { BigNumber } from "bignumber.js";
-import { IMarket } from "../types";
+import { IChainCfg, IMarket } from "../types";
 import moment from "moment";
 import { chainConfigList } from "./maker";
 
@@ -291,7 +291,7 @@ function isChainSupport(chainId: string | number) {
   return !!getChainInfo(chainId);
 }
 
-export function getChainInfo(chainId: string | number) {
+export function getChainInfo(chainId: any): IChainCfg | null {
   const chainInfo = chainConfigList.find(item => +item.internalId === +chainId);
   if (!chainInfo) return null;
   return JSON.parse(JSON.stringify(chainInfo));

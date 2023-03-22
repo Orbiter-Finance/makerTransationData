@@ -19,9 +19,9 @@ dayjs.extend(utc);
 
 // const chainId = "5";
 // const hash = "0x7ea5555bb72a353dfaff46111887a62fa117bb7a1208f883ba74913789d53d87";
-const chainId = "22";
+const chainId = "7";
 const hash =
-  "0xbfdeb9225473d4d3f7b17d6e81f585e41f8f3f72143da671e906e119c84979c6";
+  "0xea70a50e43bd364479d381350cc0fa36c863ccf2981637342c4d58b83af721c6";
 
 let chainConfig: IChainCfg;
 let web3: any;
@@ -34,11 +34,14 @@ describe("Transaction test", function () {
     // Ensure consistent configuration
     const ctx: Context = new Context();
     await ctx.init();
-    chainConfig = getChainInfo(chainId);
-    const rpc = chainConfig.rpc[0];
+    chainConfig = <IChainCfg>getChainInfo(chainId);
+    const rpc = chainConfig?.rpc[0];
     web3 = new Web3(rpc);
+    console.log(rpc);
 
     const tx: ITransaction | null = await imitateChainCoreTx(hash);
+    const value = tx?.value?.toString()
+    console.log('value ===>>',value);
     console.log("Tx =====>>>", tx);
     if (!tx) {
       return;
@@ -59,6 +62,8 @@ describe("Transaction test", function () {
 });
 
 async function imitateChainCoreTx(hash: string) {
+  // const count: number = await web3.eth.getBlockNumber();
+  // console.log("blockNumber", count);
   let trx: any = await web3.eth.getTransaction(hash);
   const { nonce, value, gasPrice, input, ...extra } = trx;
   let trxReceipt = await web3.eth.getTransactionReceipt(hash);
@@ -104,7 +109,7 @@ async function imitateChainCoreTx(hash: string) {
     symbol: "",
     tokenAddress: "",
     status: TransactionStatus.Fail,
-    timestamp: Number(block.timestamp),
+    timestamp: Number(block.timestamp || 0),
     confirmations,
     extra,
     receipt: trxReceipt,
@@ -126,6 +131,7 @@ async function imitateChainCoreTx(hash: string) {
         if (isXVM) {
           txData.to = trx.to;
           await decodeInputXVMContractTransfer(txData);
+          txData.value = new BigNumber(txData?.extra?.xvm?.params?.value || 0);
         } else {
           txData.tokenAddress = to;
           txData.to = "";

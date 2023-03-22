@@ -1,5 +1,5 @@
-import { Watch } from "./src/service/watch";
 import "dotenv/config";
+import { Watch } from "./src/service/watch";
 import { Context } from "./src/context";
 import { createServer } from "./src/server";
 import utc from "dayjs/plugin/utc";

@@ -17,6 +17,7 @@ export class Watch {
     const ctx = this.ctx;
     try {
       const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
+
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
@@ -24,7 +25,7 @@ export class Watch {
             .split(",")
             .includes(String(id));
           if (!isScan) {
-            console.log(`Single-chain configuration filtering ${id}`);
+            ctx.logger.info(`Single-chain configuration filtering ${id}`);
             continue;
           }
         }
@@ -35,7 +36,11 @@ export class Watch {
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          ctx.mq.publishTxList(txList);
+          ctx.logger.info(
+            "subscribe tx",
+            txList.map(tx => tx.hash),
+          );
+          return ctx.mq.publishTxList(txList);
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
@@ -63,7 +68,7 @@ export class Watch {
     }
     if (this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {
-        this.ctx.logger.error("readUserSendReMatch error:", error);
+        this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
   }

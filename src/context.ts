@@ -3,12 +3,9 @@ import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { Logger } from "winston";
 import { convertChainConfig, convertMakerConfig } from "./utils";
-// import { TCPInject } from "./service/tcpInject";
 import { chains } from "orbiter-chaincore";
-import Subgraphs from "./service/subgraphs";
 import db from "./db";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
-import path from "path";
 import MQProducer from "./service/Rabbit";
 export class Context {
   public models = initModels(db);
@@ -37,6 +34,8 @@ export class Context {
         "0x01a316c2a9eece495df038a074781ce3983b4dbda665b951cc52a3025690a448", // dai
     },
     L1L2Mapping: {
+      "0xe4edb277e41dc89ab076a1f049f4a3efa700bce8":
+        "0x064a24243f2aabae8d2148fa878276e6e6e452e3941b417f3c33b1649ea83e11",
       "0x80c67432656d59144ceff962e8faf8926599bcf8":
         "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b",
       "0x095d2918b03b2e86d68551dcf11302121fb626c9":
@@ -53,13 +52,13 @@ export class Context {
     return configs;
   }
   private initLogger() {
-    const dir = path.join(
-      process.env.logDir || process.cwd() + "/runtime",
-      "mtx",
-      this.instanceId.toString(),
-    );
+    // const dir = path.join(
+    //   process.env.logDir || process.cwd() + "/runtime",
+    //   "mtx",
+    //   this.instanceId.toString(),
+    // );
     this.logger = WinstonX.getLogger(this.instanceId.toString(), {
-      logDir: dir,
+      logDir: process.env.logDir,
       debug: true,
     });
   }
@@ -99,46 +98,8 @@ export class Context {
   }
   async init() {
     await this.initChainConfigs();
-    const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
-    if (this.isSpv) {
-      try {
-        this.makerConfigs = await subApi.getAllLp();
-      } catch (error) {
-        this.logger.error("init LP error", error);
-      }
-      this.config.chainsTokens = await subApi.getChains();
-      setInterval(() => {
-        try {
-          subApi
-            .getAllLp()
-            .then(result => {
-              if (result && result.length > 0) {
-                this.makerConfigs = result;
-              }
-            })
-            .catch(error => {
-              this.logger.error("setInterval getAllLp error:", error);
-            });
-          if (Date.now() % 6 === 0) {
-            subApi
-              .getChains()
-              .then(chainsTokens => {
-                if (chainsTokens) {
-                  this.config.chainsTokens = chainsTokens;
-                }
-              })
-              .catch(error => {
-                this.logger.error("setInterval getChains error:", error);
-              });
-          }
-        } catch (error) {
-          this.logger.error("setInterval error:", error);
-        }
-      }, 1000 * 10);
-    } else {
-      await fetchFileMakerList(this);
-    }
+    await fetchFileMakerList(this);
     const chainList = chains.getAllChains();
     const chainsIds = chainList
       .filter(

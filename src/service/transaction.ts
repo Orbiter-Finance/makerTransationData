@@ -279,6 +279,8 @@ export async function bulkCreateTransaction(
           );
         }
       }
+    } else {
+      return [] as any;
     }
 
     if (
@@ -577,6 +579,15 @@ export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
 ) {
+  const makerConfig = ctx.makerConfigs.find(
+    item =>
+      equals(item.recipient, userTx.to) ||
+      equals(item.crossAddress?.recipient, userTx.to),
+  );
+  if (isEmpty(makerConfig)) {
+    ctx.logger.error(`UserTx %s Not Find Maker Address`, userTx.hash);
+  }
+
   let t: sequelize.Transaction | undefined;
   try {
     if (!userTx || isEmpty(userTx.id)) {
@@ -711,6 +722,15 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
+  const makerConfig = ctx.makerConfigs.find(
+    item =>
+      equals(item.sender, makerTx.from) ||
+      equals(item.crossAddress?.sender, makerTx.from),
+  );
+  if (isEmpty(makerConfig)) {
+    ctx.logger.error(`MakerTx %s Not Find Maker Address`, makerTx.hash);
+  }
+
   let t: sequelize.Transaction | undefined;
   try {
     if (!makerTx || isEmpty(makerTx.id)) {

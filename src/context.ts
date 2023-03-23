@@ -25,6 +25,8 @@ export class Context {
     subgraphEndpoint: "",
     // Address should be in lowercase !!!
     crossAddressTransferMap: {
+      '0x80c67432656d59144ceff962e8faf8926599bcf8': '0x646592183ff25a0c44f09896a384004778f831ed',
+      '0xe4edb277e41dc89ab076a1f049f4a3efa700bce8': '0x646592183ff25a0c44f09896a384004778f831ed',
       "0x3fbd1e8cfc71b5b8814525e7129a3f41870a238b":
         "0x0043d60e87c5dd08c86c3123340705a1556c4719",
       "0xa5f46d60f4f08f11a5495f8c1011537718e188fe":

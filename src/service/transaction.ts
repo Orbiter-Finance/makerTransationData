@@ -25,7 +25,44 @@ import { ethers } from "ethers";
 import sequelize from "sequelize";
 import { isProd } from "../config/config";
 const bootTime = Date.now();
-
+export async function validateTransactionSpecifications(ctx: Context, tx: ITransaction) {
+  const isOrbiterX = tx.source == "xvm"; // temp 
+  const result = {
+    orbiterX: false,
+    isToMaker: false,
+    isToUser: false,
+    intercept: true
+  }
+  if (isOrbiterX) {
+    result.orbiterX = true;
+  }
+  const isMakerSend = !!ctx.makerConfigs.find(
+    item =>
+      equals(item.sender, tx.from) ||
+      equals(item.crossAddress?.sender, tx.from),
+  );
+  if (isMakerSend) {
+    result.isToUser = true;
+  }
+  if (Object.values(ctx.config.crossAddressTransferMap).includes(tx.from)) {
+    result.isToUser = true;
+  }
+  const isUserSend = !!ctx.makerConfigs.find(
+    item =>
+      equals(item.recipient, tx.to) ||
+      equals(item.crossAddress?.recipient, tx.to),
+  );
+  if (isUserSend) {
+    result.isToMaker = true;
+  }
+  if (Object.keys(ctx.config.crossAddressTransferMap).includes(tx.to)) {
+    result.isToMaker = true;
+  }
+  if (result.isToMaker || result.isToUser || result.orbiterX) {
+    result.intercept = false;
+  }
+  return result;
+}
 export async function processSubTxList(
   ctx: Context,
   txlist: Array<ITransaction>,
@@ -40,8 +77,7 @@ export async function processSubTxList(
       const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
         ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${
-            tx.status
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
           }`,
         );
       } else {
@@ -82,8 +118,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -155,21 +190,11 @@ export async function bulkCreateTransaction(
     };
     const originFrom: string = originReplyAddress(ctx, tx.from);
     const originTo: string = originReplyAddress(ctx, tx.to);
-    const isOrbiterX = !!(tx.source == "xvm" && txExtra?.xvm);
-    const isMakerSend = !!ctx.makerConfigs.find(
-      item =>
-        equals(item.sender, originFrom) ||
-        equals(item.crossAddress?.sender, originFrom),
-    );
-    const isUserSend = !!ctx.makerConfigs.find(
-      item =>
-        equals(item.recipient, originTo) ||
-        equals(item.crossAddress?.recipient, originTo),
-    );
-    if (!isMakerSend && !isUserSend && !isOrbiterX) {
-      return [] as any[];
+    const {isToMaker,isToUser,orbiterX,intercept} = await validateTransactionSpecifications(ctx, tx);
+    if (intercept) {
+      return [];
     }
-    if (isMakerSend) {
+    if (isToUser) {
       txData.side = 1;
       // maker send
       txData.replyAccount = txData.to;
@@ -183,28 +208,7 @@ export async function bulkCreateTransaction(
         String(txData.value),
       );
       saveExtra.toSymbol = txData.symbol;
-      // const count: any = await ctx.models.Transaction.count(<any>{
-      //   where: {
-      //     transferId: txData.transferId,
-      //   },
-      // });
-      // if (!count) {
-      //   // backtrack
-      //   const userTx = await ctx.models.Transaction.findOne(<any>{
-      //     where: {
-      //       replyAccount: txData.replyAccount,
-      //       chainId: txData.chainId,
-      //       nonce: txData.memo,
-      //     },
-      //   });
-      //   if (userTx) {
-      //     txData.transferId = userTx.transferId;
-      //     txData.status = 95;
-      //     userTx.status = 95;
-      //     upsertList.push(userTx);
-      //   }
-      // }
-    } else if (isUserSend) {
+    } else if (isToMaker) {
       txData.side = 0;
       const fromChainId = Number(txData.chainId);
       const toChainId = Number(txData.memo);
@@ -282,7 +286,7 @@ export async function bulkCreateTransaction(
     ) {
       txData.status = TransactionStatus.COMPLETE;
     }
-    if (tx.source == "xvm" && txExtra?.xvm) {
+    if (orbiterX) {
       await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);
     }
     txData.extra = saveExtra;

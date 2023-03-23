@@ -39,19 +39,17 @@ export async function processSubTxList(
       }
       const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
-        console.log(
-          `match result${tx.side ? "1" : "2"}: already processed`,
-          tx.hash,
-          tx.status,
+        ctx.logger.info(
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status}`,
         );
       } else {
         let result: any;
         if (tx.side === 0) {
           result = await processUserSendMakerTx(ctx, tx as any);
-          console.log(`match result1:${tx.hash}`, result);
+          ctx.logger.info(`match result1:${tx.hash} ${JSON.stringify(result)}`);
         } else if (tx.side === 1) {
           result = await processMakerSendUserTx(ctx, tx as any);
-          console.log(`match result2:${tx.hash}`, result);
+          ctx.logger.info(`match result2:${tx.hash} ${JSON.stringify(result)}`);
         }
         if (result?.code === 0) {
           await ctx.setCache(`subTx_${tx.hash}_${tx.status}`, 1);
@@ -173,12 +171,12 @@ export async function bulkCreateTransaction(
       txData.replyAccount = txData.to;
       txData.replySender = txData.from;
       let originReplySender: string = <string>txData.from;
-      if (
-        ctx.config.crossAddressTransferMap[originReplySender?.toLowerCase()]
-      ) {
-        originReplySender =
-          ctx.config.crossAddressTransferMap[originReplySender.toLowerCase()];
-      }
+      // if (
+      //   ctx.config.crossAddressTransferMap[originReplySender?.toLowerCase()]
+      // ) {
+      //   originReplySender =
+      //     ctx.config.crossAddressTransferMap[originReplySender.toLowerCase()];
+      // }
       txData.transferId = TranferId(
         String(txData.chainId),
         String(originReplySender),

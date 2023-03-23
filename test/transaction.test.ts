@@ -19,9 +19,9 @@ dayjs.extend(utc);
 
 // const chainId = "5";
 // const hash = "0x7ea5555bb72a353dfaff46111887a62fa117bb7a1208f883ba74913789d53d87";
-const chainId = "7";
+const chainId = "514";
 const hash =
-  "0xea70a50e43bd364479d381350cc0fa36c863ccf2981637342c4d58b83af721c6";
+  "0x7417cb4dd658ff766157ad4e69b7f397ddce1f51379a5c86a6fa1883fe1c161a";
 
 let chainConfig: IChainCfg;
 let web3: any;
@@ -42,12 +42,12 @@ describe("Transaction test", function () {
     const tx: ITransaction | null = await imitateChainCoreTx(hash);
     const value = tx?.value?.toString();
     console.log("value ===>>", value);
-    console.log("Tx =====>>>", tx);
     if (!tx) {
       return;
     }
-    await processSubTxList(ctx, [tx]);
+    const saveList: any[] = await processSubTxList(ctx, [tx]);
     console.log(
+      saveList,
       "---------------------------- exec end ----------------------------",
     );
   });

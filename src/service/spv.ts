@@ -92,7 +92,7 @@ export class SPV {
     return { hex, leaf };
   }
   public async start() {
-    const chainGroup = groupWatchAddressByChain(this.ctx.makerConfigs);
+    const chainGroup = groupWatchAddressByChain(this.ctx,this.ctx.makerConfigs);
     console.log("chainGroup：", chainGroup);
     for (const chainId in chainGroup) {
       const defaultLeafs = [

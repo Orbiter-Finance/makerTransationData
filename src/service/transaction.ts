@@ -190,7 +190,7 @@ export async function bulkCreateTransaction(
     };
     const originFrom: string = originReplyAddress(ctx, tx.from);
     const originTo: string = originReplyAddress(ctx, tx.to);
-    const {isToMaker,isToUser,orbiterX,intercept} = await validateTransactionSpecifications(ctx, tx);
+    const { isToMaker, isToUser, orbiterX, intercept } = await validateTransactionSpecifications(ctx, tx);
     if (intercept) {
       return [];
     }
@@ -722,13 +722,8 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
-  const originFrom: string = originReplyAddress(ctx, makerTx.from);
-  const makerConfig = ctx.makerConfigs.find(
-    item =>
-      equals(item.sender, originFrom) ||
-      equals(item.crossAddress?.sender, originFrom),
-  );
-  if (isEmpty(makerConfig)) {
+  const { intercept } = await validateTransactionSpecifications(ctx, makerTx as any);
+  if (intercept) {
     return {
       errmsg: `MakerTx ${makerTx.hash} Not Find Maker Address`,
     };
@@ -766,9 +761,30 @@ export async function processMakerSendUserTx(
       status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(4, "hour").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(6, "hour").toDate(),
       },
-    };
+    }
+    if (Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)) {
+      const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
+      const ids = [];
+      for (const orginMaker in crossAddressTransferMap) {
+        if (equals(crossAddressTransferMap[orginMaker], makerTx.from)) {
+          // oether maker transfer 
+          ids.push(TranferId(
+            String(makerTx.chainId),
+            String(orginMaker),
+            String(makerTx.replyAccount),
+            String(makerTx.memo),
+            String(makerTx.symbol),
+            String(makerTx.value),
+          ))
+          break;
+        }
+      }
+      where.transferId = ids;
+    }
+
+
     if (makerTx.source == "xvm") {
       try {
         const extra: any = makerTx.extra;
@@ -785,6 +801,7 @@ export async function processMakerSendUserTx(
       attributes: [
         "id",
         "from",
+        'hash',
         "to",
         "chainId",
         "symbol",

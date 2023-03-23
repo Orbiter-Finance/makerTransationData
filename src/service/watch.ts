@@ -74,7 +74,7 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
+    const startAt = dayjs().subtract(12, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 1,
@@ -90,7 +90,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
-        limit: 200,
+        limit: 600,
         where,
       });
       console.log(

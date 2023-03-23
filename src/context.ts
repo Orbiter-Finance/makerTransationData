@@ -23,11 +23,12 @@ export class Context {
     chains: [],
     chainsTokens: [],
     subgraphEndpoint: "",
+    // Address should be in lowercase !!!
     crossAddressTransferMap: {
       "0x3fbd1e8cfc71b5b8814525e7129a3f41870a238b":
         "0x0043d60e87c5dd08c86c3123340705a1556c4719",
-      "0x0043d60e87c5dd08c86c3123340705a1556c4719":
-        "0x3fbd1e8cfc71b5b8814525e7129a3f41870a238b",
+      "0xa5f46d60f4f08f11a5495f8c1011537718e188fe":
+        "0x0043d60e87c5dd08c86c3123340705a1556c4719",
       "0x07c57808b9cea7130c44aab2f8ca6147b04408943b48c6d8c3c83eb8cfdd8c0b":
         "0x06d1d401ae235ba01e5d8a6ade82a0f17aba7db4f8780194b4d65315071be10b", // eth
       "0x001709eA381e87D4c9ba5e4A67Adc9868C05e82556A53FD1b3A8b1F21e098143":

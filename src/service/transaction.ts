@@ -37,10 +37,12 @@ export async function processSubTxList(
         ctx.logger.error(`Id non-existent`, tx);
         continue;
       }
-      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
+      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}_1`);
       if (txCache) {
         ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status}`,
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${
+            tx.status
+          }`,
         );
       } else {
         let result: any;
@@ -151,16 +153,18 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
+    const originFrom: string = originReplyAddress(ctx, tx.from);
+    const originTo: string = originReplyAddress(ctx, tx.to);
     const isOrbiterX = !!(tx.source == "xvm" && txExtra?.xvm);
     const isMakerSend = !!ctx.makerConfigs.find(
       item =>
-        equals(item.sender, tx.from) ||
-        equals(item.crossAddress?.sender, tx.from),
+        equals(item.sender, originFrom) ||
+        equals(item.crossAddress?.sender, originFrom)
     );
     const isUserSend = !!ctx.makerConfigs.find(
       item =>
-        equals(item.recipient, tx.to) ||
-        equals(item.crossAddress?.recipient, tx.to),
+        equals(item.recipient, originTo) ||
+        equals(item.crossAddress?.recipient, originTo),
     );
     if (!isMakerSend && !isUserSend && !isOrbiterX) {
       return [] as any[];
@@ -169,17 +173,10 @@ export async function bulkCreateTransaction(
       txData.side = 1;
       // maker send
       txData.replyAccount = txData.to;
-      txData.replySender = txData.from;
-      let originReplySender: string = <string>txData.from;
-      // if (
-      //   ctx.config.crossAddressTransferMap[originReplySender?.toLowerCase()]
-      // ) {
-      //   originReplySender =
-      //     ctx.config.crossAddressTransferMap[originReplySender.toLowerCase()];
-      // }
+      txData.replySender = originFrom;
       txData.transferId = TranferId(
         String(txData.chainId),
-        String(originReplySender),
+        String(txData.replySender),
         String(txData.replyAccount),
         String(txData.memo),
         String(txData.symbol),
@@ -256,7 +253,7 @@ export async function bulkCreateTransaction(
           toTokenAddress: market.toChain?.tokenAddress,
         };
         saveExtra.toSymbol = market.toChain.symbol;
-        txData.replySender = market.sender;
+        txData.replySender = originTo;
         // calc response amount
         try {
           txData.expectValue = String(
@@ -575,10 +572,11 @@ export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
 ) {
+  const originTo: string = originReplyAddress(ctx, userTx.to);
   const makerConfig = ctx.makerConfigs.find(
     item =>
-      equals(item.recipient, userTx.to) ||
-      equals(item.crossAddress?.recipient, userTx.to),
+      equals(item.recipient, originTo) ||
+      equals(item.crossAddress?.recipient, originTo),
   );
   if (isEmpty(makerConfig)) {
     ctx.logger.error(`UserTx %s Not Find Maker Address`, userTx.hash);
@@ -718,10 +716,11 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
+  const originFrom: string = originReplyAddress(ctx, makerTx.from);
   const makerConfig = ctx.makerConfigs.find(
     item =>
-      equals(item.sender, makerTx.from) ||
-      equals(item.crossAddress?.sender, makerTx.from),
+      equals(item.sender, originFrom) ||
+      equals(item.crossAddress?.sender, originFrom),
   );
   if (isEmpty(makerConfig)) {
     ctx.logger.error(`MakerTx %s Not Find Maker Address`, makerTx.hash);
@@ -851,4 +850,14 @@ export async function processMakerSendUserTx(
       errmsg: error,
     };
   }
+}
+
+function originReplyAddress(ctx: Context, address: string) {
+  if (
+    ctx.config.crossAddressTransferMap[address?.toLowerCase()]
+  ) {
+    address =
+      ctx.config.crossAddressTransferMap[address.toLowerCase()];
+  }
+  return address;
 }

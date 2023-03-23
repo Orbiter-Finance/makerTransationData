@@ -16,7 +16,7 @@ export class Watch {
   public async start() {
     const ctx = this.ctx;
     try {
-      const chainGroup = groupWatchAddressByChain(ctx.makerConfigs);
+      const chainGroup = groupWatchAddressByChain(ctx, ctx.makerConfigs);
 
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {

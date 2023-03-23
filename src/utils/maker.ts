@@ -8,6 +8,7 @@ import makerMain from "../config/maker.json";
 import chainTest from "../config/chainTest.json";
 import makerTest from "../config/makerTest.json";
 import { isProd } from "../config/config";
+import { Context } from "../context";
 
 export const chain: IChainCfg[] = <any[]>(isProd() ? chainMain : chainTest);
 export const maker: IMakerCfg = <any>(isProd() ? makerMain : makerTest);
@@ -86,7 +87,7 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   });
   return marketList.filter(row => !isEmpty(row)) as any;
 }
-export function groupWatchAddressByChain(makerList: Array<IMarket>): {
+export function groupWatchAddressByChain(ctx: Context, makerList: Array<IMarket>): {
   [key: string]: Array<string>;
 } {
   const chainIds = uniq(
@@ -94,12 +95,21 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
   );
   const chain: any = {};
   for (const id of chainIds) {
+    // 
     const recipientAddress = uniq(
       makerList.filter(m => m.fromChain.id === id).map(m => m.recipient),
     );
     const senderAddress = uniq(
       makerList.filter(m => m.toChain.id === id).map(m => m.sender),
     );
+    const crossAddressTransfers = [];
+    // maker json
+    for (const addr of senderAddress) {
+      if (ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]) {
+        crossAddressTransfers.push(addr);
+      }
+    }
+
     // const crossRecipientAddress = uniq(
     //   makerList
     //     .filter(m => m.fromChain.id === id)
@@ -113,6 +123,7 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
     chain[id] = uniq([
       ...senderAddress,
       ...recipientAddress,
+      ...crossAddressTransfers,
       // ...crossRecipientAddress,
       // ...crossSenderAddress,
     ]);

@@ -82,8 +82,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -583,7 +582,9 @@ export async function processUserSendMakerTx(
       equals(item.crossAddress?.recipient, userTx.to),
   );
   if (isEmpty(makerConfig)) {
-    ctx.logger.error(`UserTx %s Not Find Maker Address`, userTx.hash);
+    return {
+      errmsg: `UserTx ${userTx.hash} Not Find Maker Address`,
+    }
   }
 
   let t: sequelize.Transaction | undefined;
@@ -726,7 +727,9 @@ export async function processMakerSendUserTx(
       equals(item.crossAddress?.sender, makerTx.from),
   );
   if (isEmpty(makerConfig)) {
-    ctx.logger.error(`MakerTx %s Not Find Maker Address`, makerTx.hash);
+    return {
+      errmsg: `MakerTx ${makerTx.hash} Not Find Maker Address`,
+    };
   }
 
   let t: sequelize.Transaction | undefined;

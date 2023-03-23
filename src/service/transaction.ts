@@ -159,7 +159,7 @@ export async function bulkCreateTransaction(
     const isMakerSend = !!ctx.makerConfigs.find(
       item =>
         equals(item.sender, originFrom) ||
-        equals(item.crossAddress?.sender, originFrom)
+        equals(item.crossAddress?.sender, originFrom),
     );
     const isUserSend = !!ctx.makerConfigs.find(
       item =>
@@ -853,11 +853,8 @@ export async function processMakerSendUserTx(
 }
 
 function originReplyAddress(ctx: Context, address: string) {
-  if (
-    ctx.config.crossAddressTransferMap[address?.toLowerCase()]
-  ) {
-    address =
-      ctx.config.crossAddressTransferMap[address.toLowerCase()];
+  if (ctx.config.crossAddressTransferMap[address?.toLowerCase()]) {
+    address = ctx.config.crossAddressTransferMap[address.toLowerCase()];
   }
   return address;
 }

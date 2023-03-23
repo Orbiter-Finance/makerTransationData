@@ -106,7 +106,7 @@ export function groupWatchAddressByChain(ctx: Context, makerList: Array<IMarket>
     // maker json
     for (const addr of senderAddress) {
       if (ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]) {
-        crossAddressTransfers.push(addr);
+        crossAddressTransfers.push(ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]);
       }
     }
 

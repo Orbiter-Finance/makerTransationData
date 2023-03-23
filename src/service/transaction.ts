@@ -37,7 +37,7 @@ export async function processSubTxList(
         ctx.logger.error(`Id non-existent`, tx);
         continue;
       }
-      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}_1`);
+      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
         ctx.logger.info(
           `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${

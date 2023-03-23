@@ -5,8 +5,8 @@ import BigNumber from "bignumber.js";
 import { processSubTxList } from "./transaction";
 
 const makerTxChannel = "chaincore_maker_txlist";
-const txQueueName = "chaincore_tx_list";
-const txRoutingKeyName = "chaincore_txlist";
+const txQueueName = process.env['MTX_QUEUE'] || "chaincore_tx_list";
+const txRoutingKeyName = "";
 const txExchangeName = "chaincore_exchange";
 
 export default class MQProducer {

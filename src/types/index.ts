@@ -34,9 +34,6 @@ export interface IMarket {
   };
 }
 export interface Config {
-  L1L2Mapping: {
-    [key: string]: string;
-  };
   crossAddressTransferMap: {
     [key: string]: string;
   };

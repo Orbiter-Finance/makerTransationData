@@ -80,8 +80,7 @@ export async function processSubTxList(
       const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
         ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${
-            tx.status
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
           }`,
         );
       } else {
@@ -122,8 +121,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -193,8 +191,6 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    const originFrom: string = originReplyAddress(ctx, tx.from);
-    const originTo: string = originReplyAddress(ctx, tx.to);
     const { isToMaker, isToUser, orbiterX, intercept } =
       await validateTransactionSpecifications(ctx, tx);
     if (intercept) {
@@ -204,7 +200,7 @@ export async function bulkCreateTransaction(
       txData.side = 1;
       // maker send
       txData.replyAccount = txData.to;
-      txData.replySender = originFrom;
+      txData.replySender = tx.from;
       txData.transferId = TranferId(
         String(txData.chainId),
         String(txData.replySender),
@@ -263,7 +259,7 @@ export async function bulkCreateTransaction(
           toTokenAddress: market.toChain?.tokenAddress,
         };
         saveExtra.toSymbol = market.toChain.symbol;
-        txData.replySender = originTo;
+        txData.replySender = market.sender;
         // calc response amount
         try {
           txData.expectValue = String(
@@ -582,15 +578,13 @@ export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
 ) {
-  const originTo: string = originReplyAddress(ctx, userTx.to);
-  const makerConfig = ctx.makerConfigs.find(
-    item =>
-      equals(item.recipient, originTo) ||
-      equals(item.crossAddress?.recipient, originTo),
+  const { intercept } = await validateTransactionSpecifications(
+    ctx,
+    userTx as any,
   );
-  if (isEmpty(makerConfig)) {
+  if (intercept) {
     return {
-      errmsg: `UserTx ${userTx.hash} Not Find Maker Address`,
+      errmsg: `MakerTx ${userTx.hash} Not Find Maker Address`,
     };
   }
 
@@ -599,16 +593,18 @@ export async function processUserSendMakerTx(
     if (!userTx || isEmpty(userTx.id)) {
       throw new Error("Missing Id Or Transaction does not exist");
     }
-    if (!userTx || isEmpty(userTx.transferId)) {
-      userTx.transferId = TranferId(
-        String(userTx.memo),
-        String(userTx.replySender),
-        String(userTx.replyAccount),
-        String(userTx.nonce),
-        String(userTx.symbol),
-        String(userTx.expectValue),
-      );
-    }
+    console.log('userTx.transferId before--', userTx.transferId);
+    // if (!userTx || isEmpty(userTx.transferId)) {
+    userTx.transferId = TranferId(
+      String(userTx.memo),
+      String(userTx.replySender),
+      String(userTx.replyAccount),
+      String(userTx.nonce),
+      String(userTx.symbol),
+      String(userTx.expectValue),
+    );
+    // }
+    console.log(userTx.transferId, '===userTx.transferId after')
 
     const relInOut = (<any>userTx)["maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
@@ -808,11 +804,12 @@ export async function processMakerSendUserTx(
         };
       }
     }
+    console.log(where, '======');
     const userSendTx = await models.Transaction.findOne({
       attributes: [
         "id",
         "from",
-        'hash',
+        "hash",
         "to",
         "chainId",
         "symbol",
@@ -833,7 +830,6 @@ export async function processMakerSendUserTx(
         errmsg: "User transaction not found",
       };
     }
-
     const upsertData: Partial<InferAttributes<MakerTransaction>> = {
       inId: userSendTx.id,
       outId: makerTx.id,

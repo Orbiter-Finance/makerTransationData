@@ -604,15 +604,18 @@ export async function processUserSendMakerTx(
       String(userTx.symbol),
       String(userTx.expectValue),
     );
-    if (transferId!=userTx.transferId) {
+    if (transferId != userTx.transferId) {
       userTx.transferId = transferId;
-      await ctx.models.Transaction.update({
-        transferId
-      }, {
-        where: {
-          id: userTx.id
-        }
-      });
+      await ctx.models.Transaction.update(
+        {
+          transferId,
+        },
+        {
+          where: {
+            id: userTx.id,
+          },
+        },
+      );
     }
     // }
     const relInOut = (<any>userTx)["maker_transaction"];

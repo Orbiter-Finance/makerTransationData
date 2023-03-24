@@ -35,6 +35,7 @@ export async function validateTransactionSpecifications(
     isToMaker: false,
     isToUser: false,
     intercept: true,
+    isToUserCrossAddress: false
   };
   if (isOrbiterX) {
     result.orbiterX = true;
@@ -48,7 +49,7 @@ export async function validateTransactionSpecifications(
     result.isToUser = true;
   }
   if (Object.values(ctx.config.crossAddressTransferMap).includes(tx.from)) {
-    result.isToUser = true;
+    result.isToUserCrossAddress = true;
   }
   const isUserSend = !!ctx.makerConfigs.find(
     item =>
@@ -58,10 +59,7 @@ export async function validateTransactionSpecifications(
   if (isUserSend) {
     result.isToMaker = true;
   }
-  if (Object.keys(ctx.config.crossAddressTransferMap).includes(tx.to)) {
-    result.isToMaker = true;
-  }
-  if (result.isToMaker || result.isToUser || result.orbiterX) {
+  if (result.isToMaker || result.isToUser || result.orbiterX || result.isToUserCrossAddress) {
     result.intercept = false;
   }
   return result;
@@ -596,27 +594,27 @@ export async function processUserSendMakerTx(
       throw new Error("Missing Id Or Transaction does not exist");
     }
     // if (!userTx || isEmpty(userTx.transferId)) {
-    const transferId = TranferId(
-      String(userTx.memo),
-      String(userTx.replySender),
-      String(userTx.replyAccount),
-      String(userTx.nonce),
-      String(userTx.symbol),
-      String(userTx.expectValue),
-    );
-    if (transferId != userTx.transferId) {
-      userTx.transferId = transferId;
-      await ctx.models.Transaction.update(
-        {
-          transferId,
-        },
-        {
-          where: {
-            id: userTx.id,
-          },
-        },
-      );
-    }
+    // const transferId = TranferId(
+    //   String(userTx.memo),
+    //   String(userTx.replySender),
+    //   String(userTx.replyAccount),
+    //   String(userTx.nonce),
+    //   String(userTx.symbol),
+    //   String(userTx.expectValue),
+    // );
+    // if (transferId != userTx.transferId) {
+    //   userTx.transferId = transferId;
+    //   await ctx.models.Transaction.update(
+    //     {
+    //       transferId,
+    //     },
+    //     {
+    //       where: {
+    //         id: userTx.id,
+    //       },
+    //     },
+    //   );
+    // }
     // }
     const relInOut = (<any>userTx)["maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
@@ -646,9 +644,24 @@ export async function processUserSendMakerTx(
       userTx.symbol,
       dayjs(userTx.timestamp).valueOf(),
     );
-
+     const transferId1 = TranferId(
+        String(userTx.memo),
+        String(userTx.replySender),
+        String(userTx.replyAccount),
+        String(userTx.nonce),
+        String(userTx.symbol),
+        String(userTx.expectValue),
+      );
+    const transferId2 = TranferId(
+        String(userTx.memo),
+        String(userTx.to),
+        String(userTx.replyAccount),
+        String(userTx.nonce),
+        String(userTx.symbol),
+        String(userTx.expectValue),
+      );
     const where = {
-      transferId: userTx.transferId,
+      transferId: [transferId1, userTx.transferId,transferId2],
       status: [0, 1, 95],
       side: 1,
       timestamp: {

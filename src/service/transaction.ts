@@ -80,7 +80,8 @@ export async function processSubTxList(
       const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
         ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${
+            tx.status
           }`,
         );
       } else {
@@ -121,7 +122,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
+          tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -593,9 +595,8 @@ export async function processUserSendMakerTx(
     if (!userTx || isEmpty(userTx.id)) {
       throw new Error("Missing Id Or Transaction does not exist");
     }
-    console.log('userTx.transferId before--', userTx.transferId);
     // if (!userTx || isEmpty(userTx.transferId)) {
-    userTx.transferId = TranferId(
+    const transferId = TranferId(
       String(userTx.memo),
       String(userTx.replySender),
       String(userTx.replyAccount),
@@ -603,9 +604,17 @@ export async function processUserSendMakerTx(
       String(userTx.symbol),
       String(userTx.expectValue),
     );
+    if (transferId!=userTx.transferId) {
+      userTx.transferId = transferId;
+      await ctx.models.Transaction.update({
+        transferId
+      }, {
+        where: {
+          id: userTx.id
+        }
+      });
+    }
     // }
-    console.log(userTx.transferId, '===userTx.transferId after')
-
     const relInOut = (<any>userTx)["maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
       ctx.logger.error(`UserTx %s Already matched`, userTx.hash);
@@ -760,6 +769,15 @@ export async function processMakerSendUserTx(
         errmsg: `${makerTx.hash} Current status cannot match`,
       };
     }
+    const transferId = TranferId(
+      String(makerTx.chainId),
+      String(makerTx.replySender),
+      String(makerTx.replyAccount),
+      String(makerTx.memo),
+      String(makerTx.symbol),
+      String(makerTx.value),
+    );
+    makerTx.transferId = transferId;
     const models = ctx.models;
     const where: any = {
       transferId: makerTx.transferId,
@@ -804,7 +822,6 @@ export async function processMakerSendUserTx(
         };
       }
     }
-    console.log(where, '======');
     const userSendTx = await models.Transaction.findOne({
       attributes: [
         "id",

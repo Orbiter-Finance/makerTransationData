@@ -25,14 +25,17 @@ import { ethers } from "ethers";
 import sequelize from "sequelize";
 import { isProd } from "../config/config";
 const bootTime = Date.now();
-export async function validateTransactionSpecifications(ctx: Context, tx: ITransaction) {
-  const isOrbiterX = tx.source == "xvm"; // temp 
+export async function validateTransactionSpecifications(
+  ctx: Context,
+  tx: ITransaction,
+) {
+  const isOrbiterX = tx.source == "xvm"; // temp
   const result = {
     orbiterX: false,
     isToMaker: false,
     isToUser: false,
-    intercept: true
-  }
+    intercept: true,
+  };
   if (isOrbiterX) {
     result.orbiterX = true;
   }
@@ -77,7 +80,8 @@ export async function processSubTxList(
       const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
         ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${
+            tx.status
           }`,
         );
       } else {
@@ -118,7 +122,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
+          tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -190,7 +195,8 @@ export async function bulkCreateTransaction(
     };
     const originFrom: string = originReplyAddress(ctx, tx.from);
     const originTo: string = originReplyAddress(ctx, tx.to);
-    const { isToMaker, isToUser, orbiterX, intercept } = await validateTransactionSpecifications(ctx, tx);
+    const { isToMaker, isToUser, orbiterX, intercept } =
+      await validateTransactionSpecifications(ctx, tx);
     if (intercept) {
       return [];
     }
@@ -722,7 +728,10 @@ export async function processMakerSendUserTx(
   ctx: Context,
   makerTx: Transaction,
 ) {
-  const { intercept } = await validateTransactionSpecifications(ctx, makerTx as any);
+  const { intercept } = await validateTransactionSpecifications(
+    ctx,
+    makerTx as any,
+  );
   if (intercept) {
     return {
       errmsg: `MakerTx ${makerTx.hash} Not Find Maker Address`,
@@ -763,27 +772,29 @@ export async function processMakerSendUserTx(
       timestamp: {
         [Op.lte]: dayjs(makerTx.timestamp).add(6, "hour").toDate(),
       },
-    }
-    if (Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)) {
+    };
+    if (
+      Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)
+    ) {
       const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
       const ids = [];
       for (const orginMaker in crossAddressTransferMap) {
         if (equals(crossAddressTransferMap[orginMaker], makerTx.from)) {
-          // oether maker transfer 
-          ids.push(TranferId(
-            String(makerTx.chainId),
-            String(orginMaker),
-            String(makerTx.replyAccount),
-            String(makerTx.memo),
-            String(makerTx.symbol),
-            String(makerTx.value),
-          ))
-          break;
+          // oether maker transfer
+          ids.push(
+            TranferId(
+              String(makerTx.chainId),
+              String(orginMaker),
+              String(makerTx.replyAccount),
+              String(makerTx.memo),
+              String(makerTx.symbol),
+              String(makerTx.value),
+            ),
+          );
         }
       }
       where.transferId = ids;
     }
-
 
     if (makerTx.source == "xvm") {
       try {

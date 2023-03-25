@@ -35,7 +35,7 @@ export async function validateTransactionSpecifications(
     isToMaker: false,
     isToUser: false,
     intercept: true,
-    isToUserCrossAddress: false
+    isToUserCrossAddress: false,
   };
   if (isOrbiterX) {
     result.orbiterX = true;
@@ -48,7 +48,7 @@ export async function validateTransactionSpecifications(
   if (isMakerSend) {
     result.isToUser = true;
   }
-  if (Object.values(ctx.config.crossAddressTransferMap).includes(tx.from)) {
+  if (Object.values(ctx.config.crossAddressTransferMap).includes(tx.from.toLocaleLowerCase())) {
     result.isToUserCrossAddress = true;
   }
   const isUserSend = !!ctx.makerConfigs.find(
@@ -59,7 +59,12 @@ export async function validateTransactionSpecifications(
   if (isUserSend) {
     result.isToMaker = true;
   }
-  if (result.isToMaker || result.isToUser || result.orbiterX || result.isToUserCrossAddress) {
+  if (
+    result.isToMaker ||
+    result.isToUser ||
+    result.orbiterX ||
+    result.isToUserCrossAddress
+  ) {
     result.intercept = false;
   }
   return result;
@@ -78,23 +83,17 @@ export async function processSubTxList(
       const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
       if (txCache) {
         ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${
-            tx.status
+          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
           }`,
         );
-      } else {
-        let result: any;
-        if (tx.side === 0) {
-          result = await processUserSendMakerTx(ctx, tx as any);
-          ctx.logger.info(`match result1:${tx.hash} ${JSON.stringify(result)}`);
-        } else if (tx.side === 1) {
-          result = await processMakerSendUserTx(ctx, tx as any);
-          ctx.logger.info(`match result2:${tx.hash} ${JSON.stringify(result)}`);
-        }
-        if (result?.code === 0) {
-          await ctx.setCache(`subTx_${tx.hash}_${tx.status}`, 1);
-        }
+        continue;
       }
+      if (tx.side === 0) {
+        processUserSendMakerTx(ctx, tx as any);
+      } else if (tx.side === 1) {
+        processMakerSendUserTx(ctx, tx as any);
+      }
+      // }
     } catch (error) {
       console.log(`processUserSendMakerTx error:`, error);
       ctx.logger.error(`processUserSendMakerTx error:`, error);
@@ -120,8 +119,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${
-          tx.hash
+        ` Token Not Found ${tx.tokenAddress} ${tx.chainId} ${tx.hash
         } ${getFormatDate(tx.timestamp)}`,
       );
       continue;
@@ -191,12 +189,23 @@ export async function bulkCreateTransaction(
     const saveExtra: any = {
       ebcId: "",
     };
-    const { isToMaker, isToUser, orbiterX, intercept } =
+    const { isToMaker, isToUser, orbiterX, intercept, isToUserCrossAddress } =
       await validateTransactionSpecifications(ctx, tx);
     if (intercept) {
-      return [];
+      continue;
     }
-    if (isToUser) {
+    console.log('isToUser:', isToUser)
+    console.log('isToMaker:', isToMaker)
+    console.log('orbiterX:', orbiterX)
+    console.log('isToUserCrossAddress:', isToUserCrossAddress)
+    if (!isToUser && !isToMaker && !orbiterX && !isToUserCrossAddress) {
+      ctx.logger.info(
+        `MakerTx ${txData.hash} Not Find Maker Address!`,
+      );
+      continue;
+
+    }
+    if (isToUser || isToUserCrossAddress) {
       txData.side = 1;
       // maker send
       txData.replyAccount = txData.to;
@@ -281,7 +290,6 @@ export async function bulkCreateTransaction(
         }
       }
     }
-
     if (
       [3, 33, 8, 88, 12, 512, 9, 99].includes(Number(txData.chainId)) &&
       txData.status === TransactionStatus.PENDING
@@ -294,26 +302,7 @@ export async function bulkCreateTransaction(
     txData.extra = saveExtra;
     upsertList.push(<any>txData);
   }
-  // log
-  for (const txData of <Transaction[]>upsertList) {
-    const isMakerSend = txData.side;
-    const saveExtra: any = txData.extra;
-    const detail =
-      "detail:" +
-      (txData.source === "xvm"
-        ? JSON.stringify(saveExtra?.xvm || {})
-        : JSON.stringify(saveExtra?.ua || {}));
-    if (isMakerSend) {
-      ctx.logger.info(
-        `maker ${txData.chainId}:${txData.symbol}->${saveExtra?.toSymbol} status:${txData.status} ${txData.source} ${txData.hash}`,
-      );
-    } else {
-      ctx.logger.info(
-        `user ${txData.chainId}:${txData.symbol}->${txData.memo}:${saveExtra?.toSymbol} status:${txData.status} ${txData.source} ${txData.hash} ${detail}`,
-      );
-    }
-  }
-  for (const row of upsertList) {
+  for (const row of   upsertList) {
     try {
       const [newTx, created] = await ctx.models.Transaction.findOrCreate({
         defaults: row,
@@ -338,7 +327,6 @@ export async function bulkCreateTransaction(
       if (created) {
         if (row.side == 0 && row.status == 1) {
           if (isProd() && row.source != "xvm") {
-            console.log("not orbiterX tx, not push mq");
             continue;
           }
           if (new Date(row.timestamp).valueOf() > bootTime) {
@@ -644,24 +632,24 @@ export async function processUserSendMakerTx(
       userTx.symbol,
       dayjs(userTx.timestamp).valueOf(),
     );
-     const transferId1 = TranferId(
-        String(userTx.memo),
-        String(userTx.replySender),
-        String(userTx.replyAccount),
-        String(userTx.nonce),
-        String(userTx.symbol),
-        String(userTx.expectValue),
-      );
+    const transferId1 = TranferId(
+      String(userTx.memo),
+      String(userTx.replySender),
+      String(userTx.replyAccount),
+      String(userTx.nonce),
+      String(userTx.symbol),
+      String(userTx.expectValue),
+    );
     const transferId2 = TranferId(
-        String(userTx.memo),
-        String(userTx.to),
-        String(userTx.replyAccount),
-        String(userTx.nonce),
-        String(userTx.symbol),
-        String(userTx.expectValue),
-      );
+      String(userTx.memo),
+      String(userTx.to),
+      String(userTx.replyAccount),
+      String(userTx.nonce),
+      String(userTx.symbol),
+      String(userTx.expectValue),
+    );
     const where = {
-      transferId: [transferId1, userTx.transferId,transferId2],
+      transferId: [transferId1, userTx.transferId, transferId2],
       status: [0, 1, 95],
       side: 1,
       timestamp: {
@@ -732,6 +720,7 @@ export async function processUserSendMakerTx(
         },
       );
     }
+    
     await ctx.models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
     });
@@ -766,10 +755,19 @@ export async function processMakerSendUserTx(
         errmsg: "Missing Id Or Transaction does not exist",
       };
     }
+      const transferId = TranferId(
+      String(makerTx.chainId),
+      String(makerTx.replySender),
+      String(makerTx.replyAccount),
+      String(makerTx.memo),
+      String(makerTx.symbol),
+      String(makerTx.value),
+    );
+    makerTx.transferId = transferId;
     if (!makerTx || isEmpty(makerTx.transferId)) {
-      return {
-        errmsg: "Missing transferId Or Transaction does not exist",
-      };
+      // return {
+      //   errmsg: "Missing transferId Or Transaction does not exist",
+      // };
     }
     const relInOut = (<any>makerTx)["out_maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
@@ -785,29 +783,21 @@ export async function processMakerSendUserTx(
         errmsg: `${makerTx.hash} Current status cannot match`,
       };
     }
-    const transferId = TranferId(
-      String(makerTx.chainId),
-      String(makerTx.replySender),
-      String(makerTx.replyAccount),
-      String(makerTx.memo),
-      String(makerTx.symbol),
-      String(makerTx.value),
-    );
-    makerTx.transferId = transferId;
+  
     const models = ctx.models;
     const where: any = {
       transferId: makerTx.transferId,
       status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(6, "hour").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
       },
     };
     if (
       Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)
     ) {
       const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
-      const ids = [];
+      const ids = [makerTx.transferId];
       for (const orginMaker in crossAddressTransferMap) {
         if (equals(crossAddressTransferMap[orginMaker], makerTx.from)) {
           // oether maker transfer
@@ -915,11 +905,4 @@ export async function processMakerSendUserTx(
       errmsg: error,
     };
   }
-}
-
-function originReplyAddress(ctx: Context, address: string) {
-  if (ctx.config.crossAddressTransferMap[address?.toLowerCase()]) {
-    address = ctx.config.crossAddressTransferMap[address.toLowerCase()];
-  }
-  return address;
 }

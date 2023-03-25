@@ -5,7 +5,7 @@ import BigNumber from "bignumber.js";
 import { processSubTxList } from "./transaction";
 
 const makerTxChannel = "chaincore_maker_txlist";
-const txQueueName = process.env['MTX_QUEUE'] || "chaincore_tx_list";
+const txQueueName = process.env["MTX_QUEUE"] || "chaincore_tx_list";
 const txRoutingKeyName = "";
 const txExchangeName = "chaincore_exchange";
 
@@ -21,18 +21,7 @@ export default class MQProducer {
     void this.connectionMqServer();
   }
   public async connectionMqServer(): Promise<void> {
-    if (!process.env.RABBITMQ_DEFAULT_HOSTNAME) {
-      throw new Error("Missing configuration rabbitmq");
-    }
-    this.connection = await connect(
-      {
-        protocol: "amqp",
-        hostname: process.env.RABBITMQ_DEFAULT_HOSTNAME || "localhost",
-        port: Number(process.env.RABBITMQ_DEFAULT_PORT) || 5672,
-        vhost: process.env.RABBITMQ_DEFAULT_VHOST || "/",
-        username: process.env.RABBITMQ_DEFAULT_USER || "guest",
-        password: process.env.RABBITMQ_DEFAULT_PASS || "guest",
-      },
+    this.connection = await connect(process.env["RABBIT_MQ"] || "",
       {
         clientProperties: {
           connection_name: `instance: ${this.ctx.instanceId}`,
@@ -93,29 +82,32 @@ export default class MQProducer {
       routingKey,
       Buffer.from(msg),
     );
-    this.ctx.logger.info(`mq send result msg:${msg}, result:${result}`);
+    // this.ctx.logger.info(`mq send result msg:${msg}, result:${result}`);
   }
   public async publishTxList(msg: any) {
-    const channel = this.channels[txRoutingKeyName];
-    if (!channel) {
-      this.ctx.logger.error(`channel txlist not found`);
-      return;
-    }
-    let hashList: any[] = [];
-    try {
-      hashList = (<any[]>msg).map(item => {
-        return { chainId: item.chainId, hash: item.hash };
-      });
-    } catch (e) {}
-    if (typeof msg === "object") {
-      msg = JSON.stringify(msg);
-    }
-    const result = await channel.publish(
-      txExchangeName,
-      txRoutingKeyName,
-      Buffer.from(msg),
-    );
-    this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
+    processSubTxList(this.ctx, msg).catch((error: any) => {
+      this.ctx.logger.error(`processSubTxList error:`, error);
+    });
+    // const channel = this.channels[txRoutingKeyName];
+    // if (!channel) {
+    //   this.ctx.logger.error(`channel txlist not found`);
+    //   return;
+    // }
+    // let hashList: any[] = [];
+    // try {
+    //   hashList = (<any[]>msg).map(item => {
+    //     return { chainId: item.chainId, hash: item.hash };
+    //   });
+    // } catch (e) {}
+    // if (typeof msg === "object") {
+    //   msg = JSON.stringify(msg);
+    // }
+    // const result = await channel.publish(
+    //   txExchangeName,
+    //   txRoutingKeyName,
+    //   Buffer.from(msg),
+    // );
+    // this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
   }
   public async subscribe(self: any) {
     const ctx = self.ctx;

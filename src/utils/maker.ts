@@ -87,7 +87,10 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
   });
   return marketList.filter(row => !isEmpty(row)) as any;
 }
-export function groupWatchAddressByChain(ctx: Context, makerList: Array<IMarket>): {
+export function groupWatchAddressByChain(
+  ctx: Context,
+  makerList: Array<IMarket>,
+): {
   [key: string]: Array<string>;
 } {
   const chainIds = uniq(
@@ -95,7 +98,7 @@ export function groupWatchAddressByChain(ctx: Context, makerList: Array<IMarket>
   );
   const chain: any = {};
   for (const id of chainIds) {
-    // 
+    //
     const recipientAddress = uniq(
       makerList.filter(m => m.fromChain.id === id).map(m => m.recipient),
     );
@@ -106,7 +109,9 @@ export function groupWatchAddressByChain(ctx: Context, makerList: Array<IMarket>
     // maker json
     for (const addr of senderAddress) {
       if (ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]) {
-        crossAddressTransfers.push(ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]);
+        crossAddressTransfers.push(
+          ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()],
+        );
       }
     }
 

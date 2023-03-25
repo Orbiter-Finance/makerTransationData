@@ -6,8 +6,10 @@ import { Context } from "../context";
 import { processMakerSendUserTx, processUserSendMakerTx } from "./transaction";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
+import { processSubTxList } from "./transaction";
+import BigNumber from "bignumber.js";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
+  constructor(public readonly ctx: Context) { }
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -17,7 +19,6 @@ export class Watch {
     const ctx = this.ctx;
     try {
       const chainGroup = groupWatchAddressByChain(ctx, ctx.makerConfigs);
-
       const scanChain = new ScanChainMain(ctx.config.chains);
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
@@ -70,11 +71,13 @@ export class Watch {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
+      // this.readUserTxReMatch()
     }
+
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(12, "hour").startOf("d").toDate();
+    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(10, "second").toDate();
     const where = {
       side: 1,
@@ -89,8 +92,8 @@ export class Watch {
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-        order: [["timestamp", "desc"]],
-        limit: 600,
+        order: [["timestamp", "asc"]],
+        limit: 300,
         where,
       });
       console.log(
@@ -122,8 +125,8 @@ export class Watch {
     }
   }
   public async readUserTxReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(6, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(10, "second").toDate();
+    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
+    const endAt = dayjs().subtract(10, 's').toDate();
     const where = {
       side: 0,
       status: 1,
@@ -138,7 +141,7 @@ export class Watch {
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
         order: [["timestamp", "desc"]],
-        limit: 200,
+        limit: 300,
         where,
       });
       console.log(
@@ -148,14 +151,12 @@ export class Watch {
       );
       let index = 0;
       for (const tx of txList) {
-        const result = await processUserSendMakerTx(this.ctx, tx).catch(
-          error => {
-            this.ctx.logger.error(
-              `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
-              error,
-            );
-          },
-        );
+        const result = await processUserSendMakerTx(this.ctx, tx).catch(error => {
+          this.ctx.logger.error(
+            `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+            error,
+          );
+        });
         console.log(
           `index:${index}/${txList.length},hash:${tx.hash}，result:`,
           result,

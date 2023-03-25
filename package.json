@@ -67,7 +67,7 @@
     "merkletreejs": "^0.2.32",
     "moment": "^2.29.4",
     "mysql2": "^2.3.3",
-    "orbiter-chaincore": "1.3.9-50",
+    "orbiter-chaincore": "^1.3.9-51",
     "patch-package": "^6.5.1",
     "postinstall-postinstall": "^2.1.0",
     "prompt": "^1.3.0",

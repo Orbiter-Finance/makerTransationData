@@ -80,14 +80,14 @@ export async function processSubTxList(
         ctx.logger.error(`Id non-existent`, tx);
         continue;
       }
-      const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
-      if (txCache) {
-        ctx.logger.info(
-          `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
-          }`,
-        );
-        continue;
-      }
+      // const txCache = await ctx.getCache(`subTx_${tx.hash}_${tx.status}`);
+      // if (txCache) {
+      //   ctx.logger.info(
+      //     `match result${tx.side ? "1" : "2"}: already processed ${tx.hash} ${tx.status
+      //     }`,
+      //   );
+      //   continue;
+      // }
       if (tx.side === 0) {
         processUserSendMakerTx(ctx, tx as any);
       } else if (tx.side === 1) {
@@ -194,10 +194,7 @@ export async function bulkCreateTransaction(
     if (intercept) {
       continue;
     }
-    console.log('isToUser:', isToUser)
-    console.log('isToMaker:', isToMaker)
-    console.log('orbiterX:', orbiterX)
-    console.log('isToUserCrossAddress:', isToUserCrossAddress)
+    console.log(`hash:${txData.hash},isToUser=${isToUser},isToMaker=${isToMaker},orbiterX=${orbiterX},isToUserCrossAddress=${isToUserCrossAddress}`)
     if (!isToUser && !isToMaker && !orbiterX && !isToUserCrossAddress) {
       ctx.logger.info(
         `MakerTx ${txData.hash} Not Find Maker Address!`,
@@ -566,15 +563,15 @@ export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction,
 ) {
-  const { intercept } = await validateTransactionSpecifications(
-    ctx,
-    userTx as any,
-  );
-  if (intercept) {
-    return {
-      errmsg: `MakerTx ${userTx.hash} Not Find Maker Address`,
-    };
-  }
+  // const { intercept } = await validateTransactionSpecifications(
+  //   ctx,
+  //   userTx as any,
+  // );
+  // if (intercept) {
+  //   return {
+  //     errmsg: `MakerTx ${userTx.hash} Not Find Maker Address`,
+  //   };
+  // }
 
   let t: sequelize.Transaction | undefined;
   try {

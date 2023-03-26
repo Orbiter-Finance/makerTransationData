@@ -88,26 +88,26 @@ export default class MQProducer {
     processSubTxList(this.ctx, msg).catch((error: any) => {
       this.ctx.logger.error(`processSubTxList error:`, error);
     });
-    // const channel = this.channels[txRoutingKeyName];
-    // if (!channel) {
-    //   this.ctx.logger.error(`channel txlist not found`);
-    //   return;
-    // }
-    // let hashList: any[] = [];
-    // try {
-    //   hashList = (<any[]>msg).map(item => {
-    //     return { chainId: item.chainId, hash: item.hash };
-    //   });
-    // } catch (e) {}
-    // if (typeof msg === "object") {
-    //   msg = JSON.stringify(msg);
-    // }
-    // const result = await channel.publish(
-    //   txExchangeName,
-    //   txRoutingKeyName,
-    //   Buffer.from(msg),
-    // );
-    // this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
+    const channel = this.channels[txRoutingKeyName];
+    if (!channel) {
+      this.ctx.logger.error(`channel txlist not found`);
+      return;
+    }
+    let hashList: any[] = [];
+    try {
+      hashList = (<any[]>msg).map(item => {
+        return { chainId: item.chainId, hash: item.hash };
+      });
+    } catch (e) {}
+    if (typeof msg === "object") {
+      msg = JSON.stringify(msg);
+    }
+    const result = await channel.publish(
+      txExchangeName,
+      txRoutingKeyName,
+      Buffer.from(msg),
+    );
+    this.ctx.logger.info(`create msg: ${JSON.stringify(hashList)} ${result}`);
   }
   public async subscribe(self: any) {
     const ctx = self.ctx;

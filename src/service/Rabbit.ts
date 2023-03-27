@@ -6,7 +6,7 @@ import { processSubTxList } from "./transaction";
 
 const makerTxChannel = "chaincore_maker_txlist";
 const txQueueName = process.env["MTX_QUEUE"] || "chaincore_tx_list";
-const txRoutingKeyName = "";
+const txRoutingKeyName = txQueueName;
 const txExchangeName = "chaincore_exchange";
 
 export default class MQProducer {
@@ -86,7 +86,6 @@ export default class MQProducer {
     processSubTxList(this.ctx, msg).catch((error: any) => {
       this.ctx.logger.error(`processSubTxList error:`, error);
     });
-    console.log(this.channels, '=this.channels')
     const channel = this.channels[txRoutingKeyName];
     if (!channel) {
       this.ctx.logger.error(`channel txlist not found`);
@@ -94,7 +93,7 @@ export default class MQProducer {
     }
     let hashList: any[] = [];
     try {
-      msg = msg.filter((row:any) => row.chainId != "ZKSpace");
+      msg = msg.filter((row: any) => row.chainId != "ZKSpace");
       hashList = (<any[]>msg).map(item => {
         return { chainId: item.chainId, hash: item.hash };
       });

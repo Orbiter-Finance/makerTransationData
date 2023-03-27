@@ -94,6 +94,7 @@ export default class MQProducer {
     }
     let hashList: any[] = [];
     try {
+      msg = msg.filter((row:any) => row.chainId != "ZKSpace");
       hashList = (<any[]>msg).map(item => {
         return { chainId: item.chainId, hash: item.hash };
       });

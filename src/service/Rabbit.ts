@@ -21,13 +21,11 @@ export default class MQProducer {
     void this.connectionMqServer();
   }
   public async connectionMqServer(): Promise<void> {
-    this.connection = await connect(process.env["RABBIT_MQ"] || "",
-      {
-        clientProperties: {
-          connection_name: `instance: ${this.ctx.instanceId}`,
-        },
+    this.connection = await connect(process.env["RABBIT_MQ"] || "", {
+      clientProperties: {
+        connection_name: `instance: ${this.ctx.instanceId}`,
       },
-    );
+    });
     this.ctx.logger.info(
       "RabbitMQ Connection Success:",
       this.connection.connection.serverProperties,
@@ -88,6 +86,7 @@ export default class MQProducer {
     processSubTxList(this.ctx, msg).catch((error: any) => {
       this.ctx.logger.error(`processSubTxList error:`, error);
     });
+    console.log(this.channels, '=this.channels')
     const channel = this.channels[txRoutingKeyName];
     if (!channel) {
       this.ctx.logger.error(`channel txlist not found`);

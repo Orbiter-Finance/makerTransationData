@@ -15,6 +15,7 @@ export class Context {
   public instanceId: number;
   public instanceCount: number;
   public mq!: RabbitMQ;
+  public startTime: number = Date.now();
   public makerConfigs: Array<IMarket> = [];
   public NODE_ENV: "development" | "production" | "test" = <any>(
     (process.env["NODE_ENV"] || "development")

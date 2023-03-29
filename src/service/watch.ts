@@ -22,12 +22,12 @@ export class Watch {
   public async start() {
     const ctx = this.ctx;
     const producer = await this.ctx.mq.createProducer({
-      exchangeName: "makerTransationData",
+      exchangeName: "MakerTransationData",
       exchangeType: "direct",
     });
-
+   
     const consumer = await this.ctx.mq.createConsumer({
-      exchangeName: "makerTransationData",
+      exchangeName: "MakerTransationData",
       exchangeType: "direct",
       queueName: "transactions",
       routingKey: "",
@@ -59,9 +59,9 @@ export class Watch {
           continue;
         }
         this.ctx.mq.bindQueue({
-          exchangeName: "MakerTxList",
+          exchangeName: "MakerWaitPending",
           exchangeType: "direct",
-          queueName: `MakerTxList:${id}`,
+          queueName: `MakerWaitPending:${id}`,
           routingKey: id,
         });
         ctx.logger.info(

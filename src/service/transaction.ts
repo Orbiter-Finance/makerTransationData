@@ -22,7 +22,6 @@ import { IMarket } from "../types";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import sequelize from "sequelize";
-import { isProd } from "../config/config";
 export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
@@ -103,8 +102,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
-          row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -341,8 +339,21 @@ export async function bulkCreateTransaction(
     options,
   );
   //
-  recordList.forEach(row => {
+
+  for (const row of recordList) {
     if (row.side == 0) {
+      if (row.getDataValue("id") && row.source === 'xvm') {
+        // push
+        if (new Date(row.timestamp).valueOf() > ctx.startTime) {
+          const producer = await ctx.mq.createProducer({
+            exchangeName: "MakerTxList",
+            exchangeType: "direct",
+            queueName: `MakerTxList:${row.chainId}`,
+            routingKey: String(row.chainId)
+          });
+          producer.publish(row, String(row.chainId));
+        }
+      }
       ctx.redis
         .multi()
         .hset(
@@ -362,7 +373,7 @@ export async function bulkCreateTransaction(
         )
         .exec();
     }
-  });
+  }
 
   return recordList;
 }

@@ -108,6 +108,13 @@ export class RabbitMQ {
     if (!this.channel) {
       throw new Error("channel not found");
     }
+    if (config.queueName) {
+      const assertQueue = await this.channel?.assertQueue(
+        config.queueName || "",
+        { durable: true },
+      );
+    }
+
     return new Producer(this.channel, config);
   }
   async bindQueue(config: IProducerConfig) {

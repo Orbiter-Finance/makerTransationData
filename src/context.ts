@@ -6,14 +6,15 @@ import { convertChainConfig, convertMakerConfig } from "./utils";
 import { chains } from "orbiter-chaincore";
 import db from "./db";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
-import MQProducer from "./service/Rabbit";
+// import MQProducer from "./service/Rabbit";
+import { RabbitMQ } from "./utils/rabbitMQ";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
   public redis!: Redis;
   public instanceId: number;
   public instanceCount: number;
-  public mq!: MQProducer;
+  public mq!: RabbitMQ;
   public makerConfigs: Array<IMarket> = [];
   public NODE_ENV: "development" | "production" | "test" = <any>(
     (process.env["NODE_ENV"] || "development")
@@ -31,15 +32,14 @@ export class Context {
       "0xe4edb277e41dc89ab076a1f049f4a3efa700bce8":
         "0x646592183ff25a0c44f09896a384004778f831ed",
 
-        "0xd7aa9ba6caac7b0436c91396f22ca5a7f31664fc":
+      "0xd7aa9ba6caac7b0436c91396f22ca5a7f31664fc":
         "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
 
-        "0x41d3d33156ae7c62c094aae2995003ae63f587b3":
+      "0x41d3d33156ae7c62c094aae2995003ae63f587b3":
         "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
 
-        "0x095d2918b03b2e86d68551dcf11302121fb626c9":
+      "0x095d2918b03b2e86d68551dcf11302121fb626c9":
         "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
-        
 
       "0x3fbd1e8cfc71b5b8814525e7129a3f41870a238b":
         "0x0043d60e87c5dd08c86c3123340705a1556c4719",
@@ -51,7 +51,6 @@ export class Context {
         "0x01a316c2a9eece495df038a074781ce3983b4dbda665b951cc52a3025690a448", // dai
     },
   };
-  public channel: any;
   private async initChainConfigs() {
     const configs = <any>convertChainConfig("NODE_APP");
     chains.fill(configs);
@@ -107,13 +106,14 @@ export class Context {
     await this.initChainConfigs();
     // Update LP regularly
     await fetchFileMakerList(this);
-    const chainList = chains.getAllChains();
-    const chainsIds = chainList
-      .filter(
-        row => Number(row.internalId) % this.instanceCount === this.instanceId,
-      )
-      .map(row => row.internalId);
-    this.mq = new MQProducer(this, chainsIds);
+    // const chainList = chains.getAllChains();
+    // const chainsIds = chainList
+    //   .filter(
+    //     row => Number(row.internalId) % this.instanceCount === this.instanceId,
+    //   )
+    //   .map(row => row.internalId);
+    this.mq = new RabbitMQ({ url: String(process.env["RABBIT_MQ"]) });
+    await this.mq.connect();
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

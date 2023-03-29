@@ -115,7 +115,7 @@ export class Transaction extends Model<
           comment: "input",
         },
         status: {
-          type: DataTypes.BOOLEAN,
+          type: DataTypes.INTEGER,
           allowNull: false,
           comment:
             "status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,5=Timers Not Match,99=MatchSuccess,98=MakerDelayTransfer",

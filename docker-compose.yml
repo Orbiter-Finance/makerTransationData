@@ -20,6 +20,7 @@ services:
     links:
       - redis
     volumes:
+      - ./redis/data:/data
       - './runtime:/app/runtime'
       - './pm2.json:/app/pm2.json'
       - './boot-time.txt:/app/boot-time.txt'

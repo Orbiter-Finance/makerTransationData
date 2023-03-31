@@ -418,9 +418,11 @@ export async function bulkCreateTransaction(
           replySender: row.replySender,
           replyAccount: row.replyAccount,
         };
-        await ctx.models.MakerTransaction.upsert(<any>upsertData).catch(error=> {
-          ctx.logger.error(`insert MakerTransaction error`, error);
-        })
+        await ctx.models.MakerTransaction.upsert(<any>upsertData).catch(
+          error => {
+            ctx.logger.error(`insert MakerTransaction error`, error);
+          },
+        );
       } else {
         await processUserSendMakerTx(ctx, row.hash);
       }

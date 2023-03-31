@@ -21,15 +21,17 @@ export class Watch {
   }
   public async start() {
     const ctx = this.ctx;
+    const prefix = process.env['RABBIT_PREFIX'] || "";
+    const exchangeName = `MakerTransationData${prefix}`;
     const producer = await this.ctx.mq.createProducer({
-      exchangeName: "MakerTransationData",
+      exchangeName,
       exchangeType: "direct",
     });
 
     const consumer = await this.ctx.mq.createConsumer({
-      exchangeName: "MakerTransationData",
+      exchangeName,
       exchangeType: "direct",
-      queueName: "transactions",
+      queueName: `transactions${prefix}`,
       routingKey: "",
     });
     consumer.consume(async message => {
@@ -156,7 +158,7 @@ export class Watch {
             error,
           );
         });
-      }, 10000);
+      }, 5000);
     }
     if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {

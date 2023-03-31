@@ -190,8 +190,7 @@ class Consumer {
         this.queueName,
         (message: amqp.ConsumeMessage | null) => {
           if (message !== null) {
-            console.log(
-              `Received message from RabbitMQ `);
+            console.log(`Received message from RabbitMQ `);
             callback(message.content.toString()).then(result => {
               if (result === true) {
                 this.channel.ack(message);

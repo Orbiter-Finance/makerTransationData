@@ -21,7 +21,7 @@ export class Watch {
   }
   public async start() {
     const ctx = this.ctx;
-    const prefix = process.env['RABBIT_PREFIX'] || "";
+    const prefix = process.env["RABBIT_PREFIX"] || "";
     const exchangeName = `MakerTransationData${prefix}`;
     const producer = await this.ctx.mq.createProducer({
       exchangeName,

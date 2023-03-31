@@ -102,8 +102,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
-          row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -305,7 +304,12 @@ export async function bulkCreateTransaction(
       // status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,5=timers not match,99= MatchSuccess,98=makerDelayTransfer
       if (tx.status === 99) {
         // save
-        await ctx.redis.hset("TXHASH_STATUS", String(txData.hash), 99);
+        if (tx.side === 0) {
+          await ctx.redis.multi().hset("TXHASH_STATUS", String(txData.hash), 99).hdel(`UserPendingTx:${txData.memo}`, String(txData.transferId)).exec()
+        } else {
+          await ctx.redis.multi().hset("TXHASH_STATUS", String(txData.hash), 99).zrem(`MakerPendingTx:${txData.chainId}`,String(txData.hash)).exec()
+        }
+
         ctx.logger.info(
           `From DB ${txData.hash} The transaction status has already been matched`,
         );
@@ -355,6 +359,9 @@ export async function bulkCreateTransaction(
   //
 
   for (const row of recordList) {
+    if (row.status == 3) {
+      continue;
+    }
     const isCreated = row.getDataValue("id") > 0;
     const redisT = await ctx.redis.multi();
     if (isCreated) {
@@ -426,7 +433,7 @@ export async function bulkCreateTransaction(
       } else {
         await processUserSendMakerTx(ctx, row.hash);
       }
-    } else {
+    } else if (row.side == 1) {
       redisT.zadd(
         `MakerPendingTx:${row.chainId}`,
         dayjs(row.timestamp).valueOf(),
@@ -703,8 +710,9 @@ export async function processUserSendMakerTx(
       try {
         await ctx.redis
           .multi()
-          .hmset(`TXHASH_STATUS`, [relInOut.inId, 99, relInOut.outId, 99])
+          .hmset(`TXHASH_STATUS`, [userTx.hash, 99])
           .hmset(`TXID_STATUS`, [relInOut.inId, 99, relInOut.outId, 99])
+          .hdel(`UserPendingTx:${userTx.memo}`, userTx.transferId)
           .exec();
       } catch (error) {
         ctx.logger.error(
@@ -1036,10 +1044,10 @@ export async function processMakerSendUserTx(
       );
       await ctx.redis
         .multi()
-        .hmset(`TXHASH_STATUS`, [inId, 99, outId, 99])
+        .hmset(`TXHASH_STATUS`, [inHash, 99, outHash, 99])
         .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
         .zrem(`MakerPendingTx:${makerTx.chainId}`, outHash)
-        .hdel(`UserPendingTx:${userSendTx.memo}`, userSendTx.transferId)
+        .hdel(`UserPendingTx:${makerTx.chainId}`, userSendTx.transferId)
         .exec()
         .catch(error => {
           ctx.logger.error(
@@ -1120,23 +1128,38 @@ export async function processMakerSendUserTxFromCacheByChain(
             ctx.logger.info(
               `cache match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
             );
-            await ctx.models.MakerTransaction.update(
-              {
-                outId,
-              },
-              {
-                where: {
-                  inId,
-                  outId: null,
+            const t = await ctx.models.sequelize.transaction();
+            try {
+              await ctx.models.MakerTransaction.update(
+                {
+                  outId,
                 },
-              },
-            );
+                {
+                  where: {
+                    inId,
+                    outId: null,
+                  },
+                  transaction: t
+                },
+              );
+              await ctx.models.Transaction.update({
+                status: 99
+              }, {
+                where: {
+                  id: [inId, outId],
+                },
+                transaction: t
+              })
+              await t.commit();
+            } catch (error) {
+              await t.rollback();
+            }
             await ctx.redis
               .multi()
-              .hmset(`TXHASH_STATUS`, [inId, 99, outId, 99])
+              .hmset(`TXHASH_STATUS`, [inHash, 99, outHash, 99])
               .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
               .zrem(`MakerPendingTx:${makerTx.chainId}`, outHash)
-              .hdel(`UserPendingTx:${userTx.memo}`, userTx.transferId)
+              .hdel(`UserPendingTx:${makerTx.chainId}`, userTx.transferId)
               .exec()
               .catch(error => {
                 ctx.logger.error(

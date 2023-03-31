@@ -13,7 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Op, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) { }
+  constructor(public readonly ctx: Context) {}
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -71,10 +71,14 @@ export class Watch {
           txList.forEach(tx => {
             try {
               const chainConfig = chains.getChainInfo(String(tx.chainId));
-              const ymd = dayjs(tx.timestamp * 1000).format('YYYYMM');
+              const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
               ctx.redis
                 .multi()
-                .zadd(`TX_RAW:hash:${ymd}`, dayjs(tx.timestamp * 1000).valueOf(), tx.hash)
+                .zadd(
+                  `TX_RAW:hash:${ymd}`,
+                  dayjs(tx.timestamp * 1000).valueOf(),
+                  tx.hash,
+                )
                 .hset(
                   `TX_RAW:${ymd}:${chainConfig?.internalId}`,
                   tx.hash,
@@ -96,10 +100,14 @@ export class Watch {
         if (tx) {
           try {
             const chainConfig = chains.getChainInfo(String(tx.chainId));
-            const ymd = dayjs(tx.timestamp * 1000).format('YYYYMM');
+            const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
             ctx.redis
               .multi()
-              .zadd(`TX_RAW:hash:${ymd}`, dayjs(tx.timestamp * 1000).valueOf(), tx.hash)
+              .zadd(
+                `TX_RAW:hash:${ymd}`,
+                dayjs(tx.timestamp * 1000).valueOf(),
+                tx.hash,
+              )
               .hset(
                 `TX_RAW:${ymd}:${chainConfig?.internalId}`,
                 tx.hash,
@@ -107,7 +115,10 @@ export class Watch {
               )
               .exec();
           } catch (error) {
-            this.ctx.logger.error(`pubSub.subscribe ACCEPTED_ON_L2 error`, error);
+            this.ctx.logger.error(
+              `pubSub.subscribe ACCEPTED_ON_L2 error`,
+              error,
+            );
           }
           const chainConfig = chains.getChainInfo(String(tx.chainId));
           chainConfig &&
@@ -136,19 +147,21 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     // this.readUserTxReMatchNotCreate()
-    if (process.env['DB_MATCH'] === '1') {
+    if (process.env["DB_MATCH"] === "1") {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
-    if (process.env['CACHE_MATCH'] === '1') {
+    if (process.env["CACHE_MATCH"] === "1") {
       setInterval(() => {
         processMakerSendUserTxFromCache(ctx).catch(error => {
-          this.ctx.logger.error("processMakerSendUserTxFromCache error:", error);
+          this.ctx.logger.error(
+            "processMakerSendUserTxFromCache error:",
+            error,
+          );
         });
       }, 10000);
     }
-
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
@@ -166,7 +179,7 @@ export class Watch {
       // read
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
-        attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
+        attributes: { exclude: ["input", "blockHash", "transactionIndex", 'lpId', 'extra', 'makerId', 'gas', 'gasPrice', 'fee'] },
         order: [["timestamp", "desc"]],
         limit: 300,
         where,

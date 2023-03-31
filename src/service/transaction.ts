@@ -102,7 +102,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
+          row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -364,12 +365,11 @@ export async function bulkCreateTransaction(
           producer.publish(row, String(row.chainId));
         }
       }
-      redisT
-        .hset(
-          `UserPendingTx:${row.memo}`,
-          row.transferId,
-          `${row.hash}_${row.chainId}`,
-        )
+      redisT.hset(
+        `UserPendingTx:${row.memo}`,
+        row.transferId,
+        `${row.hash}_${row.chainId}`,
+      );
       if (isCreated && [0, 1].includes(row.status)) {
         const txData = upsertList.find(tx => equals(tx.hash, row.hash));
         if (txData) {
@@ -388,7 +388,7 @@ export async function bulkCreateTransaction(
               replySender: txData.replySender,
               expectValue: txData.expectValue,
             }),
-          )
+          );
         }
         const transcationId = TransactionID(
           String(row.from),
@@ -411,12 +411,11 @@ export async function bulkCreateTransaction(
         await processUserSendMakerTx(ctx, row.hash);
       }
     } else {
-      redisT
-        .zadd(
-          `MakerPendingTx:${row.chainId}`,
-          dayjs(row.timestamp).valueOf(),
-          row.hash,
-        )
+      redisT.zadd(
+        `MakerPendingTx:${row.chainId}`,
+        dayjs(row.timestamp).valueOf(),
+        row.hash,
+      );
     }
     await redisT.exec();
   }
@@ -878,8 +877,12 @@ export async function processMakerSendUserTx(
         .hmset(`TXID_STATUS`, [relInOut.inId, 99, relInOut.outId, 99])
         .zrem(`MakerPendingTx:${makerTx.chainId}`, makerTx.hash)
         .hdel(`UserPendingTx:${makerTx.chainId}`, makerTx.transferId)
-        .exec().catch(error => {
-          ctx.logger.error('processMakerSendUserTxFromCache remove cache erorr', error);
+        .exec()
+        .catch(error => {
+          ctx.logger.error(
+            "processMakerSendUserTxFromCache remove cache erorr",
+            error,
+          );
         });
       return {
         inId: relInOut.inId,
@@ -1021,8 +1024,12 @@ export async function processMakerSendUserTx(
         .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
         .zrem(`MakerPendingTx:${makerTx.chainId}`, outHash)
         .hdel(`UserPendingTx:${userSendTx.memo}`, userSendTx.transferId)
-        .exec().catch(error => {
-          ctx.logger.error('processMakerSendUserTxFromCache remove cache erorr', error);
+        .exec()
+        .catch(error => {
+          ctx.logger.error(
+            "processMakerSendUserTxFromCache remove cache erorr",
+            error,
+          );
         });
     }
     return {
@@ -1049,19 +1056,21 @@ export async function processMakerSendUserTxFromCache(ctx: Context) {
     const hashList = await ctx.redis.zrevrangebyscore(
       `MakerPendingTx:${chain.internalId}`,
       dayjs().valueOf(),
-      dayjs().subtract(30, 'minute').valueOf(),
+      dayjs().subtract(30, "minute").valueOf(),
     );
     // console.log(`chainId:${chain}, hashList:`, hashList);
     for (const hash of hashList) {
       try {
-
         const makerTx: any = await ctx.redis
           .hget(`TX:${chain.internalId}`, hash)
           .then(tx => tx && JSON.parse(tx));
         const transferIdList = [makerTx.transferId];
         for (const primaryMaker in ctx.config.crossAddressTransferMap) {
           if (
-            equals(ctx.config.crossAddressTransferMap[primaryMaker], makerTx.from)
+            equals(
+              ctx.config.crossAddressTransferMap[primaryMaker],
+              makerTx.from,
+            )
           ) {
             // oether maker transfer
             transferIdList.push(
@@ -1092,27 +1101,34 @@ export async function processMakerSendUserTxFromCache(ctx: Context) {
             const outId = makerTx.id;
             const inHash = userTx.hash;
             const outHash = makerTx.hash;
-            // change 
+            // change
             if (inId && outId && inHash && outHash) {
               ctx.logger.info(
                 `cache match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
               );
-              await ctx.models.MakerTransaction.update({
-                outId,
-              }, {
-                where: {
-                  inId,
-                  outId: null
-                }
-              })
+              await ctx.models.MakerTransaction.update(
+                {
+                  outId,
+                },
+                {
+                  where: {
+                    inId,
+                    outId: null,
+                  },
+                },
+              );
               await ctx.redis
                 .multi()
                 .hmset(`TXHASH_STATUS`, [inId, 99, outId, 99])
                 .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
                 .zrem(`MakerPendingTx:${makerTx.chainId}`, outHash)
                 .hdel(`UserPendingTx:${userTx.memo}`, userTx.transferId)
-                .exec().catch(error => {
-                  ctx.logger.error('processMakerSendUserTxFromCache remove cache erorr', error);
+                .exec()
+                .catch(error => {
+                  ctx.logger.error(
+                    "processMakerSendUserTxFromCache remove cache erorr",
+                    error,
+                  );
                 });
             }
           } else {
@@ -1120,7 +1136,10 @@ export async function processMakerSendUserTxFromCache(ctx: Context) {
           }
         }
       } catch (error) {
-        ctx.logger.error(`chain:${chain}, hash:${hash}, processMakerSendUserTxFromCache error`, error);
+        ctx.logger.error(
+          `chain:${chain}, hash:${hash}, processMakerSendUserTxFromCache error`,
+          error,
+        );
       }
     }
   }

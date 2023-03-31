@@ -191,7 +191,8 @@ class Consumer {
         (message: amqp.ConsumeMessage | null) => {
           if (message !== null) {
             console.log(
-              `Received message from RabbitMQ `,message.properties.messageId
+              `Received message from RabbitMQ `,
+              message.properties.messageId,
             );
             callback(message.content.toString()).then(result => {
               if (result === true) {

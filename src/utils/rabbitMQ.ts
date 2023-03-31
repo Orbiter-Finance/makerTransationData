@@ -113,6 +113,11 @@ export class RabbitMQ {
         config.queueName || "",
         { durable: true },
       );
+      await this.channel?.bindQueue(
+        assertQueue?.queue ?? "",
+        config.exchangeName,
+        config.routingKey || "",
+      );
     }
 
     return new Producer(this.channel, config);
@@ -186,10 +191,9 @@ class Consumer {
         (message: amqp.ConsumeMessage | null) => {
           if (message !== null) {
             console.log(
-              `Received message from RabbitMQ: ${message.content.toString()}`,
+              `Received message from RabbitMQ `,message.properties.messageId
             );
             callback(message.content.toString()).then(result => {
-              console.log(result, "===");
               if (result === true) {
                 this.channel.ack(message);
               }
@@ -228,7 +232,7 @@ class Producer {
         routingKey,
         Buffer.from(message),
       );
-      console.log(`Sent message to RabbitMQ: ${message}`);
+      console.log(`Sent message to RabbitMQ`);
     } catch (error) {
       console.error(
         `Failed to send message to RabbitMQ: ${(error as Error).message}`,

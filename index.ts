@@ -9,6 +9,7 @@ export class Application {
   async bootstrap() {
     await this.ctx.init();
     await this.ctx.mq.connect();
+    // process
     const watch = new Watch(this.ctx);
     await watch.start();
   }

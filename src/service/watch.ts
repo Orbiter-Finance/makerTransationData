@@ -13,7 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Op, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
+  constructor(public readonly ctx: Context) { }
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -71,11 +71,12 @@ export class Watch {
           txList.forEach(tx => {
             try {
               const chainConfig = chains.getChainInfo(String(tx.chainId));
+              const ymd = dayjs(tx.timestamp * 1000).format('YYYYMM');
               ctx.redis
                 .multi()
-                .zadd(`TX_RAW_LIST`, dayjs(tx.timestamp).valueOf(), tx.hash)
+                .zadd(`TX_RAW:hash:${ymd}`, dayjs(tx.timestamp * 1000).valueOf(), tx.hash)
                 .hset(
-                  `TX_RAW:${chainConfig?.internalId}`,
+                  `TX_RAW:${ymd}:${chainConfig?.internalId}`,
                   tx.hash,
                   JSON.stringify(tx),
                 )
@@ -95,17 +96,18 @@ export class Watch {
         if (tx) {
           try {
             const chainConfig = chains.getChainInfo(String(tx.chainId));
-            chainConfig &&
-              ctx.redis
-                .hset(`TX_RAW:${chainConfig?.internalId}`, JSON.stringify(tx))
-                .catch(error => {
-                  ctx.logger.error(`save tx to cache error`, error);
-                });
+            const ymd = dayjs(tx.timestamp * 1000).format('YYYYMM');
+            ctx.redis
+              .multi()
+              .zadd(`TX_RAW:hash:${ymd}`, dayjs(tx.timestamp * 1000).valueOf(), tx.hash)
+              .hset(
+                `TX_RAW:${ymd}:${chainConfig?.internalId}`,
+                tx.hash,
+                JSON.stringify(tx),
+              )
+              .exec();
           } catch (error) {
-            ctx.logger.error(
-              `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
-              error,
-            );
+            this.ctx.logger.error(`pubSub.subscribe ACCEPTED_ON_L2 error`, error);
           }
           const chainConfig = chains.getChainInfo(String(tx.chainId));
           chainConfig &&
@@ -133,21 +135,25 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    if (this.ctx.instanceId === 0) {
-      // this.readMakerendReMatch().catch(error => {
-      //   this.ctx.logger.error("readMakerendReMatch error:", error);
-      // });
-      // this.readUserTxReMatchNotCreate();
-    }
     // this.readUserTxReMatchNotCreate()
-    setInterval(() => {
-      processMakerSendUserTxFromCache(ctx);
-    }, 10000);
+    if (process.env['DB_MATCH'] === '1') {
+      this.readMakerendReMatch().catch(error => {
+        this.ctx.logger.error("readMakerendReMatch error:", error);
+      });
+    }
+    if (process.env['CACHE_MATCH'] === '1') {
+      setInterval(() => {
+        processMakerSendUserTxFromCache(ctx).catch(error => {
+          this.ctx.logger.error("processMakerSendUserTxFromCache error:", error);
+        });
+      }, 10000);
+    }
+
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    const startAt = dayjs().subtract(48, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(10, "second").toDate();
+    const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
+    const endAt = dayjs().subtract(60, "second").toDate();
     const where = {
       side: 1,
       status: 1,
@@ -161,7 +167,7 @@ export class Watch {
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: { exclude: ["input", "blockHash", "transactionIndex"] },
-        order: [["timestamp", "asc"]],
+        order: [["timestamp", "desc"]],
         limit: 300,
         where,
       });
@@ -181,7 +187,7 @@ export class Watch {
           },
         );
         console.log(
-          `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+          `readMakerendReMatch index:${index}/${txList.length},hash:${tx.hash}，result:`,
           result,
         );
         index++;
@@ -189,7 +195,7 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 30);
+      await sleep(1000 * 60 * 5);
       return await this.readMakerendReMatch();
     }
   }

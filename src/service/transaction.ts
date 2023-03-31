@@ -102,7 +102,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
+          row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -1061,7 +1062,10 @@ export async function processMakerSendUserTx(
   }
 }
 
-export async function processMakerSendUserTxFromCacheByChain(ctx: Context, chain: string) {
+export async function processMakerSendUserTxFromCacheByChain(
+  ctx: Context,
+  chain: string,
+) {
   const hashList = await ctx.redis.zrevrangebyscore(
     `MakerPendingTx:${chain}`,
     dayjs().valueOf(),
@@ -1076,10 +1080,7 @@ export async function processMakerSendUserTxFromCacheByChain(ctx: Context, chain
       const transferIdList = [makerTx.transferId];
       for (const primaryMaker in ctx.config.crossAddressTransferMap) {
         if (
-          equals(
-            ctx.config.crossAddressTransferMap[primaryMaker],
-            makerTx.from,
-          )
+          equals(ctx.config.crossAddressTransferMap[primaryMaker], makerTx.from)
         ) {
           // oether maker transfer
           transferIdList.push(
@@ -1141,7 +1142,7 @@ export async function processMakerSendUserTxFromCacheByChain(ctx: Context, chain
               });
           }
         } else {
-          processMakerSendUserTx(ctx, makerTx.hash);
+          await processMakerSendUserTx(ctx, makerTx.hash);
         }
       }
     } catch (error) {
@@ -1151,16 +1152,17 @@ export async function processMakerSendUserTxFromCacheByChain(ctx: Context, chain
       );
     }
   }
-
 }
 export async function processMakerSendUserTxFromCache(ctx: Context) {
   const chainList = await chains.getAllChains();
   chainList.forEach(chain => {
-    processMakerSendUserTxFromCacheByChain(ctx, chain.internalId).catch(error => {
-      ctx.logger.error(
-        `chain:${chain}, processMakerSendUserTxFromCache for error`,
-        error,
-      );
-    })
+    processMakerSendUserTxFromCacheByChain(ctx, chain.internalId).catch(
+      error => {
+        ctx.logger.error(
+          `chain:${chain}, processMakerSendUserTxFromCache for error`,
+          error,
+        );
+      },
+    );
   });
 }

@@ -102,7 +102,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
+          row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -305,9 +306,17 @@ export async function bulkCreateTransaction(
       if (tx.status === 99) {
         // save
         if (tx.side === 0) {
-          await ctx.redis.multi().hset("TXHASH_STATUS", String(txData.hash), 99).hdel(`UserPendingTx:${txData.memo}`, String(txData.transferId)).exec()
+          await ctx.redis
+            .multi()
+            .hset("TXHASH_STATUS", String(txData.hash), 99)
+            .hdel(`UserPendingTx:${txData.memo}`, String(txData.transferId))
+            .exec();
         } else {
-          await ctx.redis.multi().hset("TXHASH_STATUS", String(txData.hash), 99).zrem(`MakerPendingTx:${txData.chainId}`,String(txData.hash)).exec()
+          await ctx.redis
+            .multi()
+            .hset("TXHASH_STATUS", String(txData.hash), 99)
+            .zrem(`MakerPendingTx:${txData.chainId}`, String(txData.hash))
+            .exec();
         }
 
         ctx.logger.info(
@@ -1083,8 +1092,7 @@ export async function processMakerSendUserTxFromCacheByChain(
     dayjs().valueOf(),
     dayjs().subtract(30, "minute").valueOf(),
   );
-  // console.log(`chainId:${chain}, hashList:`, hashList);
-  for (const hash of hashList) {
+  const processHandleHash = async (hash:string)=> {
     try {
       const makerTx: any = await ctx.redis
         .hget(`TX:${chain}`, hash)
@@ -1111,7 +1119,7 @@ export async function processMakerSendUserTxFromCacheByChain(
         .hmget(`UserPendingTx:${makerTx.chainId}`, ...transferIdList)
         .then(str => String(str));
       if (isEmpty(userHash)) {
-        continue;
+        return;
       }
       const data: string[] = userHash.split("_");
       const userTx = await ctx.redis
@@ -1139,17 +1147,20 @@ export async function processMakerSendUserTxFromCacheByChain(
                     inId,
                     outId: null,
                   },
-                  transaction: t
+                  transaction: t,
                 },
               );
-              await ctx.models.Transaction.update({
-                status: 99
-              }, {
-                where: {
-                  id: [inId, outId],
+              await ctx.models.Transaction.update(
+                {
+                  status: 99,
                 },
-                transaction: t
-              })
+                {
+                  where: {
+                    id: [inId, outId],
+                  },
+                  transaction: t,
+                },
+              );
               await t.commit();
             } catch (error) {
               await t.rollback();
@@ -1179,6 +1190,9 @@ export async function processMakerSendUserTxFromCacheByChain(
       );
     }
   }
+  hashList.forEach(hash=> {
+    processHandleHash(hash);
+  })
 }
 export async function processMakerSendUserTxFromCache(ctx: Context) {
   const chainList = await chains.getAllChains();

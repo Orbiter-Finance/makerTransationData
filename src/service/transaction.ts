@@ -102,8 +102,7 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
-          row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -322,10 +321,15 @@ export async function bulkCreateTransaction(
         hash: txData.hash,
         status: txData.status,
         chainId: txData.chainId,
+        from: txData.from,
+        to: txData.to,
+        value: txData.value,
+        symbol: txData.symbol,
         memo: txData.memo,
         replyAccount: txData.replyAccount,
         replySender: txData.replySender,
         expectValue: txData.expectValue,
+        transferId: txData.transferId,
       }),
     );
     upsertList.push(<any>txData);
@@ -352,6 +356,32 @@ export async function bulkCreateTransaction(
   for (const row of recordList) {
     const isCreated = row.getDataValue("id") > 0;
     const redisT = await ctx.redis.multi();
+    if (isCreated) {
+      const txData = upsertList.find(tx => equals(tx.hash, row.hash));
+      if (txData) {
+        const id = row.getDataValue("id");
+        // create maker_transaction
+        redisT.hset(
+          `TX:${txData.chainId}`,
+          String(txData.hash),
+          JSON.stringify({
+            id: id,
+            hash: txData.hash,
+            status: txData.status,
+            chainId: txData.chainId,
+            from: txData.from,
+            to: txData.to,
+            value: txData.value,
+            symbol: txData.symbol,
+            memo: txData.memo,
+            replyAccount: txData.replyAccount,
+            replySender: txData.replySender,
+            expectValue: txData.expectValue,
+            transferId: txData.transferId
+          }),
+        );
+      }
+    }
     if (row.side == 0) {
       if (isCreated && row.source === "xvm") {
         // push
@@ -370,26 +400,7 @@ export async function bulkCreateTransaction(
         row.transferId,
         `${row.hash}_${row.chainId}`,
       );
-      if (isCreated && [0, 1].includes(row.status)) {
-        const txData = upsertList.find(tx => equals(tx.hash, row.hash));
-        if (txData) {
-          const id = row.getDataValue("id");
-          // create maker_transaction
-          redisT.hset(
-            `TX:${txData.chainId}`,
-            String(txData.hash),
-            JSON.stringify({
-              id: id,
-              hash: txData.hash,
-              status: txData.status,
-              chainId: txData.chainId,
-              memo: txData.memo,
-              replyAccount: txData.replyAccount,
-              replySender: txData.replySender,
-              expectValue: txData.expectValue,
-            }),
-          );
-        }
+      if (isCreated) {
         const transcationId = TransactionID(
           String(row.from),
           row.chainId,

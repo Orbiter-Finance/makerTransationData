@@ -13,7 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Op, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
+  constructor(public readonly ctx: Context) { }
   public isMultiAddressPaymentCollection(makerAddress: string): boolean {
     return Object.values(this.ctx.config.crossAddressTransferMap).includes(
       makerAddress.toLowerCase(),
@@ -147,11 +147,7 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     // this.readUserTxReMatchNotCreate()
-    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
-      this.readMakerendReMatch().catch(error => {
-        this.ctx.logger.error("readMakerendReMatch error:", error);
-      });
-    }
+
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       setInterval(() => {
         processMakerSendUserTxFromCache(ctx).catch(error => {
@@ -161,6 +157,11 @@ export class Watch {
           );
         });
       }, 10000);
+    }
+    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
+      this.readMakerendReMatch().catch(error => {
+        this.ctx.logger.error("readMakerendReMatch error:", error);
+      });
     }
   }
   // read db

@@ -147,12 +147,12 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     // this.readUserTxReMatchNotCreate()
-    if (process.env["DB_MATCH"] === "1") {
+    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
-    if (process.env["CACHE_MATCH"] === "1") {
+    if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       setInterval(() => {
         processMakerSendUserTxFromCache(ctx).catch(error => {
           this.ctx.logger.error(
@@ -179,7 +179,19 @@ export class Watch {
       // read
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
-        attributes: { exclude: ["input", "blockHash", "transactionIndex", 'lpId', 'extra', 'makerId', 'gas', 'gasPrice', 'fee'] },
+        attributes: {
+          exclude: [
+            "input",
+            "blockHash",
+            "transactionIndex",
+            "lpId",
+            "extra",
+            "makerId",
+            "gas",
+            "gasPrice",
+            "fee",
+          ],
+        },
         order: [["timestamp", "desc"]],
         limit: 300,
         where,

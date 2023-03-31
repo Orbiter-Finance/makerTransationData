@@ -102,7 +102,8 @@ export async function bulkCreateTransaction(
       ) < 0
     ) {
       ctx.logger.error(
-        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
+        ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
+          row.hash
         } ${getFormatDate(row.timestamp)}`,
       );
       continue;
@@ -342,14 +343,14 @@ export async function bulkCreateTransaction(
 
   for (const row of recordList) {
     if (row.side == 0) {
-      if (row.getDataValue("id") && row.source === 'xvm') {
+      if (row.getDataValue("id") && row.source === "xvm") {
         // push
         if (new Date(row.timestamp).valueOf() > ctx.startTime) {
           const producer = await ctx.mq.createProducer({
             exchangeName: "MakerTxList",
             exchangeType: "direct",
             queueName: `MakerTxList:${row.chainId}`,
-            routingKey: String(row.chainId)
+            routingKey: String(row.chainId),
           });
           producer.publish(row, String(row.chainId));
         }
@@ -725,32 +726,32 @@ export async function processUserSendMakerTx(
       replySender: userTx.replySender,
       replyAccount: userTx.replyAccount,
     };
-    // TODO:
-    // if (makerSendTx && makerSendTx.id) {
-    //   upsertData.outId = makerSendTx.id;
-    //   let upStatus = 99;
-    //   if (makerSendTx.status === 95) {
-    //     upStatus = 95;
-    //   }
-    //   makerSendTx.status = upStatus;
-    //   makerSendTx.lpId = userTx.lpId;
-    //   makerSendTx.makerId = userTx.makerId;
-    //   await makerSendTx.save({
-    //     transaction: t,
-    //   });
-    //   await ctx.models.Transaction.update(
-    //     {
-    //       status: upStatus,
-    //     },
-    //     {
-    //       where: {
-    //         id: [userTx.id, makerSendTx.id],
-    //       },
-    //       transaction: t,
-    //     },
-    //   );
-    //   await ctx.redis.multi().hmset(`TXHASH_STATUS`, [userTx.hash, 99, makerSendTx.hash, 99]).hmset(`TXID_STATUS`, [userTx.id, 99, makerSendTx.id, 99]).exec();
-    // }
+    // TAG:
+    if (makerSendTx && makerSendTx.id) {
+      upsertData.outId = makerSendTx.id;
+      let upStatus = 99;
+      if (makerSendTx.status === 95) {
+        upStatus = 95;
+      }
+      makerSendTx.status = upStatus;
+      makerSendTx.lpId = userTx.lpId;
+      makerSendTx.makerId = userTx.makerId;
+      await makerSendTx.save({
+        transaction: t,
+      });
+      await ctx.models.Transaction.update(
+        {
+          status: upStatus,
+        },
+        {
+          where: {
+            id: [userTx.id, makerSendTx.id],
+          },
+          transaction: t,
+        },
+      );
+      await ctx.redis.multi().hmset(`TXHASH_STATUS`, [userTx.hash, 99, makerSendTx.hash, 99]).hmset(`TXID_STATUS`, [userTx.id, 99, makerSendTx.id, 99]).exec();
+    }
     await ctx.models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
     });

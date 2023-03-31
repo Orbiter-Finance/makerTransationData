@@ -25,7 +25,7 @@ export class Watch {
       exchangeName: "MakerTransationData",
       exchangeType: "direct",
     });
-   
+
     const consumer = await this.ctx.mq.createConsumer({
       exchangeName: "MakerTransationData",
       exchangeType: "direct",
@@ -93,6 +93,20 @@ export class Watch {
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
+          try {
+            const chainConfig = chains.getChainInfo(String(tx.chainId));
+            chainConfig &&
+              ctx.redis
+                .hset(`TX_RAW:${chainConfig?.internalId}`, JSON.stringify(tx))
+                .catch(error => {
+                  ctx.logger.error(`save tx to cache error`, error);
+                });
+          } catch (error) {
+            ctx.logger.error(
+              `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
+              error,
+            );
+          }
           const chainConfig = chains.getChainInfo(String(tx.chainId));
           chainConfig &&
             ctx.redis

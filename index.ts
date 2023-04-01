@@ -16,13 +16,13 @@ export class Application {
 }
 const app = new Application();
 app.bootstrap().catch(error => {
-  console.error("start app error", error);
+  app.ctx.logger.error("start app error", error);
 });
 process.on("uncaughtException", (err: Error) => {
-  console.error("Global Uncaught exception:", err);
+  app.ctx.logger.error("Global Uncaught exception:", err);
 });
 process.on("unhandledRejection", (err: Error) => {
-  console.error(
+  app.ctx.logger.error(
     "There are failed functions where promise is not captured：",
     err,
   );

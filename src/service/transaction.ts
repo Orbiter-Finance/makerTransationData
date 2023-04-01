@@ -93,7 +93,7 @@ export async function bulkCreateTransaction(
     // ctx.logger.info(`processSubTx:${tx.hash}`);
     const chainConfig = chains.getChainInfo(String(row.chainId));
     if (!chainConfig) {
-      ctx.logger.error(`getChainByInternalId chainId ${row.chainId} not found`);
+      ctx.logger.error(`getChainByInternalId chainId ${row.chainId} not found(${row.hash})`);
       continue;
     }
     if (
@@ -1089,10 +1089,11 @@ export async function processMakerSendUserTxFromCacheByChain(
 ) {
   const hashList = await ctx.redis.zrevrangebyscore(
     `MakerPendingTx:${chain}`,
-    dayjs().valueOf(),
-    dayjs().subtract(30, "minute").valueOf(),
+    dayjs().subtract(1, "day").valueOf(),
+    dayjs().valueOf()
   );
-  const processHandleHash = async (hash:string)=> {
+  console.log(chain,'=====', dayjs().subtract(30, "minute").valueOf(), '===', dayjs().valueOf(), '==hashList', hashList);
+  const processHandleHash = async (hash: string) => {
     try {
       const makerTx: any = await ctx.redis
         .hget(`TX:${chain}`, hash)
@@ -1189,10 +1190,10 @@ export async function processMakerSendUserTxFromCacheByChain(
         error,
       );
     }
-  }
-  hashList.forEach(hash=> {
+  };
+  hashList.forEach(hash => {
     processHandleHash(hash);
-  })
+  });
 }
 export async function processMakerSendUserTxFromCache(ctx: Context) {
   const chainList = await chains.getAllChains();

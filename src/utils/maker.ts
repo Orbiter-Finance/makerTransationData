@@ -18,14 +18,14 @@ export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
     try {
       const pair = row["pair"];
       const maker = row["maker"];
-      const fromChain = chains.getChainByInternalId(pair.sourceChain);
+      const fromChain = chains.getChainInfo(Number(pair.sourceChain));
       if (!fromChain) {
         return {} as any;
       }
       const fromToken = fromChain.tokens.find(row =>
         equals(row.address, pair.sourceToken),
       );
-      const toChain = chains.getChainByInternalId(pair.destChain);
+      const toChain = chains.getChainInfo(Number(pair.destChain));
       if (!toChain) {
         return {} as any;
       }

@@ -75,7 +75,7 @@ export class Context {
       port: Number(REDIS_PORT || 6379), // Redis port
       host: REDIS_HOST || "127.0.0.1", // Redis host
       password: REDIS_PASS,
-      db: Number(REDIS_DB || this.instanceId), // Defaults to 0
+      db: Number(REDIS_DB|| 0), // Defaults to 0
     });
   }
   async setCache(key: string, value: any, time?: number): Promise<void> {
@@ -113,8 +113,7 @@ export class Context {
     //     row => Number(row.internalId) % this.instanceCount === this.instanceId,
     //   )
     //   .map(row => row.internalId);
-    this.mq = new RabbitMQ({ url: String(process.env["RABBIT_MQ"]) });
-    await this.mq.connect();
+    this.mq = new RabbitMQ({ url: String(process.env["RABBIT_MQ"]) }, this);
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

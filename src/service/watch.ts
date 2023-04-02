@@ -9,15 +9,34 @@ import {
   processMakerSendUserTxFromCache,
   processSubTxList,
   processMakerSendUserTx,
+  bulkCreateTransaction,
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
-  public isMultiAddressPaymentCollection(makerAddress: string): boolean {
-    return Object.values(this.ctx.config.crossAddressTransferMap).includes(
-      makerAddress.toLowerCase(),
-    );
+  constructor(public readonly ctx: Context) { }
+  public async saveTxRawToCache(txList: Transaction[]) {
+    txList.forEach(tx => {
+      try {
+        const chainConfig = chains.getChainInfo(String(tx.chainId));
+        const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
+        this.ctx.redis
+          .multi()
+          .zadd(
+            `TX_RAW:hash:${ymd}`,
+            dayjs(tx.timestamp * 1000).valueOf(),
+            tx.hash,
+          )
+          .hset(
+            `TX_RAW:${ymd}:${chainConfig?.internalId}`,
+            tx.hash,
+            JSON.stringify(tx),
+          )
+          .exec();
+      } catch (error) {
+        this.ctx.logger.error(`pubSub.subscribe error`, error);
+      }
+    });
   }
   public async start() {
     const ctx = this.ctx;
@@ -36,7 +55,7 @@ export class Watch {
     });
     consumer.consume(async message => {
       try {
-        await processSubTxList(ctx, JSON.parse(message));
+        await bulkCreateTransaction(ctx, JSON.parse(message));
         return true;
       } catch (error) {
         this.ctx.logger.error(`Consumption transaction list failed`, error);
@@ -70,29 +89,17 @@ export class Watch {
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          txList.forEach(tx => {
+          if (txList) {
+            this.saveTxRawToCache(txList);
             try {
-              const chainConfig = chains.getChainInfo(String(tx.chainId));
-              const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
-              ctx.redis
-                .multi()
-                .zadd(
-                  `TX_RAW:hash:${ymd}`,
-                  dayjs(tx.timestamp * 1000).valueOf(),
-                  tx.hash,
-                )
-                .hset(
-                  `TX_RAW:${ymd}:${chainConfig?.internalId}`,
-                  tx.hash,
-                  JSON.stringify(tx),
-                )
-                .exec();
+              return await producer.publish(txList, "");
             } catch (error) {
-              this.ctx.logger.error(`pubSub.subscribe error`, error);
+              ctx.logger.error(
+                ` pubSub.subscribe( processSubTxList error:`,
+                error,
+              );
             }
-          });
-          await producer.publish(txList, "");
-          return true;
+          }
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
@@ -100,43 +107,15 @@ export class Watch {
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
+          this.saveTxRawToCache(tx);
           try {
-            const chainConfig = chains.getChainInfo(String(tx.chainId));
-            const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
-            ctx.redis
-              .multi()
-              .zadd(
-                `TX_RAW:hash:${ymd}`,
-                dayjs(tx.timestamp * 1000).valueOf(),
-                tx.hash,
-              )
-              .hset(
-                `TX_RAW:${ymd}:${chainConfig?.internalId}`,
-                tx.hash,
-                JSON.stringify(tx),
-              )
-              .exec();
+            return await producer.publish([tx], "");
           } catch (error) {
-            this.ctx.logger.error(
-              `pubSub.subscribe ACCEPTED_ON_L2 error`,
+            ctx.logger.error(
+              `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
               error,
             );
           }
-          const chainConfig = chains.getChainInfo(String(tx.chainId));
-          chainConfig &&
-            ctx.redis
-              .hset(`TX_RAW:${chainConfig?.internalId}`, JSON.stringify(tx))
-              .catch(error => {
-                ctx.logger.error(`save tx to cache error`, error);
-              });
-        }
-        try {
-          return await producer.publish([tx], "");
-        } catch (error) {
-          ctx.logger.error(
-            `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
-            error,
-          );
         }
       });
       process.on("SIGINT", () => {
@@ -223,7 +202,7 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 60 * 5);
+      await sleep(1000 * 10);
       return await this.readMakerendReMatch();
     }
   }

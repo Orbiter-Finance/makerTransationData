@@ -1,3 +1,4 @@
+import { Context } from './../context';
 import * as amqp from "amqplib";
 
 interface IRabbitMQConfig {
@@ -24,7 +25,7 @@ export class RabbitMQ {
   private connection: amqp.Connection | null;
   private channel: amqp.Channel | null;
 
-  constructor(config: IRabbitMQConfig) {
+  constructor(config: IRabbitMQConfig, private ctx: Context) {
     this.config = {
       ...config,
       reconnectInterval: config.reconnectInterval ?? 5000,
@@ -39,23 +40,35 @@ export class RabbitMQ {
         resolve(this.connection);
       }
       amqp
-        .connect(this.config.url)
+        .connect(this.config.url, {
+          clientProperties: {
+            connection_name: 'mtx'
+          }
+        })
         .then(async connection => {
           console.log(`RabbitMQ connected to ${this.config.url}`);
           this.connection = connection;
           this.connection.on("error", error => {
-            console.error(`RabbitMQ connection error: ${error.message}`);
+            this.ctx.logger.error(`RabbitMQ connection error: ${error.message}`);
             this.reconnect();
           });
           this.connection.on("close", () => {
-            console.warn(`RabbitMQ connection closed`);
+            this.ctx.logger.error(`RabbitMQ connection closed`);
             this.reconnect();
           });
-          await this.createChannel();
+          this.channel = await this.createChannel();
+          this.channel.on('close', async (err) => {
+            this.ctx.logger.error(`channel closed`, err);
+            this.channel = await this.createChannel();
+          })
+          this.channel.on('error', async (err) => {
+            this.ctx.logger.error(`channel error`, err);
+            // this.channel = await this.createChannel();
+          })
           resolve(this.connection);
         })
         .catch(error => {
-          console.error(`Failed to connect to RabbitMQ: ${error.message}`);
+          this.ctx.logger.error(`Failed to connect to RabbitMQ: ${error.message}`);
           this.reconnect();
           reject(error);
         });
@@ -67,14 +80,14 @@ export class RabbitMQ {
       this.connection
         ?.createChannel()
         .then(channel => {
-          console.log(`RabbitMQ channel created`);
-          this.channel = channel;
+          this.ctx.logger.info(`RabbitMQ channel created`);
+          // this.channel = channel;
           resolve(channel);
         })
         .catch(error => {
-          console.error(`Failed to create RabbitMQ channel: ${error.message}`);
+          this.ctx.logger.error(`Failed to create RabbitMQ channel: ${error.message}`);
           this.reconnect();
-          reject(this.channel);
+          reject(error);
         });
     });
   }
@@ -98,29 +111,23 @@ export class RabbitMQ {
   }
 
   async createProducer(config: IProducerConfig): Promise<Producer> {
-    if (!this.channel) {
-      await this.createChannel();
-    }
+    const channel = await this.createChannel();
     const { exchangeName, exchangeType } = config;
-    await this.channel?.assertExchange(exchangeName, exchangeType, {
+    await channel?.assertExchange(exchangeName, exchangeType, {
       durable: true,
     });
-    if (!this.channel) {
-      throw new Error("channel not found");
-    }
     if (config.queueName) {
-      const assertQueue = await this.channel?.assertQueue(
+      const assertQueue = await channel?.assertQueue(
         config.queueName || "",
         { durable: true },
       );
-      await this.channel?.bindQueue(
+      await channel?.bindQueue(
         assertQueue?.queue ?? "",
         config.exchangeName,
         config.routingKey || "",
       );
     }
-
-    return new Producer(this.channel, config);
+    return new Producer(channel, config);
   }
   async bindQueue(config: IProducerConfig) {
     await this.channel?.assertExchange(
@@ -141,21 +148,23 @@ export class RabbitMQ {
   }
   async createConsumer(config: IConsumerConfig): Promise<Consumer> {
     const { exchangeName, exchangeType, queueName, routingKey } = config;
-    await this.channel?.assertExchange(exchangeName, exchangeType, {
+    // const channel = await this.createChannel();
+    const channel = this.channel;
+    await channel?.assertExchange(exchangeName, exchangeType, {
       durable: true,
     });
-    const assertQueue = await this.channel?.assertQueue(queueName, {
+    const assertQueue = await channel?.assertQueue(queueName, {
       durable: true,
     });
-    await this.channel?.bindQueue(
+    await channel?.bindQueue(
       assertQueue?.queue ?? "",
       exchangeName,
       routingKey || "",
     );
-    if (!this.channel) {
+    if (!channel) {
       throw new Error("channel not found");
     }
-    return new Consumer(this.channel, config);
+    return new Consumer(channel, config);
   }
 }
 class Consumer {

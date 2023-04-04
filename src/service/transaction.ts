@@ -98,7 +98,8 @@ export async function bulkCreateTransaction(
         ) < 0
       ) {
         ctx.logger.error(
-          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
+          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
+            row.hash
           } ${getFormatDate(row.timestamp)}`,
         );
         continue;
@@ -112,7 +113,10 @@ export async function bulkCreateTransaction(
         );
         continue;
       }
-      let memo = getAmountFlag(Number(chainConfig.internalId), String(row.value));
+      let memo = getAmountFlag(
+        Number(chainConfig.internalId),
+        String(row.value),
+      );
       const txExtra = row.extra || {};
       if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
         const arr = txExtra.memo.split("_");
@@ -341,7 +345,7 @@ export async function bulkCreateTransaction(
       );
       upsertList.push(<any>txData);
     } catch (error) {
-      ctx.logger.error('for handle tx error:', error);
+      ctx.logger.error("for handle tx error:", error);
     }
   }
   if (upsertList.length <= 0) {
@@ -352,17 +356,16 @@ export async function bulkCreateTransaction(
     try {
       const [newData, isCreated] = await ctx.models.Transaction.findOrCreate({
         defaults: txData,
-        attributes: ['id', 'status'],
+        attributes: ["id", "status"],
         where: {
-          hash: txData.hash
+          hash: txData.hash,
         },
-        transaction: t
+        transaction: t,
       });
-      ctx.logger.info(`是否创建:${isCreated},id:${newData.id}, hash:${newData.hash}, data:${JSON.stringify(newData)}`);
       txData.id = newData.id;
       if (isCreated) {
         const id = newData.id;
-        // 
+        //
         if (txData.side === 0 && newData.status === 1) {
           messageToOrbiterX(ctx, txData).catch(error => {
             ctx.logger.error("messageToOrbiterX error:", error);
@@ -387,15 +390,15 @@ export async function bulkCreateTransaction(
             where: {
               transcationId: trxId,
             },
-            transaction: t
+            transaction: t,
           });
         }
       } else {
         if (newData.status != txData.status && newData.status != 99) {
           newData.status = txData.status;
           await newData.save({
-            transaction: t
-          })
+            transaction: t,
+          });
         }
       }
       if (newData.status === 1) {
@@ -414,27 +417,30 @@ function txSaveCache(ctx: Context, txData: Transaction) {
   return new Promise(async (resolve, reject) => {
     const redisT = ctx.redis.multi();
     if (txData.id) {
-      redisT.hset(
-        `TX:${txData.chainId}`,
-        String(txData.hash),
-        JSON.stringify({
-          id: txData.id,
-          hash: txData.hash,
-          status: txData.status,
-          side: txData.side,
-          chainId: txData.chainId,
-          from: txData.from,
-          to: txData.to,
-          value: txData.value,
-          symbol: txData.symbol,
-          memo: txData.memo,
-          replyAccount: txData.replyAccount,
-          replySender: txData.replySender,
-          expectValue: txData.expectValue,
-          transferId: txData.transferId,
-        }),
-      ).hset('hash:id', txData.hash, txData.id)
-      ctx.logger.info(`txSaveCache after ${txData.id} ${txData.hash}, transerID:${txData.transferId}`);
+      redisT
+        .hset(
+          `TX:${txData.chainId}`,
+          String(txData.hash),
+          JSON.stringify({
+            id: txData.id,
+            hash: txData.hash,
+            status: txData.status,
+            side: txData.side,
+            chainId: txData.chainId,
+            from: txData.from,
+            to: txData.to,
+            value: txData.value,
+            symbol: txData.symbol,
+            memo: txData.memo,
+            replyAccount: txData.replyAccount,
+            replySender: txData.replySender,
+            expectValue: txData.expectValue,
+            transferId: txData.transferId,
+          }),
+        )
+      ctx.logger.info(
+        `txSaveCache after ${txData.id} ${txData.hash}, transerID:${txData.transferId}`,
+      );
     }
     try {
       switch (txData.side) {
@@ -461,8 +467,10 @@ function txSaveCache(ctx: Context, txData: Transaction) {
   });
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
-  if (txData.source === 'xvm' && 
-    txData.side === 0 && txData.status === 1 && 
+  if (
+    txData.source === "xvm" &&
+    txData.side === 0 &&
+    txData.status === 1 &&
     new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {
     // push
@@ -1132,26 +1140,28 @@ export async function processMakerSendUserTxFromCacheByChain(
         .hget(`TX:${data[1]}`, data[0])
         .then(tx => tx && JSON.parse(tx));
       if (userTx) {
-        const isCacheMatch = userTx.id && makerTx.id &&
-          equals(userTx.memo, makerTx.chainId) && equals(userTx.replyAccount, makerTx.replyAccount) && equals(userTx.transferId, makerTx.transferId);
-        ctx.logger.info(
-          `match find isCacheMatch ${isCacheMatch}`, {
+        const isCacheMatch =
+          userTx.id &&
+          makerTx.id &&
+          equals(userTx.memo, makerTx.chainId) &&
+          equals(userTx.replyAccount, makerTx.replyAccount) &&
+          equals(userTx.transferId, makerTx.transferId);
+        ctx.logger.info(`match find isCacheMatch ${isCacheMatch}`, {
           userTx,
-          makerTx
-        }
-        );
+          makerTx,
+        });
         if (isCacheMatch) {
-          // 
+          //
           const findUserTx = await ctx.models.Transaction.findOne({
             raw: true,
-            attributes: ['id'],
+            attributes: ["id"],
             where: {
               hash: userTx.hash,
               status: {
-                [Op.not]: 99
-              }
-            }
-          })
+                [Op.not]: 99,
+              },
+            },
+          });
           if (!findUserTx?.id) {
             ctx.logger.error(
               `cache match success not find user tx ${userTx.hash}`,
@@ -1164,6 +1174,7 @@ export async function processMakerSendUserTxFromCacheByChain(
             );
             return;
           }
+          // 
           const inId = userTx.id;
           const outId = makerTx.id;
           const inHash = userTx.hash;
@@ -1195,7 +1206,7 @@ export async function processMakerSendUserTxFromCacheByChain(
                   where: {
                     // hash: [inHash, outHash],
                     status: {
-                      [Op.not]: 99
+                      [Op.not]: 99,
                     },
                     id: [inId, outId],
                   },
@@ -1203,7 +1214,9 @@ export async function processMakerSendUserTxFromCacheByChain(
                 },
               );
               if (response[0] != 2) {
-                throw new Error(`Failed to modify the number of matching record rows ${inId}-${outId}`);
+                throw new Error(
+                  `Failed to modify the number of matching record rows ${inId}-${outId}`,
+                );
               }
               await ctx.redis
                 .multi()
@@ -1221,7 +1234,7 @@ export async function processMakerSendUserTxFromCacheByChain(
               await t.commit();
             } catch (error) {
               await t.rollback();
-              ctx.logger.error('Memory matching exception', error);
+              ctx.logger.error("Memory matching exception", error);
             }
           }
         } else {

@@ -13,7 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Op, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) { }
+  constructor(public readonly ctx: Context) {}
   public async saveTxRawToCache(txList: Transaction[]) {
     if (txList && Array.isArray(txList)) {
       txList.forEach(tx => {
@@ -132,7 +132,6 @@ export class Watch {
 
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readCacheMakerendReMatch();
-
     }
     if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 1) {
       this.readMakerendReMatch().catch(error => {
@@ -140,7 +139,7 @@ export class Watch {
       });
     }
   }
-  //read cache 
+  //read cache
   public async readCacheMakerendReMatch(): Promise<any> {
     await processMakerSendUserTxFromCache(this.ctx).catch(error => {
       this.ctx.logger.error(

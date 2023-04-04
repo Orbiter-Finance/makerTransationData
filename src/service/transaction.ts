@@ -288,9 +288,9 @@ export async function bulkCreateTransaction(
         String(txData.hash),
       );
       if (cacheStatus && Number(cacheStatus) == 99) {
-        ctx.logger.info(
-          `From Cache ${txData.hash} The transaction status has already been matched`,
-        );
+        // ctx.logger.info(
+        //   `From Cache ${txData.hash} The transaction status has already been matched`,
+        // );
         continue;
       }
       // valid status
@@ -417,29 +417,25 @@ function txSaveCache(ctx: Context, txData: Transaction) {
   return new Promise(async (resolve, reject) => {
     const redisT = ctx.redis.multi();
     if (txData.id) {
-      redisT
-        .hset(
-          `TX:${txData.chainId}`,
-          String(txData.hash),
-          JSON.stringify({
-            id: txData.id,
-            hash: txData.hash,
-            status: txData.status,
-            side: txData.side,
-            chainId: txData.chainId,
-            from: txData.from,
-            to: txData.to,
-            value: txData.value,
-            symbol: txData.symbol,
-            memo: txData.memo,
-            replyAccount: txData.replyAccount,
-            replySender: txData.replySender,
-            expectValue: txData.expectValue,
-            transferId: txData.transferId,
-          }),
-        )
-      ctx.logger.info(
-        `txSaveCache after ${txData.id} ${txData.hash}, transerID:${txData.transferId}`,
+      redisT.hset(
+        `TX:${txData.chainId}`,
+        String(txData.hash),
+        JSON.stringify({
+          id: txData.id,
+          hash: txData.hash,
+          status: txData.status,
+          side: txData.side,
+          chainId: txData.chainId,
+          from: txData.from,
+          to: txData.to,
+          value: txData.value,
+          symbol: txData.symbol,
+          memo: txData.memo,
+          replyAccount: txData.replyAccount,
+          replySender: txData.replySender,
+          expectValue: txData.expectValue,
+          transferId: txData.transferId,
+        }),
       );
     }
     try {
@@ -1174,7 +1170,7 @@ export async function processMakerSendUserTxFromCacheByChain(
             );
             return;
           }
-          // 
+          //
           const inId = userTx.id;
           const outId = makerTx.id;
           const inHash = userTx.hash;

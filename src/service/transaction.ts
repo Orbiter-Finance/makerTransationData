@@ -308,18 +308,20 @@ export async function bulkCreateTransaction(
             await ctx.redis
               .multi()
               .hset("TXHASH_STATUS", String(txData.hash), 99)
+              .hset("TXID_STATUS", tx.id, 99)
               .hdel(`UserPendingTx:${txData.memo}`, String(txData.transferId))
               .exec();
           } else if (tx.side === 1) {
             await ctx.redis
               .multi()
+              .hset("TXID_STATUS", tx.id, 99)
               .hset("TXHASH_STATUS", String(txData.hash), 99)
               .zrem(`MakerPendingTx:${txData.chainId}`, String(txData.hash))
               .exec();
           }
-          ctx.logger.info(
-            `From DB ${txData.hash} The transaction status has already been matched`,
-          );
+          // ctx.logger.info(
+          //   `From DB ${txData.hash} The transaction status has already been matched`,
+          // );
           continue;
         }
       }

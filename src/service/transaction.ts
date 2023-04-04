@@ -1246,7 +1246,7 @@ export async function processMakerSendUserTxFromCacheByChain(
       );
     }
   };
-  hashList.forEach(processHandleHash);
+  hashList.reverse().forEach(processHandleHash);
 }
 
 export async function processMakerSendUserTxFromCache(ctx: Context) {

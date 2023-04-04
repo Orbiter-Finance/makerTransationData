@@ -7,7 +7,6 @@ import { Context } from "../context";
 import {
   processUserSendMakerTx,
   processMakerSendUserTxFromCache,
-  processSubTxList,
   processMakerSendUserTx,
   bulkCreateTransaction,
 } from "./transaction";
@@ -16,27 +15,29 @@ import { Op, QueryTypes } from "sequelize";
 export class Watch {
   constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
-    txList.forEach(tx => {
-      try {
-        const chainConfig = chains.getChainInfo(String(tx.chainId));
-        const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
-        this.ctx.redis
-          .multi()
-          .zadd(
-            `TX_RAW:hash:${ymd}`,
-            dayjs(tx.timestamp * 1000).valueOf(),
-            tx.hash,
-          )
-          .hset(
-            `TX_RAW:${ymd}:${chainConfig?.internalId}`,
-            tx.hash,
-            JSON.stringify(tx),
-          )
-          .exec();
-      } catch (error) {
-        this.ctx.logger.error(`pubSub.subscribe error`, error);
-      }
-    });
+    if (txList && Array.isArray(txList)) {
+      txList.forEach(tx => {
+        try {
+          const chainConfig = chains.getChainInfo(String(tx.chainId));
+          const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
+          this.ctx.redis
+            .multi()
+            .zadd(
+              `TX_RAW:hash:${ymd}`,
+              dayjs(tx.timestamp * 1000).valueOf(),
+              tx.hash,
+            )
+            .hset(
+              `TX_RAW:${ymd}:${chainConfig?.internalId}`,
+              tx.hash,
+              JSON.stringify(tx),
+            )
+            .exec();
+        } catch (error) {
+          this.ctx.logger.error(`pubSub.subscribe error`, error);
+        }
+      });
+    }
   }
   public async start() {
     const ctx = this.ctx;
@@ -50,7 +51,7 @@ export class Watch {
     const consumer = await this.ctx.mq.createConsumer({
       exchangeName,
       exchangeType: "direct",
-      queueName: `transactions${prefix}`,
+      queueName: `MakerTransationData${prefix}-transactions`,
       routingKey: "",
     });
     consumer.consume(async message => {
@@ -79,12 +80,12 @@ export class Watch {
         if (Number(id) % this.ctx.instanceCount !== this.ctx.instanceId) {
           continue;
         }
-        this.ctx.mq.bindQueue({
-          exchangeName: "MakerWaitPending",
-          exchangeType: "direct",
-          queueName: `MakerWaitPending:${id}`,
-          routingKey: id,
-        });
+        // this.ctx.mq.bindQueue({
+        //   exchangeName: "MakerWaitTransfer",
+        //   exchangeType: "direct",
+        //   queueName: `MakerWaitTransfer-${id}`,
+        //   routingKey: id,
+        // });
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
@@ -107,7 +108,7 @@ export class Watch {
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
-          this.saveTxRawToCache(tx);
+          this.saveTxRawToCache([tx]);
           try {
             return await producer.publish([tx], "");
           } catch (error) {
@@ -130,25 +131,30 @@ export class Watch {
     // this.readUserTxReMatchNotCreate()
 
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
-      setInterval(() => {
-        processMakerSendUserTxFromCache(ctx).catch(error => {
-          this.ctx.logger.error(
-            "processMakerSendUserTxFromCache error:",
-            error,
-          );
-        });
-      }, 5000);
+      this.readCacheMakerendReMatch();
+
     }
-    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
+    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 1) {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
   }
+  //read cache 
+  public async readCacheMakerendReMatch(): Promise<any> {
+    await processMakerSendUserTxFromCache(this.ctx).catch(error => {
+      this.ctx.logger.error(
+        "setInterval processMakerSendUserTxFromCache error:",
+        error,
+      );
+    });
+    await sleep(1000 * 10);
+    return await this.readCacheMakerendReMatch();
+  }
   // read db
   public async readMakerendReMatch(): Promise<any> {
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
-    const endAt = dayjs().subtract(60, "second").toDate();
+    const endAt = dayjs().subtract(120, "second").toDate();
     const where = {
       side: 1,
       status: 1,
@@ -202,7 +208,7 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 10);
+      await sleep(1000 * 30);
       return await this.readMakerendReMatch();
     }
   }

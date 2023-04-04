@@ -1,4 +1,4 @@
-import { Context } from './../context';
+import { Context } from "./../context";
 import * as amqp from "amqplib";
 
 interface IRabbitMQConfig {
@@ -42,14 +42,16 @@ export class RabbitMQ {
       amqp
         .connect(this.config.url, {
           clientProperties: {
-            connection_name: 'mtx'
-          }
+            connection_name: "mtx",
+          },
         })
         .then(async connection => {
           console.log(`RabbitMQ connected to ${this.config.url}`);
           this.connection = connection;
           this.connection.on("error", error => {
-            this.ctx.logger.error(`RabbitMQ connection error: ${error.message}`);
+            this.ctx.logger.error(
+              `RabbitMQ connection error: ${error.message}`,
+            );
             this.reconnect();
           });
           this.connection.on("close", () => {
@@ -57,18 +59,20 @@ export class RabbitMQ {
             this.reconnect();
           });
           this.channel = await this.createChannel();
-          this.channel.on('close', async (err) => {
+          this.channel.on("close", async err => {
             this.ctx.logger.error(`channel closed`, err);
             this.channel = await this.createChannel();
-          })
-          this.channel.on('error', async (err) => {
+          });
+          this.channel.on("error", async err => {
             this.ctx.logger.error(`channel error`, err);
             // this.channel = await this.createChannel();
-          })
+          });
           resolve(this.connection);
         })
         .catch(error => {
-          this.ctx.logger.error(`Failed to connect to RabbitMQ: ${error.message}`);
+          this.ctx.logger.error(
+            `Failed to connect to RabbitMQ: ${error.message}`,
+          );
           this.reconnect();
           reject(error);
         });
@@ -85,7 +89,9 @@ export class RabbitMQ {
           resolve(channel);
         })
         .catch(error => {
-          this.ctx.logger.error(`Failed to create RabbitMQ channel: ${error.message}`);
+          this.ctx.logger.error(
+            `Failed to create RabbitMQ channel: ${error.message}`,
+          );
           this.reconnect();
           reject(error);
         });
@@ -117,10 +123,9 @@ export class RabbitMQ {
       durable: true,
     });
     if (config.queueName) {
-      const assertQueue = await channel?.assertQueue(
-        config.queueName || "",
-        { durable: true },
-      );
+      const assertQueue = await channel?.assertQueue(config.queueName || "", {
+        durable: true,
+      });
       await channel?.bindQueue(
         assertQueue?.queue ?? "",
         config.exchangeName,

@@ -26,7 +26,7 @@ export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
 ) {
-  const isOrbiterX = tx.source == "xvm" || tx.extra['xvm']; // temp
+  const isOrbiterX = tx.source == "xvm" || tx.extra["xvm"]; // temp
   const result = {
     orbiterX: false,
     isToMaker: false,
@@ -92,7 +92,10 @@ export async function bulkCreateTransaction(
         );
         continue;
       }
-      const toToken = chains.getTokenByChain(Number(chainConfig.internalId), String(row.tokenAddress));
+      const toToken = chains.getTokenByChain(
+        Number(chainConfig.internalId),
+        String(row.tokenAddress),
+      );
       if (!toToken) {
         ctx.logger.error(
           ` Token Not Found  ${row.chainId} ${row.hash} ${row.tokenAddress}`,
@@ -553,9 +556,9 @@ async function handleXVMTx(
     // });
     if (op == 2) {
       txData.status = 4;
-      saveExtra['sendBack'] = {
-        fromHash: tradeId
-      }
+      saveExtra["sendBack"] = {
+        fromHash: tradeId,
+      };
     }
     // const market = ctx.makerConfigs.find(item =>
     //   equals(item.toChain.tokenAddress, params.token),
@@ -931,19 +934,7 @@ export async function processMakerSendUserTx(
     if (relInOut && relInOut.inId && relInOut.outId) {
       ctx.logger.error(`MakerTx %s Already matched`, relInOut.hash);
       // clear
-      await ctx.redis
-        .multi()
-        .hmset(`TXHASH_STATUS`, [makerTx.hash, 99])
-        .hmset(`TXID_STATUS`, [relInOut.inId, 99, relInOut.outId, 99])
-        .zrem(`MakerPendingTx:${makerTx.chainId}`, makerTx.hash)
-        .hdel(`UserPendingTx:${makerTx.chainId}`, makerTx.transferId)
-        .exec()
-        .catch(error => {
-          ctx.logger.error(
-            "processMakerSendUserTxFromCache remove cache erorr",
-            error,
-          );
-        });
+      await clearMatchCache(ctx, 0, makerTx.chainId, "", makerTx.hash, relInOut.inId, makerTx.id)
       return {
         inId: relInOut.inId,
         outId: relInOut.outId,
@@ -1122,13 +1113,13 @@ export async function processMakerSendUserTxFromCacheByChain(
       const makerTx: any = await ctx.redis
         .hget(`TX:${chain}`, hash)
         .then(tx => tx && JSON.parse(tx));
-      
-      if (!makerTx || makerTx.side !=1) {
+
+      if (!makerTx || makerTx.side != 1) {
         return;
       }
-      if (makerTx.extra && makerTx.extra['xvm']) {
-        if (makerTx.extra['xvm']['name'] === 'swapAnswer') {
-          // 
+      if (makerTx.extra && makerTx.extra["xvm"]) {
+        if (makerTx.extra["xvm"]["name"] === "swapAnswer") {
+          //
           await processMakerSendUserTx(ctx, makerTx.hash);
         }
       }
@@ -1265,17 +1256,32 @@ export async function clearMatchCache(
   outId: number,
 ) {
   // const user transferId
-  const userTx = await ctx.redis.hget(`TX:${fromChain}`, inHash).then(res => {
-    return res && JSON.parse(res);
-  });
   const redisT = ctx.redis.multi();
-  redisT
-    .hmset(`TXHASH_STATUS`, [inHash, 99, outHash, 99])
-    .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
-    .zrem(`MakerPendingTx:${toChainId}`, outHash);
-  if (userTx && userTx.transferId) {
-    redisT.hdel(`UserPendingTx:${toChainId}`, userTx.transferId);
+  if (fromChain) {
+    const userTx = await ctx.redis.hget(`TX:${fromChain}`, inHash).then(res => {
+      return res && JSON.parse(res);
+    });
+    if (userTx && userTx.transferId) {
+      redisT.hdel(`UserPendingTx:${toChainId}`, userTx.transferId);
+    }
   }
+  const TXHASH_STATUS = [];
+  if (inHash)
+    TXHASH_STATUS.push(inHash, 99)
+  if (outHash) {
+    TXHASH_STATUS.push(outHash, 99)
+    if (toChainId) {
+      redisT.zrem(`MakerPendingTx:${toChainId}`, outHash);
+    }
+  }
+  const TXID_STATUS = [];
+  if (inId)
+    TXID_STATUS.push(inId, 99)
+  if (outId)
+    TXID_STATUS.push(outId, 99)
+  redisT
+    .hmset(`TXHASH_STATUS`, TXHASH_STATUS)
+    .hmset(`TXID_STATUS`, TXID_STATUS);
   await redisT.exec().catch(error => {
     ctx.logger.error("clearMatchCache erorr", error);
   });

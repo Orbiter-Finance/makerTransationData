@@ -164,7 +164,7 @@ export class Watch {
     };
     try {
       // read
-      let order:Order = [["timestamp", "desc"]];
+      let order: Order = [["timestamp", "desc"]];
       if (process.env["serverName"] === "80C") {
         order = [["timestamp", "asc"]];
       }
@@ -211,7 +211,7 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 30);
+      await sleep(1000 * 60);
       return await this.readMakerendReMatch();
     }
   }

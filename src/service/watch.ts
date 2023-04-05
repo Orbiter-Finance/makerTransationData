@@ -11,7 +11,7 @@ import {
   bulkCreateTransaction,
 } from "./transaction";
 import dayjs from "dayjs";
-import { Op, QueryTypes } from "sequelize";
+import { Op, Order, QueryTypes } from "sequelize";
 export class Watch {
   constructor(public readonly ctx: Context) {}
   public async saveTxRawToCache(txList: Transaction[]) {
@@ -164,7 +164,7 @@ export class Watch {
     };
     try {
       // read
-      let order:[] = [["timestamp", "desc"]];
+      let order:Order = [["timestamp", "desc"]];
       if (process.env["serverName"] === "80C") {
         order = [["timestamp", "asc"]];
       }

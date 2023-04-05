@@ -26,7 +26,7 @@ export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
 ) {
-  const isOrbiterX = tx.source == "xvm"; // temp
+  const isOrbiterX = tx.source == "xvm" || tx.extra['xvm']; // temp
   const result = {
     orbiterX: false,
     isToMaker: false,
@@ -92,15 +92,10 @@ export async function bulkCreateTransaction(
         );
         continue;
       }
-      if (
-        chainConfig.tokens.findIndex(row =>
-          equals(row.address, String(row.address)),
-        ) < 0
-      ) {
+      const toToken = chains.getTokenByChain(Number(chainConfig.internalId), String(row.tokenAddress));
+      if (!toToken) {
         ctx.logger.error(
-          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
-            row.hash
-          } ${getFormatDate(row.timestamp)}`,
+          ` Token Not Found  ${row.chainId} ${row.hash} ${row.tokenAddress}`,
         );
         continue;
       }
@@ -128,14 +123,14 @@ export async function bulkCreateTransaction(
         if (!row.to) {
           row.to = dydx.getEthereumAddressFromClientId(txExtra["clientId"]);
         }
-        // makerAddress
-        if (!row.from) {
-          const makerItem = await ctx.makerConfigs.find(
-            (row: { toChain: { id: number } }) =>
-              equals(row.toChain.id, Number(chainConfig.internalId)),
-          );
-          row.from = (makerItem && makerItem.sender) || "";
-        }
+        // makerAddress dydx
+        // if (!row.from) {
+        //   const makerItem = await ctx.makerConfigs.find(
+        //     (row: { toChain: { id: number } }) =>
+        //       equals(row.toChain.id, Number(chainConfig.internalId)),
+        //   );
+        //   row.from = (makerItem && makerItem.sender) || "";
+        // }
       }
       const txData: Partial<Transaction> = {
         hash: row.hash.toLowerCase(),
@@ -201,7 +196,6 @@ export async function bulkCreateTransaction(
         const fromChainId = Number(txData.chainId);
         const toChainId = Number(txData.memo);
         // user send
-        // Calculation collection ID
         txData.replyAccount = txData.from;
         if ([44, 4, 11, 511].includes(fromChainId)) {
           // dydx contract send
@@ -338,6 +332,7 @@ export async function bulkCreateTransaction(
           to: txData.to,
           value: txData.value,
           symbol: txData.symbol,
+          extra: txData.extra || {},
           memo: txData.memo,
           replyAccount: txData.replyAccount,
           replySender: txData.replySender,
@@ -431,6 +426,7 @@ function txSaveCache(ctx: Context, txData: Transaction) {
           from: txData.from,
           to: txData.to,
           value: txData.value,
+          extra: txData.extra || {},
           symbol: txData.symbol,
           memo: txData.memo,
           replyAccount: txData.replyAccount,
@@ -537,9 +533,9 @@ async function handleXVMTx(
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {
-    // TODO: No association created
-    // txData.side = 1;
-    // const { tradeId, op } = decodeSwapAnswerData(params.data);
+    // TODO: No association created @Soul
+    txData.side = 1;
+    const { tradeId, op } = decodeSwapAnswerData(params.data);
     // const userTx = await ctx.models.Transaction.findOne(<any>{
     //   // attributes: [
     //   //   "id",
@@ -555,9 +551,12 @@ async function handleXVMTx(
     //     hash: tradeId,
     //   },
     // });
-    // if (op == 2) {
-    //   txData.status = 4;
-    // }
+    if (op == 2) {
+      txData.status = 4;
+      saveExtra['sendBack'] = {
+        fromHash: tradeId
+      }
+    }
     // const market = ctx.makerConfigs.find(item =>
     //   equals(item.toChain.tokenAddress, params.token),
     // );
@@ -570,13 +569,13 @@ async function handleXVMTx(
     //   txData.replyAccount = userTx.replyAccount;
     //   txData.replySender = userTx.replySender;
     //   if (op == 2) {
-    //     userTx.status = 4;
-    //     upsertList.push(userTx);
+    //     // userTx.status = 4;
+    //     // upsertList.push(userTx);
     //   }
     //   if (op == 3) {
-    //     userTx.status = 95;
+    //     // userTx.status = 95;
     //     txData.status = 95;
-    //     upsertList.push(userTx);
+    //     // upsertList.push(userTx);
     //   }
     // } else {
     //   ctx.logger.error(
@@ -905,7 +904,6 @@ export async function processMakerSendUserTx(
   //     errmsg: `MakerTx ${makerTx.hash} Not Find Maker Address`,
   //   };
   // }
-
   let t: sequelize.Transaction | undefined;
   try {
     if (!makerTx || isEmpty(makerTx.id)) {
@@ -957,7 +955,6 @@ export async function processMakerSendUserTx(
         errmsg: `${makerTx.hash} Current status cannot match`,
       };
     }
-
     const models = ctx.models;
     let where: any = {
       transferId: makerTx.transferId,
@@ -967,28 +964,6 @@ export async function processMakerSendUserTx(
         [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
       },
     };
-    if (
-      Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)
-    ) {
-      const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
-      const ids = [makerTx.transferId];
-      for (const primaryMaker in crossAddressTransferMap) {
-        if (equals(crossAddressTransferMap[primaryMaker], makerTx.from)) {
-          // oether maker transfer
-          ids.push(
-            TranferId(
-              String(makerTx.chainId),
-              String(primaryMaker),
-              String(makerTx.replyAccount),
-              String(makerTx.memo),
-              String(makerTx.symbol),
-              String(makerTx.value),
-            ),
-          );
-        }
-      }
-      where.transferId = ids;
-    }
     if (makerTx.source == "xvm") {
       try {
         const extra: any = makerTx.extra;
@@ -1000,6 +975,29 @@ export async function processMakerSendUserTx(
         return {
           errmsg: `Orbiter X decode fail ${makerTx.hash} ${e.message}`,
         };
+      }
+    } else {
+      if (
+        Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)
+      ) {
+        const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
+        const ids = [makerTx.transferId];
+        for (const primaryMaker in crossAddressTransferMap) {
+          if (equals(crossAddressTransferMap[primaryMaker], makerTx.from)) {
+            // oether maker transfer
+            ids.push(
+              TranferId(
+                String(makerTx.chainId),
+                String(primaryMaker),
+                String(makerTx.replyAccount),
+                String(makerTx.memo),
+                String(makerTx.symbol),
+                String(makerTx.value),
+              ),
+            );
+          }
+        }
+        where.transferId = ids;
       }
     }
     const userSendTx = await models.Transaction.findOne({
@@ -1124,6 +1122,16 @@ export async function processMakerSendUserTxFromCacheByChain(
       const makerTx: any = await ctx.redis
         .hget(`TX:${chain}`, hash)
         .then(tx => tx && JSON.parse(tx));
+      
+      if (!makerTx || makerTx.side !=1) {
+        return;
+      }
+      if (makerTx.extra && makerTx.extra['xvm']) {
+        if (makerTx.extra['xvm']['name'] === 'swapAnswer') {
+          // 
+          await processMakerSendUserTx(ctx, makerTx.hash);
+        }
+      }
       const userHash: string = await ctx.redis
         .hget(`UserPendingTx:${makerTx.chainId}`, makerTx.transferId)
         .then(str => String(str));

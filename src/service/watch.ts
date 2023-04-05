@@ -13,7 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
+  constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
     if (txList && Array.isArray(txList)) {
       txList.forEach(tx => {
@@ -80,12 +80,6 @@ export class Watch {
         if (Number(id) % this.ctx.instanceCount !== this.ctx.instanceId) {
           continue;
         }
-        // this.ctx.mq.bindQueue({
-        //   exchangeName: "MakerWaitTransfer",
-        //   exchangeType: "direct",
-        //   queueName: `MakerWaitTransfer-${id}`,
-        //   routingKey: id,
-        // });
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
@@ -128,8 +122,6 @@ export class Watch {
     } catch (error: any) {
       ctx.logger.error("startSub error:", error);
     }
-    // this.readUserTxReMatchNotCreate()
-
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readCacheMakerendReMatch();
     }
@@ -138,6 +130,7 @@ export class Watch {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
+    // await this.readUserTxReMatchNotCreate()
   }
   //read cache
   public async readCacheMakerendReMatch(): Promise<any> {
@@ -176,7 +169,6 @@ export class Watch {
             "blockHash",
             "transactionIndex",
             "lpId",
-            "extra",
             "makerId",
             "gas",
             "gasPrice",
@@ -184,7 +176,7 @@ export class Watch {
           ],
         },
         order,
-        limit: 500,
+        limit: 300,
         where,
       });
       console.log(

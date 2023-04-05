@@ -98,8 +98,7 @@ export async function bulkCreateTransaction(
         ) < 0
       ) {
         ctx.logger.error(
-          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
-            row.hash
+          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
           } ${getFormatDate(row.timestamp)}`,
         );
         continue;
@@ -958,7 +957,7 @@ export async function processMakerSendUserTx(
     }
 
     const models = ctx.models;
-    const where: any = {
+    let where: any = {
       transferId: makerTx.transferId,
       status: [1, 95, 96, 97],
       side: 0,
@@ -988,13 +987,13 @@ export async function processMakerSendUserTx(
       }
       where.transferId = ids;
     }
-
     if (makerTx.source == "xvm") {
       try {
         const extra: any = makerTx.extra;
         const { tradeId } = decodeSwapAnswerData(extra?.xvm?.params?.data);
-        where["hash"] = tradeId;
-        delete where["transferId"];
+        where = {
+          hash: tradeId
+        }
       } catch (e: any) {
         return {
           errmsg: `Orbiter X decode fail ${makerTx.hash} ${e.message}`,
@@ -1079,19 +1078,7 @@ export async function processMakerSendUserTx(
       ctx.logger.info(
         `db match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
       );
-      await ctx.redis
-        .multi()
-        .hmset(`TXHASH_STATUS`, [inHash, 99, outHash, 99])
-        .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
-        .zrem(`MakerPendingTx:${makerTx.chainId}`, outHash)
-        .hdel(`UserPendingTx:${makerTx.chainId}`, userSendTx.transferId)
-        .exec()
-        .catch(error => {
-          ctx.logger.error(
-            "processMakerSendUserTxFromCache remove cache erorr",
-            error,
-          );
-        });
+      await clearMatchCache(ctx, userSendTx.chainId,makerTx.chainId, userSendTx.hash,makerTx.hash, userSendTx.id, makerTx.id);
     }
     return {
       inId: userSendTx.id,

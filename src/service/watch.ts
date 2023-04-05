@@ -133,7 +133,7 @@ export class Watch {
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readCacheMakerendReMatch();
     }
-    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 1) {
+    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
@@ -164,6 +164,10 @@ export class Watch {
     };
     try {
       // read
+      let order:[] = [["timestamp", "desc"]];
+      if (process.env["serverName"] === "80C") {
+        order = [["timestamp", "asc"]];
+      }
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         attributes: {
@@ -179,8 +183,8 @@ export class Watch {
             "fee",
           ],
         },
-        order: [["timestamp", "desc"]],
-        limit: 300,
+        order,
+        limit: 500,
         where,
       });
       console.log(

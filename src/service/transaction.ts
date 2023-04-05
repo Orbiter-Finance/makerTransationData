@@ -895,15 +895,15 @@ export async function processMakerSendUserTx(
     }
     makerTx = record;
   }
-  const { intercept } = await validateTransactionSpecifications(
-    ctx,
-    makerTx as any,
-  );
-  if (intercept) {
-    return {
-      errmsg: `MakerTx ${makerTx.hash} Not Find Maker Address`,
-    };
-  }
+  // const { intercept } = await validateTransactionSpecifications(
+  //   ctx,
+  //   makerTx as any,
+  // );
+  // if (intercept) {
+  //   return {
+  //     errmsg: `MakerTx ${makerTx.hash} Not Find Maker Address`,
+  //   };
+  // }
 
   let t: sequelize.Transaction | undefined;
   try {
@@ -1150,33 +1150,39 @@ export async function processMakerSendUserTxFromCacheByChain(
         });
         if (isCacheMatch) {
           //
+          const inId = userTx.id;
+          const outId = makerTx.id;
+          const inHash = userTx.hash;
+          const outHash = makerTx.hash;
           const findUserTx = await ctx.models.Transaction.findOne({
             raw: true,
-            attributes: ["id"],
+            attributes: ["id", "status"],
             where: {
-              hash: userTx.hash,
-              status: {
-                [Op.not]: 99,
-              },
+              hash: inHash,
             },
           });
           if (!findUserTx?.id) {
-            ctx.logger.error(
-              `cache match success not find user tx ${userTx.hash}`,
+            ctx.logger.error(`cache match success not find user tx ${inHash}`);
+            return;
+          }
+          if (findUserTx.status === 99) {
+            await clearMatchCache(
+              ctx,
+              userTx.chainId,
+              makerTx.chainId,
+              inHash,
+              outHash,
+              findUserTx.id,
+              outHash,
             );
             return;
           }
           if (findUserTx?.id != userTx.id) {
             ctx.logger.error(
-              `cache match success not find user tx Inconsistent id ${findUserTx.id}!=${userTx.id}`,
+              `cache match success not find user tx Inconsistent id ${findUserTx.id}!=${inId}`,
             );
             return;
           }
-          //
-          const inId = userTx.id;
-          const outId = makerTx.id;
-          const inHash = userTx.hash;
-          const outHash = makerTx.hash;
           // change
           if (inId && outId && inHash && outHash) {
             ctx.logger.info(
@@ -1216,20 +1222,16 @@ export async function processMakerSendUserTxFromCacheByChain(
                   `Failed to modify the number of matching record rows ${inId}-${outId}`,
                 );
               }
-              await ctx.redis
-                .multi()
-                .hmset(`TXHASH_STATUS`, [inHash, 99, outHash, 99])
-                .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
-                .zrem(`MakerPendingTx:${makerTx.chainId}`, outHash)
-                .hdel(`UserPendingTx:${makerTx.chainId}`, userTx.transferId)
-                .exec()
-                .catch(error => {
-                  ctx.logger.error(
-                    "processMakerSendUserTxFromCache remove cache erorr",
-                    error,
-                  );
-                });
               await t.commit();
+              await clearMatchCache(
+                ctx,
+                userTx.chainId,
+                makerTx.chainId,
+                inHash,
+                outHash,
+                inId,
+                outHash,
+              );
             } catch (error) {
               await t.rollback();
               ctx.logger.error("Memory matching exception", error);
@@ -1248,7 +1250,31 @@ export async function processMakerSendUserTxFromCacheByChain(
   };
   hashList.reverse().forEach(processHandleHash);
 }
-
+export async function clearMatchCache(
+  ctx: Context,
+  fromChain: number,
+  toChainId: number,
+  inHash: string,
+  outHash: string,
+  inId: number,
+  outId: number,
+) {
+  // const user transferId
+  const userTx = await ctx.redis.hget(`TX:${fromChain}`, inHash).then(res => {
+    return res && JSON.parse(res);
+  });
+  const redisT = ctx.redis.multi();
+  redisT
+    .hmset(`TXHASH_STATUS`, [inHash, 99, outHash, 99])
+    .hmset(`TXID_STATUS`, [inId, 99, outId, 99])
+    .zrem(`MakerPendingTx:${toChainId}`, outHash);
+  if (userTx && userTx.transferId) {
+    redisT.hdel(`UserPendingTx:${toChainId}`, userTx.transferId);
+  }
+  await redisT.exec().catch(error => {
+    ctx.logger.error("clearMatchCache erorr", error);
+  });
+}
 export async function processMakerSendUserTxFromCache(ctx: Context) {
   const chainList = await chains.getAllChains();
   chainList.forEach(chain => {

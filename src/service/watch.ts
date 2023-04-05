@@ -13,7 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) { }
+  constructor(public readonly ctx: Context) {}
   public async saveTxRawToCache(txList: Transaction[]) {
     if (txList && Array.isArray(txList)) {
       txList.forEach(tx => {

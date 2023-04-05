@@ -98,7 +98,8 @@ export async function bulkCreateTransaction(
         ) < 0
       ) {
         ctx.logger.error(
-          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${row.hash
+          ` Token Not Found ${row.tokenAddress} ${row.chainId} ${
+            row.hash
           } ${getFormatDate(row.timestamp)}`,
         );
         continue;
@@ -536,51 +537,52 @@ async function handleXVMTx(
       );
     }
   } else if (name.toLowerCase() === "swapanswer") {
-    txData.side = 1;
-    const { tradeId, op } = decodeSwapAnswerData(params.data);
-    const userTx = await ctx.models.Transaction.findOne(<any>{
-      // attributes: [
-      //   "id",
-      //   "hash",
-      //   "status",
-      //   "chainId",
-      //   "transferId",
-      //   "replyAccount",
-      //   "replySender",
-      //   "side",
-      // ],
-      where: {
-        hash: tradeId,
-      },
-    });
-    if (op == 2) {
-      txData.status = 4;
-    }
-    const market = ctx.makerConfigs.find(item =>
-      equals(item.toChain.tokenAddress, params.token),
-    );
-    if (market) {
-      saveExtra.toSymbol = market.toChain.symbol;
-    }
-    if (userTx) {
-      txData.memo = String(userTx.chainId);
-      txData.transferId = userTx.transferId;
-      txData.replyAccount = userTx.replyAccount;
-      txData.replySender = userTx.replySender;
-      if (op == 2) {
-        userTx.status = 4;
-        upsertList.push(userTx);
-      }
-      if (op == 3) {
-        userTx.status = 95;
-        txData.status = 95;
-        upsertList.push(userTx);
-      }
-    } else {
-      ctx.logger.error(
-        `get userTx fail,tradeId:${tradeId}, hash:${txData.hash}`,
-      );
-    }
+    // TODO: No association created
+    // txData.side = 1;
+    // const { tradeId, op } = decodeSwapAnswerData(params.data);
+    // const userTx = await ctx.models.Transaction.findOne(<any>{
+    //   // attributes: [
+    //   //   "id",
+    //   //   "hash",
+    //   //   "status",
+    //   //   "chainId",
+    //   //   "transferId",
+    //   //   "replyAccount",
+    //   //   "replySender",
+    //   //   "side",
+    //   // ],
+    //   where: {
+    //     hash: tradeId,
+    //   },
+    // });
+    // if (op == 2) {
+    //   txData.status = 4;
+    // }
+    // const market = ctx.makerConfigs.find(item =>
+    //   equals(item.toChain.tokenAddress, params.token),
+    // );
+    // if (market) {
+    //   saveExtra.toSymbol = market.toChain.symbol;
+    // }
+    // if (userTx) {
+    //   txData.memo = String(userTx.chainId);
+    //   txData.transferId = userTx.transferId;
+    //   txData.replyAccount = userTx.replyAccount;
+    //   txData.replySender = userTx.replySender;
+    //   if (op == 2) {
+    //     userTx.status = 4;
+    //     upsertList.push(userTx);
+    //   }
+    //   if (op == 3) {
+    //     userTx.status = 95;
+    //     txData.status = 95;
+    //     upsertList.push(userTx);
+    //   }
+    // } else {
+    //   ctx.logger.error(
+    //     `get userTx fail,tradeId:${tradeId}, hash:${txData.hash}`,
+    //   );
+    // }
   }
 }
 function getMarket(
@@ -992,8 +994,8 @@ export async function processMakerSendUserTx(
         const extra: any = makerTx.extra;
         const { tradeId } = decodeSwapAnswerData(extra?.xvm?.params?.data);
         where = {
-          hash: tradeId
-        }
+          hash: tradeId,
+        };
       } catch (e: any) {
         return {
           errmsg: `Orbiter X decode fail ${makerTx.hash} ${e.message}`,
@@ -1078,7 +1080,15 @@ export async function processMakerSendUserTx(
       ctx.logger.info(
         `db match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
       );
-      await clearMatchCache(ctx, userSendTx.chainId,makerTx.chainId, userSendTx.hash,makerTx.hash, userSendTx.id, makerTx.id);
+      await clearMatchCache(
+        ctx,
+        userSendTx.chainId,
+        makerTx.chainId,
+        userSendTx.hash,
+        makerTx.hash,
+        userSendTx.id,
+        makerTx.id,
+      );
     }
     return {
       inId: userSendTx.id,

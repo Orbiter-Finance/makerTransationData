@@ -1193,7 +1193,7 @@ export async function processMakerSendUserTxFromCacheByChain(
               inHash,
               outHash,
               findUserTx.id,
-              outHash,
+              outId,
             );
             return;
           }
@@ -1210,7 +1210,7 @@ export async function processMakerSendUserTxFromCacheByChain(
             );
             const t = await ctx.models.sequelize.transaction();
             try {
-              await ctx.models.MakerTransaction.update(
+              const rows = await ctx.models.MakerTransaction.update(
                 {
                   outId,
                 },
@@ -1222,6 +1222,12 @@ export async function processMakerSendUserTxFromCacheByChain(
                   transaction: t,
                 },
               );
+              if (rows[0] != 1) {
+                ctx.logger.error(
+                  `cache match update MakerTransaction fail  ${inId}-${outId}`,
+                );
+                return processUserSendMakerTx(ctx, inHash);
+              }
               const response = await ctx.models.Transaction.update(
                 {
                   status: 99,
@@ -1250,7 +1256,7 @@ export async function processMakerSendUserTxFromCacheByChain(
                 inHash,
                 outHash,
                 inId,
-                outHash,
+                outId,
               );
             } catch (error) {
               await t.rollback();

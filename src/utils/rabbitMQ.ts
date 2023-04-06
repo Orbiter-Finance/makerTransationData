@@ -107,7 +107,11 @@ export class RabbitMQ {
       this.channel.removeAllListeners();
       this.channel = null;
     }
-    // console.warn(`Reconnecting to RabbitMQ in ${this.config.reconnectInterval / 1000} seconds...`);
+    this.ctx.logger.warn(
+      `Reconnecting to RabbitMQ in ${
+        Number(this.config.reconnectInterval) / 1000
+      } seconds...`,
+    );
     setTimeout(() => this.connect(), this.config.reconnectInterval);
   }
 

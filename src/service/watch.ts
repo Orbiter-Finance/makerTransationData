@@ -41,7 +41,7 @@ export class Watch {
   }
   public async start() {
     const ctx = this.ctx;
-    const prefix = (process.env["ServerName"] || "").toLocaleLowerCase();
+    const prefix = `-${(process.env["ServerName"] || "").toLocaleLowerCase()}`;
     const exchangeName = `MakerTransationData${prefix}`;
     const producer = await this.ctx.mq.createProducer({
       exchangeName,
@@ -56,7 +56,6 @@ export class Watch {
     });
     consumer.consume(async message => {
       try {
-        ctx.logger.info("sub tx", message);
         await bulkCreateTransaction(ctx, JSON.parse(message));
         return true;
       } catch (error) {
@@ -68,9 +67,9 @@ export class Watch {
     try {
       const chainGroup = groupWatchAddressByChain(ctx, ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
-      chainGroup["4"] = [
-        "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
-      ];
+      // chainGroup["4"] = [
+      //   "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
+      // ];
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
           const isScan = process.env["SingleChain"]
@@ -139,7 +138,7 @@ export class Watch {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
-    // await this.readUserTxReMatchNotCreate()
+    await this.readUserTxReMatchNotCreate();
   }
   //read cache
   public async readCacheMakerendReMatch(): Promise<any> {

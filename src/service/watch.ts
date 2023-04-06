@@ -13,48 +13,40 @@ import {
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 export class Watch {
-  constructor(public readonly ctx: Context) {}
+  constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
-    if (txList && Array.isArray(txList)) {
-      txList.forEach(tx => {
-        try {
-          const chainConfig = chains.getChainInfo(String(tx.chainId));
-          const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
-          this.ctx.redis
-            .multi()
-            .zadd(
-              `TX_RAW:${chainConfig?.internalId}:hash:${ymd}`,
-              dayjs(tx.timestamp * 1000).valueOf(),
-              tx.hash,
-            )
-            .hset(
-              `TX_RAW:${chainConfig?.internalId}:${ymd}`,
-              tx.hash,
-              JSON.stringify(tx),
-            )
-            .exec();
-        } catch (error) {
-          this.ctx.logger.error(`pubSub.subscribe error`, error);
-        }
-      });
+    try {
+      if (txList && Array.isArray(txList)) {
+        txList.forEach(tx => {
+          try {
+            const chainConfig = chains.getChainInfo(String(tx.chainId));
+            const ymd = dayjs(tx.timestamp * 1000).format("YYYYMM");
+            this.ctx.redis
+              .multi()
+              .zadd(
+                `TX_RAW:${chainConfig?.internalId}:hash:${ymd}`,
+                dayjs(tx.timestamp * 1000).valueOf(),
+                tx.hash,
+              )
+              .hset(
+                `TX_RAW:${chainConfig?.internalId}:${ymd}`,
+                tx.hash,
+                JSON.stringify(tx),
+              )
+              .exec();
+          } catch (error) {
+            this.ctx.logger.error(`pubSub.subscribe error`, error);
+          }
+        });
+      }
+    } catch (error) {
+      this.ctx.logger.error('saveTxRawToCache error', error);
     }
+
   }
   public async start() {
     const ctx = this.ctx;
-    const prefix = `-${(process.env["ServerName"] || "").toLocaleLowerCase()}`;
-    const exchangeName = `MakerTransationData${prefix}`;
-    const producer = await this.ctx.mq.createProducer({
-      exchangeName,
-      exchangeType: "direct",
-    });
-
-    const consumer = await this.ctx.mq.createConsumer({
-      exchangeName,
-      exchangeType: "direct",
-      queueName: `MakerTransationData${prefix}-transactions`,
-      routingKey: "",
-    });
-    consumer.consume(async message => {
+    this.ctx.mq.consumer.consume(async message => {
       try {
         await bulkCreateTransaction(ctx, JSON.parse(message));
         return true;
@@ -91,7 +83,7 @@ export class Watch {
             try {
               await this.saveTxRawToCache(txList);
               // await bulkCreateTransaction(ctx, txList);
-              return await producer.publish(txList, "");
+              return await this.ctx.mq.producer.publish(txList, "");
             } catch (error) {
               await bulkCreateTransaction(ctx, txList);
               ctx.logger.error(
@@ -109,9 +101,9 @@ export class Watch {
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
           try {
-            await this.saveTxRawToCache([tx]);
+            await this.saveTxRawToCache([tx])
             // await bulkCreateTransaction(ctx, [tx]);
-            return await producer.publish([tx], "");
+            return await this.ctx.mq.producer.publish([tx], "");
           } catch (error) {
             ctx.logger.error(
               `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
@@ -133,7 +125,7 @@ export class Watch {
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readCacheMakerendReMatch();
     }
-    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
+    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 1) {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
@@ -153,6 +145,7 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
+    // const startAt = dayjs().subtract(1, 'month').startOf("d").toDate();
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(120, "second").toDate();
     const where = {
@@ -184,7 +177,7 @@ export class Watch {
           ],
         },
         order,
-        limit: 10000,
+        limit: 500,
         where,
       });
       console.log(

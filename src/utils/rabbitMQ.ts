@@ -24,7 +24,8 @@ export class RabbitMQ {
   private config: IRabbitMQConfig;
   private connection: amqp.Connection | null;
   private channel: amqp.Channel | null;
-
+  public producer!: Producer;
+  public consumer!: Consumer;
   constructor(config: IRabbitMQConfig, private ctx: Context) {
     this.config = {
       ...config,
@@ -42,7 +43,7 @@ export class RabbitMQ {
       amqp
         .connect(this.config.url, {
           clientProperties: {
-            connection_name: "mtx",
+            connection_name: this.getPrefix().serverName,
           },
         })
         .then(async connection => {
@@ -59,9 +60,11 @@ export class RabbitMQ {
             this.reconnect();
           });
           this.channel = await this.createChannel();
+          this.producer = await this.createProducer();
+          this.consumer = await this.createConsumer();
           this.channel.on("close", async err => {
             this.ctx.logger.error(`channel closed`, err);
-            this.channel = await this.createChannel();
+            // this.channel = await this.createChannel();
           });
           this.channel.on("error", async err => {
             this.ctx.logger.error(`channel error`, err);
@@ -108,8 +111,7 @@ export class RabbitMQ {
       this.channel = null;
     }
     this.ctx.logger.warn(
-      `Reconnecting to RabbitMQ in ${
-        Number(this.config.reconnectInterval) / 1000
+      `Reconnecting to RabbitMQ in ${Number(this.config.reconnectInterval) / 1000
       } seconds...`,
     );
     setTimeout(() => this.connect(), this.config.reconnectInterval);
@@ -119,25 +121,51 @@ export class RabbitMQ {
     await this.channel?.close();
     await this.connection?.close();
   }
-
-  async createProducer(config: IProducerConfig): Promise<Producer> {
-    const channel = await this.createChannel();
+  getPrefix() {
+    const prefix = `MakerTransationData-${(process.env["ServerName"] || "").toLocaleLowerCase()}`;
+    return { exchange: prefix, serverName: process.env["ServerName"] || "" };
+  }
+  async createProducer(): Promise<Producer> {
+    const config: IProducerConfig = {
+      exchangeName: this.getPrefix().exchange,
+      exchangeType: "direct",
+    };
+    if (!this.channel) {
+      this.channel = await this.createChannel();
+    }
     const { exchangeName, exchangeType } = config;
-    await channel?.assertExchange(exchangeName, exchangeType, {
+    await this.channel?.assertExchange(exchangeName, exchangeType, {
       durable: true,
     });
-    if (config.queueName) {
-      const assertQueue = await channel?.assertQueue(config.queueName || "", {
-        durable: true,
-      });
-      await channel?.bindQueue(
-        assertQueue?.queue ?? "",
-        config.exchangeName,
-        config.routingKey || "",
-      );
-    }
-    return new Producer(channel, config);
+    return new Producer(this.channel, config);
   }
+  async publishMakerWaitTransferMessage(message: any, toChainId: string) {
+    const config: IProducerConfig = {
+      exchangeName: "MakerWaitTransfer",
+      exchangeType: "direct",
+      queueName: `MakerWaitTransfer-${toChainId}`,
+      routingKey: String(toChainId),
+    };
+    if (!this.channel) {
+      this.channel = await this.createChannel();
+    }
+    const { exchangeName, exchangeType } = config;
+    await this.channel?.assertExchange(exchangeName, exchangeType, {
+      durable: true,
+    });
+    const assertQueue = await this.channel?.assertQueue(config.queueName || "", {
+      durable: true,
+    });
+    await this.channel?.bindQueue(
+      assertQueue?.queue ?? "",
+      config.exchangeName,
+      config.routingKey || "",
+    );
+    const producer = new Producer(this.channel, config);
+    await producer.publish(message, toChainId);
+    return true;
+  }
+
   async bindQueue(config: IProducerConfig) {
     await this.channel?.assertExchange(
       config.exchangeName,
@@ -155,26 +183,32 @@ export class RabbitMQ {
     );
     return assertQueue;
   }
-  async createConsumer(config: IConsumerConfig): Promise<Consumer> {
+  async createConsumer(): Promise<Consumer> {
+    const { exchange, serverName } = this.getPrefix();
+    const config: IConsumerConfig = {
+      exchangeName: exchange,
+      exchangeType: "direct",
+      queueName: `MakerTransationData-${serverName}-transactions`,
+      routingKey: "",
+    }
     const { exchangeName, exchangeType, queueName, routingKey } = config;
-    // const channel = await this.createChannel();
-    const channel = this.channel;
-    await channel?.assertExchange(exchangeName, exchangeType, {
+    if (!this.channel) {
+      this.channel = await this.createChannel();
+    }
+    await this.channel?.assertExchange(exchangeName, exchangeType, {
       durable: true,
     });
-    const assertQueue = await channel?.assertQueue(queueName, {
+    const assertQueue = await this.channel?.assertQueue(queueName, {
       durable: true,
     });
-    await channel?.bindQueue(
+    await this.channel?.bindQueue(
       assertQueue?.queue ?? "",
       exchangeName,
       routingKey || "",
     );
-    if (!channel) {
-      throw new Error("channel not found");
-    }
-    return new Consumer(channel, config);
+    return new Consumer(this.channel, config);
   }
+
 }
 class Consumer {
   private channel: amqp.Channel;

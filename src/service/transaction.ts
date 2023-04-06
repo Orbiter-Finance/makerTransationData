@@ -488,17 +488,19 @@ async function messageToOrbiterX(ctx: Context, txData: Transaction) {
   if (
     txData.source === "xvm" &&
     txData.side === 0 &&
-    txData.status === 1 &&
-    new Date(txData.timestamp).valueOf() > ctx.startTime
+    txData.status === 1 
+    && new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {
     // push
-    const producer = await ctx.mq.createProducer({
-      exchangeName: "MakerWaitTransfer",
-      exchangeType: "direct",
-      queueName: `MakerWaitTransfer-${txData.memo}`,
-      routingKey: String(txData.memo),
-    });
-    await producer.publish(txData, String(txData.chainId));
+    // const producer = await ctx.mq.createMakerTransferProducer();
+    // const producer = await ctx.mq.createProducer({
+    //   exchangeName: "MakerWaitTransfer",
+    //   exchangeType: "direct",
+    //   queueName: `MakerWaitTransfer-${txData.memo}`,
+    //   routingKey: String(txData.memo),
+    // });
+    await ctx.mq.publishMakerWaitTransferMessage(txData,String(txData.chainId));
+    // await producer.publish(txData, String(txData.chainId));
   }
 }
 async function handleXVMTx(
@@ -1126,7 +1128,7 @@ export async function processMakerSendUserTxFromCacheByChain(
   chain: string,
 ) {
   const maxScore = dayjs().valueOf(),
-    minScore = dayjs().subtract(30, "m").valueOf();
+    minScore = dayjs().subtract(10, "m").valueOf();
   const hashList = await ctx.redis.zrevrangebyscore(
     `MakerPendingTx:${chain}`,
     maxScore,
@@ -1226,7 +1228,8 @@ export async function processMakerSendUserTxFromCacheByChain(
                 ctx.logger.error(
                   `cache match update MakerTransaction fail  ${inId}-${outId}`,
                 );
-                return processUserSendMakerTx(ctx, inHash);
+                throw new Error(`cache match update MakerTransaction fail  ${inId}-${outId}`)
+                // return await processUserSendMakerTx(ctx, inHash);
               }
               const response = await ctx.models.Transaction.update(
                 {

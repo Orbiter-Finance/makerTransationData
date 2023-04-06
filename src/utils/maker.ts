@@ -1,92 +1,13 @@
-import { BigNumber } from "bignumber.js";
-import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
 import { IChainCfg, IMakerCfg, IMakerDataCfg, IMarket } from "../types";
 import { uniq, flatten } from "lodash";
-import { chains } from "orbiter-chaincore";
 import chainMain from "../config/chain.json";
-import makerMain from "../config/maker.json";
 import chainTest from "../config/chainTest.json";
-import makerTest from "../config/makerTest.json";
+
 import { isProd } from "../config/config";
 import { Context } from "../context";
 
 export const chain: IChainCfg[] = <any[]>(isProd() ? chainMain : chainTest);
-export const maker: IMakerCfg = <any>(isProd() ? makerMain : makerTest);
 
-export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
-  const marketList: Array<IMarket | null> = oldLpList.map(row => {
-    try {
-      const pair = row["pair"];
-      const maker = row["maker"];
-      const fromChain = chains.getChainInfo(Number(pair.sourceChain));
-      if (!fromChain) {
-        return {} as any;
-      }
-      const fromToken = fromChain.tokens.find(row =>
-        equals(row.address, pair.sourceToken),
-      );
-      const toChain = chains.getChainInfo(Number(pair.destChain));
-      if (!toChain) {
-        return {} as any;
-      }
-      const toToken = toChain.tokens.find(row =>
-        equals(row.address, pair.destToken),
-      );
-      const recipientAddress = maker["owner"];
-      const senderAddress = maker["owner"];
-      const fromChainId = pair.sourceChain;
-      const toChainId = pair.destChain;
-      const minPrice = new BigNumber(
-        Number(row["minPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
-      ).toNumber();
-      const maxPrice = new BigNumber(
-        Number(row["maxPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
-      ).toNumber();
-      const times = [
-        Number(row["startTime"]),
-        Number(row["stopTime"] || 9999999999),
-      ];
-
-      const lpConfig: IMarket = {
-        id: row["id"],
-        recipient: recipientAddress,
-        sender: senderAddress,
-        makerId: maker.id,
-        ebcId: pair["ebcId"],
-        slippage: 200,
-        tradingFee: new BigNumber(
-          Number(row["tradingFee"]) / Math.pow(10, Number(row["destPresion"])),
-        ).toNumber(),
-        gasFee: new BigNumber(
-          Number(row["gasFee"]) / Math.pow(10, Number(row["destPresion"])),
-        ).toNumber(),
-        fromChain: {
-          id: Number(fromChainId),
-          name: fromChain.name,
-          tokenAddress: pair.sourceToken,
-          symbol: fromToken?.symbol || "",
-          decimals: Number(row["sourcePresion"]),
-          maxPrice: maxPrice,
-          minPrice: minPrice,
-        },
-        toChain: {
-          id: Number(toChainId),
-          name: toChain.name,
-          tokenAddress: pair.destToken,
-          symbol: toToken?.symbol || "",
-          decimals: Number(row["destPresion"]),
-        },
-        times,
-      };
-
-      return lpConfig;
-    } catch (error) {
-      console.error(`convertChainLPToOldLP error:`, row, error);
-      return null;
-    }
-  });
-  return marketList.filter(row => !isEmpty(row)) as any;
-}
 export function groupWatchAddressByChain(
   ctx: Context,
   makerList: Array<IMarket>,
@@ -109,35 +30,26 @@ export function groupWatchAddressByChain(
     // maker json
     for (const addr of senderAddress) {
       if (ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]) {
-        crossAddressTransfers.push(
-          ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()],
-        );
+        const crossAddr =
+          ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()];
+        if (addr.length === crossAddr.length) {
+          crossAddressTransfers.push(
+            ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()],
+          );
+        }
       }
     }
-
-    // const crossRecipientAddress = uniq(
-    //   makerList
-    //     .filter(m => m.fromChain.id === id)
-    //     .map(m => m.crossAddress?.recipient),
-    // );
-    // const crossSenderAddress = uniq(
-    //   makerList
-    //     .filter(m => m.toChain.id === id)
-    //     .map(m => m.crossAddress?.sender),
-    // );
     chain[id] = uniq([
       ...senderAddress,
       ...recipientAddress,
       ...crossAddressTransfers,
-      // ...crossRecipientAddress,
-      // ...crossSenderAddress,
     ]);
   }
   return chain;
 }
 
-export function convertMakerConfig(): IMarket[] {
-  const makerMap: IMakerCfg = <any>maker;
+export function convertMakerConfig(makerMap: IMakerCfg): IMarket[] {
+  // const makerMap: IMakerCfg = <any>maker;
   const chainList: IChainCfg[] = <any>chain;
   const configs: IMarket[] = [];
   for (const chainIdPair in makerMap) {

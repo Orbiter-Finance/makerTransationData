@@ -23,12 +23,12 @@ export class Watch {
           this.ctx.redis
             .multi()
             .zadd(
-              `TX_RAW:hash:${ymd}`,
+              `TX_RAW:${chainConfig?.internalId}:hash:${ymd}`,
               dayjs(tx.timestamp * 1000).valueOf(),
               tx.hash,
             )
             .hset(
-              `TX_RAW:${ymd}:${chainConfig?.internalId}`,
+              `TX_RAW:${chainConfig?.internalId}:${ymd}`,
               tx.hash,
               JSON.stringify(tx),
             )
@@ -41,7 +41,7 @@ export class Watch {
   }
   public async start() {
     const ctx = this.ctx;
-    const prefix = process.env["RABBIT_PREFIX"] || "";
+    const prefix = (process.env["ServerName"] || "").toLocaleLowerCase();
     const exchangeName = `MakerTransationData${prefix}`;
     const producer = await this.ctx.mq.createProducer({
       exchangeName,
@@ -56,6 +56,7 @@ export class Watch {
     });
     consumer.consume(async message => {
       try {
+        ctx.logger.info("sub tx", message);
         await bulkCreateTransaction(ctx, JSON.parse(message));
         return true;
       } catch (error) {
@@ -67,6 +68,9 @@ export class Watch {
     try {
       const chainGroup = groupWatchAddressByChain(ctx, ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
+      chainGroup["4"] = [
+        "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
+      ];
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
           const isScan = process.env["SingleChain"]
@@ -85,16 +89,19 @@ export class Watch {
         );
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           if (txList) {
-            this.saveTxRawToCache(txList);
             try {
+              await this.saveTxRawToCache(txList);
+              // await bulkCreateTransaction(ctx, txList);
               return await producer.publish(txList, "");
             } catch (error) {
+              await bulkCreateTransaction(ctx, txList);
               ctx.logger.error(
                 ` pubSub.subscribe( processSubTxList error:`,
                 error,
               );
             }
           }
+          return true;
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
           ctx.logger.error(`${id} startScanChain error:`, error);
@@ -102,14 +109,16 @@ export class Watch {
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
-          this.saveTxRawToCache([tx]);
           try {
+            await this.saveTxRawToCache([tx]);
+            // await bulkCreateTransaction(ctx, [tx]);
             return await producer.publish([tx], "");
           } catch (error) {
             ctx.logger.error(
               `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
               error,
             );
+            await bulkCreateTransaction(ctx, [tx]);
           }
         }
       });
@@ -158,7 +167,7 @@ export class Watch {
     try {
       // read
       let order: Order = [["timestamp", "desc"]];
-      if (process.env["serverName"] === "80C") {
+      if (process.env["ServerName"] === "80C") {
         order = [["timestamp", "asc"]];
       }
       const txList = await this.ctx.models.Transaction.findAll({
@@ -176,7 +185,7 @@ export class Watch {
           ],
         },
         order,
-        limit: 300,
+        limit: 10000,
         where,
       });
       console.log(
@@ -210,7 +219,7 @@ export class Watch {
   public async readUserTxReMatchNotCreate(): Promise<any> {
     const txList: any[] = await this.ctx.models.sequelize.query(
       `select t.* from transaction as t left join maker_transaction as mt on t.id = mt.inId
-    where t.side = 0 and inId is null and status = 1 and timestamp>='2023-03-20 00:00'
+    where t.side = 0 and inId is null and status = 1 and timestamp>='2023-03-01 00:00'
     order by t.timestamp desc
     limit 500`,
       {

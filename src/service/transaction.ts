@@ -70,6 +70,12 @@ export async function validateTransactionSpecifications(
   }
   return result;
 }
+export function validMakerAddress(ctx: Context, address: string) {
+  const data = ctx.makerConfigs.find(
+    row => equals(row.sender, address) || equals(row.recipient, address),
+  );
+  return !isEmpty(data);
+}
 export async function bulkCreateTransaction(
   ctx: Context,
   txlist: Array<any>,
@@ -180,6 +186,14 @@ export async function bulkCreateTransaction(
         ctx.logger.info(`MakerTx ${txData.hash} Not Find Maker Address!`);
         continue;
       }
+      if (
+        validMakerAddress(ctx, String(txData.from)) &&
+        validMakerAddress(ctx, String(txData.to))
+      ) {
+        txData.status = 3;
+        upsertList.push(<any>txData);
+        continue;
+      }
       if (isToUser || isToUserCrossAddress) {
         txData.side = 1;
         // maker send
@@ -194,12 +208,19 @@ export async function bulkCreateTransaction(
           String(txData.value),
         );
         saveExtra.toSymbol = txData.symbol;
+      } else if (orbiterX) {
+        try {
+          await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);
+        } catch (error) {
+          ctx.logger.error("handle xvm error", error);
+        }
       } else if (isToMaker) {
         txData.side = 0;
         const fromChainId = Number(txData.chainId);
         const toChainId = Number(txData.memo);
         // user send
         txData.replyAccount = txData.from;
+        txData.replySender = txData.to;
         if ([44, 4, 11, 511].includes(fromChainId)) {
           // dydx contract send
           // starknet contract send
@@ -271,14 +292,6 @@ export async function bulkCreateTransaction(
       ) {
         txData.status = TransactionStatus.COMPLETE;
       }
-
-      if (orbiterX) {
-        try {
-          await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);
-        } catch (error) {
-          ctx.logger.error("handle xvm error", error);
-        }
-      }
       // valid cache status
       const cacheStatus = await ctx.redis.hget(
         "TXHASH_STATUS",
@@ -302,19 +315,27 @@ export async function bulkCreateTransaction(
         if (tx.status === 99) {
           // save
           if (tx.side === 0) {
-            await ctx.redis
-              .multi()
-              .hset("TXHASH_STATUS", String(txData.hash), 99)
-              .hset("TXID_STATUS", tx.id, 99)
-              .hdel(`UserPendingTx:${txData.memo}`, String(txData.transferId))
-              .exec();
+            await clearMatchCache(
+              ctx,
+              Number(txData.chainId),
+              Number(txData.memo),
+              String(txData.hash),
+              "",
+              Number(txData.id),
+              0,
+              txData.transferId,
+            );
           } else if (tx.side === 1) {
-            await ctx.redis
-              .multi()
-              .hset("TXID_STATUS", tx.id, 99)
-              .hset("TXHASH_STATUS", String(txData.hash), 99)
-              .zrem(`MakerPendingTx:${txData.chainId}`, String(txData.hash))
-              .exec();
+            await clearMatchCache(
+              ctx,
+              0,
+              Number(txData.chainId),
+              "",
+              String(txData.hash),
+              0,
+              Number(txData.id),
+              txData.transferId,
+            );
           }
           // ctx.logger.info(
           //   `From DB ${txData.hash} The transaction status has already been matched`,
@@ -485,7 +506,7 @@ async function handleXVMTx(
   txData: Partial<Transaction>,
   txExtra: any,
   saveExtra: any,
-  upsertList: Array<InferCreationAttributes<Transaction>>,
+  _upsertList: Array<InferCreationAttributes<Transaction>>,
 ) {
   saveExtra.xvm = txExtra.xvm;
   const { name, params } = txExtra.xvm;
@@ -509,18 +530,12 @@ async function handleXVMTx(
       txData.status = 3;
       ctx.logger.error("Market not found", txData.hash);
     } else {
-      const isCrossAddressAndSameSymbol =
-        !equals(txData.from, decodeData.toWalletAddress) &&
-        equals(txData.symbol, market.toChain.symbol);
       txData.lpId = market.id || null;
       txData.makerId = market.makerId || null;
       saveExtra["ebcId"] = market.ebcId;
       saveExtra.toSymbol = market.toChain.symbol;
       txData.side = 0;
-      txData.replySender =
-        isCrossAddressAndSameSymbol && market.crossAddress?.sender
-          ? market.crossAddress?.sender
-          : market.sender;
+      txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
       if ([44, 4].includes(toChainId)) {
         txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
@@ -934,7 +949,15 @@ export async function processMakerSendUserTx(
     if (relInOut && relInOut.inId && relInOut.outId) {
       ctx.logger.error(`MakerTx %s Already matched`, relInOut.hash);
       // clear
-      await clearMatchCache(ctx, 0, makerTx.chainId, "", makerTx.hash, relInOut.inId, makerTx.id)
+      await clearMatchCache(
+        ctx,
+        0,
+        makerTx.chainId,
+        "",
+        makerTx.hash,
+        relInOut.inId,
+        makerTx.id,
+      );
       return {
         inId: relInOut.inId,
         outId: relInOut.outId,
@@ -953,6 +976,7 @@ export async function processMakerSendUserTx(
       side: 0,
       timestamp: {
         [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
+        [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
       },
     };
     if (makerTx.source == "xvm") {
@@ -1254,6 +1278,7 @@ export async function clearMatchCache(
   outHash: string,
   inId: number,
   outId: number,
+  transferId?: string,
 ) {
   // const user transferId
   const redisT = ctx.redis.multi();
@@ -1265,20 +1290,20 @@ export async function clearMatchCache(
       redisT.hdel(`UserPendingTx:${toChainId}`, userTx.transferId);
     }
   }
+  if (toChainId && transferId) {
+    redisT.hdel(`UserPendingTx:${toChainId}`, transferId);
+  }
   const TXHASH_STATUS = [];
-  if (inHash)
-    TXHASH_STATUS.push(inHash, 99)
+  if (inHash) TXHASH_STATUS.push(inHash, 99);
   if (outHash) {
-    TXHASH_STATUS.push(outHash, 99)
+    TXHASH_STATUS.push(outHash, 99);
     if (toChainId) {
       redisT.zrem(`MakerPendingTx:${toChainId}`, outHash);
     }
   }
   const TXID_STATUS = [];
-  if (inId)
-    TXID_STATUS.push(inId, 99)
-  if (outId)
-    TXID_STATUS.push(outId, 99)
+  if (inId) TXID_STATUS.push(inId, 99);
+  if (outId) TXID_STATUS.push(outId, 99);
   redisT
     .hmset(`TXHASH_STATUS`, TXHASH_STATUS)
     .hmset(`TXID_STATUS`, TXID_STATUS);

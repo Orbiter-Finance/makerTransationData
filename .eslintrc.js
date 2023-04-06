@@ -20,6 +20,8 @@ module.exports = {
     "prettier",
   ],
   rules: {
+    "@typescript-eslint/no-var-requires":"off",
+    "@typescript-eslint/no-var-require":"off",
     "no-unused-vars": "off", // or "@typescript-eslint/no-unused-vars": "off",
     "unused-imports/no-unused-imports": "error",
     "unused-imports/no-unused-vars": [

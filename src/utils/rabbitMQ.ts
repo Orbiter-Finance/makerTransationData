@@ -122,8 +122,9 @@ export class RabbitMQ {
     await this.connection?.close();
   }
   getPrefix() {
-    const prefix = `MakerTransationData-${(process.env["ServerName"] || "").toLocaleLowerCase()}`;
-    return { exchange: prefix, serverName: process.env["ServerName"] || "" };
+    const serverName = (process.env["ServerName"] || "").toLocaleLowerCase();
+    const exchange = (`MakerTransationData-${serverName}`);
+    return { exchange: exchange, serverName };
   }
   async createProducer(): Promise<Producer> {
     const config: IProducerConfig = {
@@ -157,7 +158,7 @@ export class RabbitMQ {
       durable: true,
     });
     await this.channel?.bindQueue(
-      assertQueue?.queue ?? "",
+      assertQueue?.queue,
       config.exchangeName,
       config.routingKey || "",
     );

@@ -116,11 +116,17 @@ export class Context {
 }
 export async function fetchFileMakerList(ctx: Context) {
   if (isProd()) {
-    ctx.makerConfigs = convertMakerConfig(
-      require(`./config/maker-${process.env[
-        "ServerName"
-      ]?.toLocaleLowerCase()}.json`),
-    );
+    if (process.env["ServerName"] === "all") {
+      const mk1 = convertMakerConfig(require(`./config/maker-80c.json`));
+      const mk2 = convertMakerConfig(require(`./config/maker-e4e.json`));
+      ctx.makerConfigs = [...mk1, ...mk2];
+    } else {
+      ctx.makerConfigs = convertMakerConfig(
+        require(`./config/maker-${process.env[
+          "ServerName"
+        ]?.toLocaleLowerCase()}.json`),
+      );
+    }
   } else {
     ctx.makerConfigs = convertMakerConfig(require("./config/makerTest.json"));
   }

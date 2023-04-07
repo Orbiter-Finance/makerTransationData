@@ -486,21 +486,15 @@ function txSaveCache(ctx: Context, txData: Transaction) {
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
   if (
-    txData.source === "xvm" &&
-    txData.side === 0 &&
-    txData.status === 1 
-    && new Date(txData.timestamp).valueOf() > ctx.startTime
+    txData.source === 'xvm' &&
+    txData.status === 1 &&
+    new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {
-    // push
-    // const producer = await ctx.mq.createMakerTransferProducer();
-    // const producer = await ctx.mq.createProducer({
-    //   exchangeName: "MakerWaitTransfer",
-    //   exchangeType: "direct",
-    //   queueName: `MakerWaitTransfer-${txData.memo}`,
-    //   routingKey: String(txData.memo),
-    // });
-    await ctx.mq.publishMakerWaitTransferMessage(txData,String(txData.chainId));
-    // await producer.publish(txData, String(txData.chainId));
+    await ctx.mq
+      .publishMakerWaitTransferMessage(txData, String(txData.chainId))
+      .catch(error => {
+        ctx.logger.error(`publishMakerWaitTransferMessage error:`, error);
+      });
   }
 }
 async function handleXVMTx(
@@ -1166,10 +1160,10 @@ export async function processMakerSendUserTxFromCacheByChain(
           equals(userTx.memo, makerTx.chainId) &&
           equals(userTx.replyAccount, makerTx.replyAccount) &&
           equals(userTx.transferId, makerTx.transferId);
-        ctx.logger.info(`match find isCacheMatch ${isCacheMatch}`, {
-          userTx,
-          makerTx,
-        });
+        // ctx.logger.info(`match find isCacheMatch ${isCacheMatch}`, {
+        //   userTx,
+        //   makerTx,
+        // });
         if (isCacheMatch) {
           //
           const inId = userTx.id;
@@ -1228,8 +1222,9 @@ export async function processMakerSendUserTxFromCacheByChain(
                 ctx.logger.error(
                   `cache match update MakerTransaction fail  ${inId}-${outId}`,
                 );
-                throw new Error(`cache match update MakerTransaction fail  ${inId}-${outId}`)
-                // return await processUserSendMakerTx(ctx, inHash);
+                throw new Error(
+                  `cache match update MakerTransaction fail  ${inId}-${outId}`,
+                );
               }
               const response = await ctx.models.Transaction.update(
                 {

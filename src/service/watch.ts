@@ -40,9 +40,8 @@ export class Watch {
         });
       }
     } catch (error) {
-      this.ctx.logger.error('saveTxRawToCache error', error);
+      this.ctx.logger.error("saveTxRawToCache error", error);
     }
-
   }
   public async start() {
     const ctx = this.ctx;
@@ -59,9 +58,6 @@ export class Watch {
     try {
       const chainGroup = groupWatchAddressByChain(ctx, ctx.makerConfigs);
       const scanChain = new ScanChainMain(ctx.config.chains);
-      // chainGroup["4"] = [
-      //   "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
-      // ];
       for (const id in chainGroup) {
         if (process.env["SingleChain"]) {
           const isScan = process.env["SingleChain"]
@@ -85,9 +81,14 @@ export class Watch {
               // await bulkCreateTransaction(ctx, txList);
               return await this.ctx.mq.producer.publish(txList, "");
             } catch (error) {
-              await bulkCreateTransaction(ctx, txList);
+              await bulkCreateTransaction(ctx, txList).catch(error => {
+                ctx.logger.error(
+                  `pubSub.subscribe  processSubTxList error:bulkCreateTransaction error`,
+                  error,
+                );
+              });
               ctx.logger.error(
-                ` pubSub.subscribe( processSubTxList error:`,
+                `pubSub.subscribe  processSubTxList error:`,
                 error,
               );
             }
@@ -101,7 +102,7 @@ export class Watch {
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
           try {
-            await this.saveTxRawToCache([tx])
+            await this.saveTxRawToCache([tx]);
             // await bulkCreateTransaction(ctx, [tx]);
             return await this.ctx.mq.producer.publish([tx], "");
           } catch (error) {
@@ -145,7 +146,6 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    // const startAt = dayjs().subtract(1, 'month').startOf("d").toDate();
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(120, "second").toDate();
     const where = {
@@ -204,7 +204,7 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     } finally {
-      await sleep(1000 * 60);
+      await sleep(1000 * 30);
       return await this.readMakerendReMatch();
     }
   }
@@ -213,7 +213,7 @@ export class Watch {
       `select t.* from transaction as t left join maker_transaction as mt on t.id = mt.inId
     where t.side = 0 and inId is null and status = 1 and timestamp>='2023-03-01 00:00'
     order by t.timestamp desc
-    limit 500`,
+    limit 1000`,
       {
         type: QueryTypes.SELECT,
         raw: false,

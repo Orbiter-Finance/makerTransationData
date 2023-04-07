@@ -64,11 +64,11 @@ export class RabbitMQ {
           this.consumer = await this.createConsumer();
           this.channel.on("close", async err => {
             this.ctx.logger.error(`channel closed`, err);
-            // this.channel = await this.createChannel();
+            this.channel = await this.createChannel();
           });
           this.channel.on("error", async err => {
             this.ctx.logger.error(`channel error`, err);
-            // this.channel = await this.createChannel();
+            this.channel = await this.createChannel();
           });
           resolve(this.connection);
         })
@@ -123,7 +123,7 @@ export class RabbitMQ {
   }
   getPrefix() {
     const serverName = (process.env["ServerName"] || "").toLocaleLowerCase();
-    const exchange = (`MakerTransationData-${serverName}`);
+    const exchange = `MakerTransationData-${serverName}`;
     return { exchange: exchange, serverName };
   }
   async createProducer(): Promise<Producer> {
@@ -154,9 +154,12 @@ export class RabbitMQ {
     await this.channel?.assertExchange(exchangeName, exchangeType, {
       durable: true,
     });
-    const assertQueue = await this.channel?.assertQueue(config.queueName || "", {
-      durable: true,
-    });
+    const assertQueue = await this.channel?.assertQueue(
+      config.queueName || "",
+      {
+        durable: true,
+      },
+    );
     await this.channel?.bindQueue(
       assertQueue?.queue,
       config.exchangeName,
@@ -191,7 +194,7 @@ export class RabbitMQ {
       exchangeType: "direct",
       queueName: `MakerTransationData-${serverName}-transactions`,
       routingKey: "",
-    }
+    };
     const { exchangeName, exchangeType, queueName, routingKey } = config;
     if (!this.channel) {
       this.channel = await this.createChannel();
@@ -209,7 +212,6 @@ export class RabbitMQ {
     );
     return new Consumer(this.channel, config);
   }
-
 }
 class Consumer {
   private channel: amqp.Channel;

@@ -78,7 +78,7 @@ export class Watch {
           if (txList) {
             try {
               await this.saveTxRawToCache(txList);
-              // await bulkCreateTransaction(ctx, txList);
+              // return await bulkCreateTransaction(ctx, txList);
               return await this.ctx.mq.producer.publish(txList, "");
             } catch (error) {
               await bulkCreateTransaction(ctx, txList).catch(error => {
@@ -103,7 +103,7 @@ export class Watch {
         if (tx) {
           try {
             await this.saveTxRawToCache([tx]);
-            // await bulkCreateTransaction(ctx, [tx]);
+            // return await bulkCreateTransaction(ctx, [tx]);
             return await this.ctx.mq.producer.publish([tx], "");
           } catch (error) {
             ctx.logger.error(

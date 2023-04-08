@@ -486,15 +486,18 @@ function txSaveCache(ctx: Context, txData: Transaction) {
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
   if (
-    txData.source === 'xvm' &&
+    // txData.source === 'xvm' &&
     txData.status === 1 &&
     new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {
+    ctx.logger.info(`publish MakerWaitTransferMessage ready:${txData.hash}`, txData);
     await ctx.mq
-      .publishMakerWaitTransferMessage(txData, String(txData.chainId))
+      .publishMakerWaitTransferMessage(txData, String(txData.memo))
       .catch(error => {
-        ctx.logger.error(`publishMakerWaitTransferMessage error:`, error);
-      });
+        ctx.logger.error(`publish MakerWaitTransferMessage error:`, error);
+      }).then(()=> {
+        ctx.logger.info(`publish MakerWaitTransferMessage success:${txData.hash}`);
+      })
   }
 }
 async function handleXVMTx(

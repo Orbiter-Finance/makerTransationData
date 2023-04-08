@@ -43,11 +43,11 @@ export class RabbitMQ {
       amqp
         .connect(this.config.url, {
           clientProperties: {
-            connection_name: this.getPrefix().serverName,
+            connection_name: `${this.getPrefix().serverName}_${this.ctx.instanceId}`,
           },
         })
         .then(async connection => {
-          console.log(`RabbitMQ connected to ${this.config.url}`);
+          this.ctx.logger.info(`RabbitMQ connected to ${this.config.url}`);
           this.connection = connection;
           this.connection.on("error", error => {
             this.ctx.logger.error(
@@ -62,10 +62,10 @@ export class RabbitMQ {
           this.channel = await this.createChannel();
           this.producer = await this.createProducer();
           this.consumer = await this.createConsumer();
-          this.channel.on("close", async err => {
-            this.ctx.logger.error(`channel closed`, err);
-            this.channel = await this.createChannel();
-          });
+          // this.channel.on("close", async err => {
+          //   this.ctx.logger.error(`channel closed`, err);
+          //   this.channel = await this.createChannel();
+          // });
           this.channel.on("error", async err => {
             this.ctx.logger.error(`channel error`, err);
             this.channel = await this.createChannel();
@@ -138,9 +138,10 @@ export class RabbitMQ {
     await this.channel?.assertExchange(exchangeName, exchangeType, {
       durable: true,
     });
+    this.ctx.logger.info(`create Producer`);
     return new Producer(this.channel, config);
   }
-  async publishMakerWaitTransferMessage(message: any, toChainId: string) {
+  async publishMakerWaitTransferMessage(tx: any, toChainId: string) {
     const config: IProducerConfig = {
       exchangeName: "MakerWaitTransfer",
       exchangeType: "direct",
@@ -166,7 +167,9 @@ export class RabbitMQ {
       config.routingKey || "",
     );
     const producer = new Producer(this.channel, config);
-    await producer.publish(message, toChainId);
+    this.ctx.logger.info('ready send msg:',tx)
+    tx['pushTime'] = Date.now();
+    await producer.publish(tx, toChainId);
     return true;
   }
 
@@ -210,6 +213,7 @@ export class RabbitMQ {
       exchangeName,
       routingKey || "",
     );
+    this.ctx.logger.info(`create consume`);
     return new Consumer(this.channel, config);
   }
 }

@@ -413,10 +413,9 @@ export function getAmountToSend(
     console.error("nonce too high, not allowed");
     return;
   }
-  if (toChainID === 3 || toChainID === 33) {
-    const amount = zksync.utils.closestPackableTransactionAmount(rAmount).toString();
-    var prefix = amount.substr(0, 11);
-    rAmount = `${prefix}${"0".repeat(amount.length - prefix.length)}`;
+  if (toChainID === 3 || toChainID === 3) {
+    var prefix = rAmount.substr(0, 11);
+    rAmount = `${prefix}${"0".repeat(rAmount.length - prefix.length)}`;
   }
   const nonceStr = pTextFormatZero(String(nonce));
   const readyAmount = getToAmountFromUserAmount(
@@ -426,8 +425,14 @@ export function getAmountToSend(
     market,
     true,
   );
-
-  return getTAmountFromRAmount(toChainID, readyAmount.toFixed(), nonceStr);
+  const result = getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+  if (toChainID === 3 || toChainID === 3) {
+    if (result.state) {
+      const amount = zksync.utils.closestPackableTransactionAmount(String(result.tAmount)).toString();
+      result.tAmount = amount;
+    }
+  }
+  return result;
 }
 /**
  * @param chainId
@@ -453,9 +458,8 @@ export function getFormatDate(date: number | string) {
 }
 
 function getTimeZoneString(timeZone: any) {
-  return `${timeZone < 0 ? "-" : "+"}${
-    Math.abs(timeZone) < 10 ? "0" + Math.abs(timeZone) : Math.abs(timeZone)
-  }:00`;
+  return `${timeZone < 0 ? "-" : "+"}${Math.abs(timeZone) < 10 ? "0" + Math.abs(timeZone) : Math.abs(timeZone)
+    }:00`;
 }
 
 export {

@@ -194,7 +194,13 @@ export async function bulkCreateTransaction(
         upsertList.push(<any>txData);
         continue;
       }
-      if (isToUser || isToUserCrossAddress) {
+      if (orbiterX) {
+        try {
+          await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);
+        } catch (error) {
+          ctx.logger.error("handle xvm error", error);
+        }
+      } else if (isToUser || isToUserCrossAddress) {
         txData.side = 1;
         // maker send
         txData.replyAccount = txData.to;
@@ -208,12 +214,6 @@ export async function bulkCreateTransaction(
           String(txData.value),
         );
         saveExtra.toSymbol = txData.symbol;
-      } else if (orbiterX) {
-        try {
-          await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);
-        } catch (error) {
-          ctx.logger.error("handle xvm error", error);
-        }
       } else if (isToMaker) {
         txData.side = 0;
         const fromChainId = Number(txData.chainId);
@@ -495,7 +495,7 @@ async function messageToOrbiterX(ctx: Context, txData: Transaction) {
       .publishMakerWaitTransferMessage(txData, String(txData.memo))
       .catch(error => {
         ctx.logger.error(`publish MakerWaitTransferMessage error:`, error);
-      }).then(()=> {
+      }).then(() => {
         ctx.logger.info(`publish MakerWaitTransferMessage success:${txData.hash}`);
       })
   }

@@ -486,7 +486,7 @@ function txSaveCache(ctx: Context, txData: Transaction) {
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
   if (
-    // txData.source === 'xvm' &&
+    txData.source === 'xvm' &&
     txData.status === 1 &&
     new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {

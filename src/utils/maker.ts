@@ -1,114 +1,17 @@
-import { BigNumber } from "bignumber.js";
-import { equals, isEmpty } from "orbiter-chaincore/src/utils/core";
-import { IMarket } from "../types";
+import { IChainCfg, IMakerCfg, IMakerDataCfg, IMarket } from "../types";
 import { uniq, flatten } from "lodash";
-import { chains } from "orbiter-chaincore";
-export async function convertMarketListToFile(
-  makerList: Array<any>,
-  L1L2Mapping: any,
-): Promise<Array<IMarket>> {
-  const configs = flatten(
-    makerList.map(row => {
-      return convertPool(row);
-    }),
-  ).map(row => {
-    if ([4, 44].includes(row.toChain.id)) {
-      row.sender = L1L2Mapping[row.toChain.id][row.sender.toLowerCase()];
-    }
-    if ([4, 44].includes(row.fromChain.id)) {
-      // starknet mapping
-      row.recipient =
-        L1L2Mapping[row.fromChain.id][row.recipient.toLowerCase()];
-    }
-    return row;
-  });
-  return configs;
-}
-export function convertChainLPToOldLP(oldLpList: Array<any>): Array<IMarket> {
-  const marketList: Array<IMarket | null> = oldLpList.map(row => {
-    try {
-      const pair = row["pair"];
-      const maker = row["maker"];
-      const fromChain = chains.getChainByInternalId(pair.sourceChain);
-      const fromToken = fromChain.tokens.find(row =>
-        equals(row.address, pair.sourceToken),
-      );
-      const toChain = chains.getChainByInternalId(pair.destChain);
-      const toToken = toChain.tokens.find(row =>
-        equals(row.address, pair.destToken),
-      );
-      const recipientAddress = maker["owner"];
-      const senderAddress = maker["owner"];
-      const fromChainId = pair.sourceChain;
-      const toChainId = pair.destChain;
-      const minPrice = new BigNumber(
-        Number(row["minPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
-      ).toNumber();
-      const maxPrice = new BigNumber(
-        Number(row["maxPrice"]) / Math.pow(10, Number(row["sourcePresion"])),
-      ).toNumber();
-      const times = [
-        Number(row["startTime"]),
-        Number(row["stopTime"] || 9999999999),
-      ];
+import chainMain from "../config/chain.json";
+import chainTest from "../config/chainTest.json";
 
-      const lpConfig: IMarket = {
-        id: row["id"],
-        recipient: recipientAddress,
-        sender: senderAddress,
-        makerId: maker.id,
-        ebcId: pair["ebcId"],
-        fromChain: {
-          id: Number(fromChainId),
-          name: fromChain.name,
-          tokenAddress: pair.sourceToken,
-          symbol: fromToken?.symbol || "",
-          decimals: Number(row["sourcePresion"]),
-          maxPrice: maxPrice,
-          minPrice: minPrice,
-        },
-        toChain: {
-          id: Number(toChainId),
-          name: toChain.name,
-          tokenAddress: pair.destToken,
-          symbol: toToken?.symbol || "",
-          decimals: Number(row["destPresion"]),
-        },
-        times,
-        pool: {
-          //Subsequent versions will modify the structure
-          makerAddress: recipientAddress,
-          c1ID: fromChainId,
-          c2ID: toChainId,
-          c1Name: fromChain.name,
-          c2Name: toChain.name,
-          t1Address: pair.sourceToken,
-          t2Address: pair.destToken,
-          tName: fromToken?.symbol,
-          minPrice,
-          maxPrice,
-          precision: Number(row["sourcePresion"]),
-          avalibleDeposit: 1000,
-          tradingFee: new BigNumber(
-            Number(row["tradingFee"]) /
-              Math.pow(10, Number(row["destPresion"])),
-          ).toNumber(),
-          gasFee: new BigNumber(
-            Number(row["gasFee"]) / Math.pow(10, Number(row["destPresion"])),
-          ).toNumber(),
-          avalibleTimes: times,
-        },
-      };
+import { isProd } from "../config/config";
+import { Context } from "../context";
 
-      return lpConfig;
-    } catch (error) {
-      console.error(`convertChainLPToOldLP error:`, row, error);
-      return null;
-    }
-  });
-  return marketList.filter(row => !isEmpty(row)) as any;
-}
-export function groupWatchAddressByChain(makerList: Array<IMarket>): {
+export const chain: IChainCfg[] = <any[]>(isProd() ? chainMain : chainTest);
+
+export function groupWatchAddressByChain(
+  ctx: Context,
+  makerList: Array<IMarket>,
+): {
   [key: string]: Array<string>;
 } {
   const chainIds = uniq(
@@ -116,117 +19,115 @@ export function groupWatchAddressByChain(makerList: Array<IMarket>): {
   );
   const chain: any = {};
   for (const id of chainIds) {
+    //
     const recipientAddress = uniq(
       makerList.filter(m => m.fromChain.id === id).map(m => m.recipient),
     );
     const senderAddress = uniq(
       makerList.filter(m => m.toChain.id === id).map(m => m.sender),
     );
-    chain[id] = uniq([...senderAddress, ...recipientAddress]);
+    const crossAddressTransfers = [];
+    // maker json
+    for (const addr of senderAddress) {
+      if (ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()]) {
+        const crossAddr =
+          ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()];
+        if (addr.length === crossAddr.length) {
+          crossAddressTransfers.push(
+            ctx.config.crossAddressTransferMap[addr.toLocaleLowerCase()],
+          );
+        }
+      }
+    }
+    chain[id] = uniq([
+      ...senderAddress,
+      ...recipientAddress,
+      ...crossAddressTransfers,
+    ]);
   }
   return chain;
 }
-// getNewMarketList().then((result) => {
-//   console.log(groupWatchAddressByChain(result), '===result')
-// })
-export function convertPool(pool: any): Array<IMarket> {
-  return [
-    {
-      id: "",
-      makerId: "",
-      ebcId: "",
-      recipient: pool.makerAddress,
-      sender: pool.makerAddress,
-      fromChain: {
-        id: Number(pool.c1ID),
-        name: pool.c1Name,
-        tokenAddress: pool.t1Address,
-        symbol: pool.tName,
-        decimals: pool.precision,
-        minPrice: pool.c1MinPrice * Math.pow(10, 18),
-        maxPrice: pool.c1MaxPrice * Math.pow(10, 18),
-      },
-      toChain: {
-        id: Number(pool.c2ID),
-        name: pool.c2Name,
-        tokenAddress: pool.t2Address,
-        symbol: pool.tName,
-        decimals: pool.precision,
-      },
-      times: [
-        pool["c1AvalibleTimes"][0].startTime,
-        pool["c1AvalibleTimes"][0].endTime,
-      ],
-      pool: {
-        //Subsequent versions will modify the structure
-        makerAddress: pool.makerAddress,
-        c1ID: pool.c1ID,
-        c2ID: pool.c2ID,
-        c1Name: pool.c1Name,
-        c2Name: pool.c2Name,
-        t1Address: pool.t1Address,
-        t2Address: pool.t2Address,
-        tName: pool.tName,
-        minPrice: pool.c1MinPrice,
-        maxPrice: pool.c1MaxPrice,
-        precision: pool.precision,
-        avalibleDeposit: pool.c1AvalibleDeposit,
-        tradingFee: pool.c1TradingFee,
-        gasFee: pool.c1GasFee,
-        avalibleTimes: pool.c1AvalibleTimes,
-      },
-    },
-    {
-      id: "",
-      makerId: "",
-      ebcId: "",
-      recipient: pool.makerAddress,
-      sender: pool.makerAddress,
-      fromChain: {
-        id: Number(pool.c2ID),
-        name: pool.c2Name,
-        tokenAddress: pool.t2Address,
-        symbol: pool.tName,
-        decimals: pool.precision,
-        minPrice: pool.c1MinPrice * Math.pow(10, 18),
-        maxPrice: pool.c1MaxPrice * Math.pow(10, 18),
-      },
-      toChain: {
-        id: Number(pool.c1ID),
-        name: pool.c1Name,
-        tokenAddress: pool.t1Address,
-        symbol: pool.tName,
-        decimals: pool.precision,
-      },
-      // minPrice: pool.c2MinPrice,
-      // maxPrice: pool.c2MaxPrice,
-      // precision: pool.precision,
-      // avalibleDeposit: pool.c2AvalibleDeposit,
-      // tradingFee: pool.c2TradingFee,
-      // gasFee: pool.c2GasFee,
-      // avalibleTimes: pool.c2AvalibleTimes,
-      times: [
-        pool["c2AvalibleTimes"][0].startTime,
-        pool["c2AvalibleTimes"][0].endTime,
-      ],
-      pool: {
-        //Subsequent versions will modify the structure
-        makerAddress: pool.makerAddress,
-        c1ID: pool.c1ID,
-        c2ID: pool.c2ID,
-        c1Name: pool.c1Name,
-        c2Name: pool.c2Name,
-        t1Address: pool.t1Address,
-        t2Address: pool.t2Address,
-        tName: pool.tName,
-        minPrice: pool.c2MinPrice,
-        maxPrice: pool.c2MaxPrice,
-        precision: pool.precision,
-        avalibleDeposit: pool.c2AvalibleDeposit,
-        tradingFee: pool.c2TradingFee,
-        gasFee: pool.c2GasFee,
-        avalibleTimes: pool.c2AvalibleTimes,
-      },
-    },
-  ];
+
+export function convertMakerConfig(makerMap: IMakerCfg): IMarket[] {
+  // const makerMap: IMakerCfg = <any>maker;
+  const chainList: IChainCfg[] = <any>chain;
+  const configs: IMarket[] = [];
+  for (const chainIdPair in makerMap) {
+    if (!makerMap.hasOwnProperty(chainIdPair)) continue;
+    const symbolPairMap = makerMap[chainIdPair];
+    const [fromChainId, toChainId] = chainIdPair.split("-");
+    const c1Chain = chainList.find(item => +item.internalId === +fromChainId);
+    const c2Chain = chainList.find(item => +item.internalId === +toChainId);
+    if (!c1Chain || !c2Chain) continue;
+    for (const symbolPair in symbolPairMap) {
+      if (!symbolPairMap.hasOwnProperty(symbolPair)) continue;
+      const makerData: IMakerDataCfg = symbolPairMap[symbolPair];
+      const [fromChainSymbol, toChainSymbol] = symbolPair.split("-");
+      const fromToken = [...c1Chain.tokens, c1Chain.nativeCurrency].find(
+        item => item.symbol === fromChainSymbol,
+      );
+      const toToken = [...c2Chain.tokens, c2Chain.nativeCurrency].find(
+        item => item.symbol === toChainSymbol,
+      );
+      if (!fromToken || !toToken) continue;
+      // handle makerConfigs
+      configs.push({
+        id: "",
+        makerId: "",
+        ebcId: "",
+        slippage: makerData.slippage || 0,
+        recipient: makerData.makerAddress,
+        sender: makerData.sender,
+        tradingFee: makerData.tradingFee,
+        gasFee: makerData.gasFee,
+        fromChain: {
+          id: +fromChainId,
+          name: c1Chain.name,
+          tokenAddress: fromToken.address,
+          symbol: fromChainSymbol,
+          decimals: fromToken.decimals,
+          minPrice: makerData.minPrice,
+          maxPrice: makerData.maxPrice,
+        },
+        toChain: {
+          id: +toChainId,
+          name: c2Chain.name,
+          tokenAddress: toToken.address,
+          symbol: toChainSymbol,
+          decimals: toToken.decimals,
+        },
+        times: [makerData.startTime, makerData.endTime],
+        crossAddress: {
+          recipient: makerData.crossAddress?.makerAddress,
+          sender: makerData.crossAddress?.sender,
+          tradingFee: makerData.crossAddress?.tradingFee,
+          gasFee: makerData.crossAddress?.gasFee,
+        },
+      });
+    }
+  }
+  return JSON.parse(JSON.stringify(configs));
 }
+
+export function convertChainConfig(env_prefix: string): IChainCfg[] {
+  chainConfigList = <any>chain;
+  for (const chain of chainConfigList) {
+    chain.rpc = chain.rpc || [];
+    const apiKey =
+      process.env[`${env_prefix}_CHAIN_API_KEY_${chain.internalId}`];
+    const wpRpc = process.env[`${env_prefix}_WP_${chain.internalId}`];
+    const hpRpc = process.env[`${env_prefix}_HP_${chain.internalId}`];
+    if (chain.api && apiKey) {
+      chain.api.key = apiKey;
+    }
+    if (wpRpc) {
+      chain.rpc.unshift(wpRpc);
+    }
+    if (hpRpc) {
+      chain.rpc.unshift(hpRpc);
+    }
+  }
+  return JSON.parse(JSON.stringify(chainConfigList));
+}
+
+export let chainConfigList: IChainCfg[] = [];

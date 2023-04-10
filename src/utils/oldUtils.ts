@@ -1,6 +1,10 @@
 /* eslint-disable */
 
 import { BigNumber } from "bignumber.js";
+import { IChainCfg, IMarket } from "../types";
+import moment from "moment";
+import * as zksync from 'zksync';
+import { chainConfigList } from "./maker";
 
 const MAX_BITS: any = {
   eth: 256,
@@ -19,6 +23,10 @@ const MAX_BITS: any = {
   bnbchain: 256,
   arbitrum_nova: 256,
   polygon_zkevm: 256,
+  scroll_l1_test: 256,
+  scroll_l2_test: 256,
+  orbiter: 256,
+  taiko_a1_test: 256,
 };
 const precisionResolverMap: any = {
   // pay attention:  the type of field "userAmount" in the following methods is not BigNumber
@@ -51,13 +59,19 @@ export const CHAIN_INDEX: any = {
   512: "zkspace",
   13: "boba",
   513: "boba",
+  14: "zksync2",
   514: "zksync2",
   15: "bnbchain",
   515: "bnbchain",
   16: "arbitrum_nova",
   516: "arbitrum_nova",
+  17: "polygon_zkevm",
   517: "polygon_zkevm",
+  518: "scroll_l1_test",
+  519: "scroll_l2_test",
   599: "orbiter",
+  20: "taiko",
+  520: "taiko_a1_test",
 };
 
 export const SIZE_OP = {
@@ -109,16 +123,16 @@ const performUserAmountLegality = (userAmount: BigNumber, chain: any) => {
 };
 function getToAmountFromUserAmount(
   userAmount: any,
-  selectMakerInfo: any,
+  market: IMarket,
   isWei: any,
 ) {
   let toAmount_tradingFee = new BigNumber(userAmount).minus(
-    new BigNumber(selectMakerInfo.tradingFee),
+    new BigNumber(market.tradingFee),
   );
   let gasFee = toAmount_tradingFee
-    .multipliedBy(new BigNumber(selectMakerInfo.gasFee))
+    .multipliedBy(new BigNumber(market.gasFee))
     .dividedBy(new BigNumber(1000));
-  let digit = selectMakerInfo.precision === 18 ? 5 : 2;
+  let digit = market.fromChain.decimals === 18 ? 5 : 2;
   // accessLogger.info('digit =', digit)
   let gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
   // accessLogger.info('gasFee_fix =', gasFee_fix.toString())
@@ -129,7 +143,7 @@ function getToAmountFromUserAmount(
   }
   if (isWei) {
     return toAmount_fee.multipliedBy(
-      new BigNumber(10 ** selectMakerInfo.precision),
+      new BigNumber(10 ** market.fromChain.decimals),
     );
   } else {
     return toAmount_fee;
@@ -274,11 +288,17 @@ function getRAmountFromTAmount(chain: number, amount: string) {
   }
 }
 
-function isChainSupport(chain: string | number) {
-  if (CHAIN_INDEX[chain] && MAX_BITS[CHAIN_INDEX[chain]]) {
-    return true;
-  }
-  return false;
+function isChainSupport(chainId: string | number) {
+  // if (CHAIN_INDEX[chain] && MAX_BITS[CHAIN_INDEX[chain]]) {
+  //   return true;
+  // }
+  return !!getChainInfo(chainId);
+}
+
+export function getChainInfo(chainId: any): IChainCfg | null {
+  const chainInfo = chainConfigList.find(item => +item.internalId === +chainId);
+  if (!chainInfo) return null;
+  return JSON.parse(JSON.stringify(chainInfo));
 }
 
 /**
@@ -372,7 +392,7 @@ function pTextFormatZero(num: string) {
  * @param fromChainID
  * @param toChainID
  * @param amountStr
- * @param pool
+ * @param market
  * @param nonce
  * @returns
  */
@@ -380,7 +400,7 @@ export function getAmountToSend(
   fromChainID: number,
   toChainID: number,
   amountStr: string,
-  pool: { precision: number; tradingFee: number; gasFee: number },
+  market: IMarket,
   nonce: string | number,
 ) {
   const realAmount = getRAmountFromTAmount(fromChainID, amountStr);
@@ -393,18 +413,26 @@ export function getAmountToSend(
     console.error("nonce too high, not allowed");
     return;
   }
-  if (toChainID === 3) {
+  if (toChainID === 3 || toChainID === 3) {
     var prefix = rAmount.substr(0, 11);
     rAmount = `${prefix}${"0".repeat(rAmount.length - prefix.length)}`;
   }
   const nonceStr = pTextFormatZero(String(nonce));
   const readyAmount = getToAmountFromUserAmount(
-    new BigNumber(rAmount).dividedBy(new BigNumber(10 ** pool.precision)),
-    pool,
+    new BigNumber(rAmount).dividedBy(
+      new BigNumber(10 ** market.fromChain.decimals),
+    ),
+    market,
     true,
   );
-
-  return getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+  const result = getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+  if (toChainID === 3 || toChainID === 3) {
+    if (result.state) {
+      const amount = zksync.utils.closestPackableTransactionAmount(String(result.tAmount)).toString();
+      result.tAmount = amount;
+    }
+  }
+  return result;
 }
 /**
  * @param chainId
@@ -417,6 +445,21 @@ export function getAmountFlag(chainId: number, amount: string): string {
     return "0";
   }
   return (Number(rst.pText) % 9000) + "";
+}
+
+export function getFormatDate(date: number | string) {
+  if (date && String(date).length === 10) {
+    date = Number(date) * 1000;
+  }
+  const timestamp = new Date(date);
+  return moment(timestamp)
+    .utcOffset(getTimeZoneString(8))
+    .format("YYYY-MM-DD HH:mm:ss");
+}
+
+function getTimeZoneString(timeZone: any) {
+  return `${timeZone < 0 ? "-" : "+"}${Math.abs(timeZone) < 10 ? "0" + Math.abs(timeZone) : Math.abs(timeZone)
+    }:00`;
 }
 
 export {

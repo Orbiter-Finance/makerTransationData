@@ -1,5 +1,5 @@
 {
-  "name": "TransactionData",
+  "name": "orbiter-spv",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -23,10 +23,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/amqplib": "^0.10.0",
     "@types/figlet": "^1.5.4",
     "@types/fs-extra": "^9.0.13",
     "@types/inquirer": "^8.2.1",
     "@types/lodash": "^4.14.182",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^18.0.0",
     "@types/sequelize": "^4.28.13",
     "@typescript-eslint/eslint-plugin": "^5.30.5",
@@ -46,6 +48,7 @@
   "dependencies": {
     "@types/koa": "^2.13.5",
     "@types/koa-router": "^7.4.4",
+    "amqplib": "^0.10.3",
     "bignumber.js": "^9.0.2",
     "cache-manager": "^5.1.3",
     "chalk": "^4.1.2",
@@ -62,14 +65,17 @@
     "koa-router": "^12.0.0",
     "lodash": "^4.17.21",
     "merkletreejs": "^0.2.32",
+    "moment": "^2.29.4",
     "mysql2": "^2.3.3",
-    "orbiter-chaincore": "1.3.9-13",
-    "patch-package": "^6.4.7",
+    "orbiter-chaincore": "1.4.14",
+    "patch-package": "^6.5.1",
     "postinstall-postinstall": "^2.1.0",
     "prompt": "^1.3.0",
+    "rlp": "^3.0.0",
     "sequelize": "^6.21.0",
     "sequelize-auto": "^0.8.8",
     "sequelize-typescript": "^2.1.3",
-    "web3": "^1.7.5"
+    "web3": "^1.9.0",
+    "zksync": "^0.13.1"
   }
 }

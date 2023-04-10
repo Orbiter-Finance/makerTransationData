@@ -1,160 +1,133 @@
+import { isProd } from "./config/config";
 import Redis from "ioredis";
-import { readFile } from "fs/promises";
-import {
-  initModels,
-  maker_transaction,
-  transaction,
-} from "./models/init-models";
+import { initModels } from "./models";
 import { Config, IMarket } from "./types";
-
-import { Sequelize } from "sequelize";
 import { Logger } from "winston";
-import { convertMarketListToFile } from "./utils";
-import { TCPInject } from "./service/tcpInject";
+import { convertChainConfig, convertMakerConfig } from "./utils";
 import { chains } from "orbiter-chaincore";
-import { makerList, makerListHistory } from "./maker";
-import Subgraphs from "./service/subgraphs";
-import { LoggerService } from "./utils/logger";
-
+import db from "./db";
+import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
+import { RabbitMQ } from "./utils/rabbitMQ";
 export class Context {
-  public models!: {
-    transaction: typeof transaction;
-    maker_transaction: typeof maker_transaction;
-  };
+  public models = initModels(db);
   public logger!: Logger;
   public redis!: Redis;
-  public sequelize!: Sequelize;
   public instanceId: number;
   public instanceCount: number;
+  public mq!: RabbitMQ;
+  public startTime: number = Date.now();
   public makerConfigs: Array<IMarket> = [];
-  public NODE_ENV: string;
+  public NODE_ENV: "development" | "production" | "test" = <any>(
+    (process.env["NODE_ENV"] || "development")
+  );
   public isSpv: boolean;
   public config: Config = {
     chains: [],
     chainsTokens: [],
     subgraphEndpoint: "",
-    L1L2Mapping: {
-      "4": {
-        "0x80c67432656d59144ceff962e8faf8926599bcf8":
-          "0x07b393627bd514d2aa4c83e9f0c468939df15ea3c29980cd8e7be3ec847795f0",
-        // "0x095d2918b03b2e86d68551dcf11302121fb626c9":
-        //   "0x001709ea381e87d4c9ba5e4a67adc9868c05e82556a53fd1b3a8b1f21e098143",
-        "0x095d2918b03b2e86d68551dcf11302121fb626c9":
-          "0x0411c2a2a4dc7b4d3a33424af3ede7e2e3b66691e22632803e37e2e0de450940",
-      },
-      "44": {
-        "0x0043d60e87c5dd08c86c3123340705a1556c4719":
-          "0x001709ea381e87d4c9ba5e4a67adc9868c05e82556a53fd1b3a8b1f21e098143",
-      },
+    // Address should be in lowercase !!!
+    crossAddressTransferMap: {
+      "0x80c67432656d59144ceff962e8faf8926599bcf8":
+        "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0xe4edb277e41dc89ab076a1f049f4a3efa700bce8":
+        "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0xd7aa9ba6caac7b0436c91396f22ca5a7f31664fc":
+        "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0x41d3d33156ae7c62c094aae2995003ae63f587b3":
+        "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0x095d2918b03b2e86d68551dcf11302121fb626c9":
+        "0x646592183ff25a0c44f09896a384004778f831ed",
+
+      "0x07b393627bd514d2aa4c83e9f0c468939df15ea3c29980cd8e7be3ec847795f0":
+        "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
+      "0x064a24243f2aabae8d2148fa878276e6e6e452e3941b417f3c33b1649ea83e11":
+        "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
+      "0x0411c2a2a4dc7b4d3a33424af3ede7e2e3b66691e22632803e37e2e0de450940":
+        "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
     },
   };
-  private initDB() {
-    const { DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_PORT, DB_TIMEZONE } = <any>(
-      process.env
-    );
-
-    this.sequelize = new Sequelize(
-      DB_NAME || "orbiter",
-      String(DB_USER),
-      DB_PASS,
-      {
-        host: DB_HOST,
-        port: Number(DB_PORT) || 3306,
-        dialect: "mysql",
-        timezone: DB_TIMEZONE || "+00:00",
-        logging: false,
-      },
-    );
-    this.models = initModels(this.sequelize);
-    this.sequelize.sync().catch(error => {
-      this.logger.error("sequelize sync error:", error);
-    });
-  }
   private async initChainConfigs() {
-    const file = `${
-      this.NODE_ENV === "production" ? "chains" : "testnet"
-    }.json`;
-    const result = await readFile(`./src/config/${file}`);
-    const configs = JSON.parse(result.toString());
-    // for (const chain of configs) {
-    //   chain.api.key = "";
-    // }
+    const configs = <any>convertChainConfig("NODE_APP");
     chains.fill(configs);
     this.config.chains = chains.getAllChains();
     return configs;
   }
   private initLogger() {
-    this.logger = LoggerService.createLogger(this.instanceId.toString());
+    this.logger = WinstonX.getLogger(this.instanceId.toString(), {
+      logDir: process.env.logDir,
+      debug: true,
+    });
   }
   private initRedis() {
-    const { REDIS_PORT, REDIS_HOST, REDIS_DB } = <any>process.env;
+    const { REDIS_PORT, REDIS_HOST, REDIS_DB, REDIS_PASS } = <any>process.env;
     this.redis = new Redis({
       port: Number(REDIS_PORT || 6379), // Redis port
       host: REDIS_HOST || "127.0.0.1", // Redis host
-      db: Number(REDIS_DB || this.instanceId), // Defaults to 0
+      password: REDIS_PASS,
+      db: Number(REDIS_DB || 0), // Defaults to 0
+    });
+  }
+  async setCache(key: string, value: any, time?: number): Promise<void> {
+    if (key) {
+      if (typeof value == "object") {
+        value = JSON.stringify(value);
+      }
+      this.redis.set(key, value || "");
+      // In seconds
+      this.redis.expire(key, time || 86400);
+    }
+  }
+  async getCache(key: string): Promise<any> {
+    return await new Promise(resolve => {
+      this.redis.get(key, function (err, result) {
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        try {
+          resolve(JSON.parse(result));
+        } catch (e) {
+          resolve(result);
+        }
+      });
     });
   }
   async init() {
     await this.initChainConfigs();
-    chains.fill(this.config.chains);
-    const subApi = new Subgraphs(this.config.subgraphEndpoint);
     // Update LP regularly
-    if (this.isSpv) {
-      try {
-        this.makerConfigs = await subApi.getAllLp();
-      } catch (error) {
-        this.logger.error("init LP error", error);
-      }
-      this.config.chainsTokens = await subApi.getChains();
-      setInterval(() => {
-        subApi
-          .getAllLp()
-          .then(result => {
-            if (result && result.length > 0) {
-              this.makerConfigs = result;
-            }
-          })
-          .catch(error => {
-            this.logger.error("setInterval getAllLp error:", error);
-          });
-        if (Date.now() % 6 === 0) {
-          subApi
-            .getChains()
-            .then(chainsTokens => {
-              if (chainsTokens) {
-                this.config.chainsTokens = chainsTokens;
-              }
-            })
-            .catch(error => {
-              this.logger.error("setInterval getChains error:", error);
-            });
-        }
-      }, 1000 * 10);
-    } else {
-      await fetchFileMakerList(this);
-    }
+    await fetchFileMakerList(this);
+    // const chainList = chains.getAllChains();
+    // const chainsIds = chainList
+    //   .filter(
+    //     row => Number(row.internalId) % this.instanceCount === this.instanceId,
+    //   )
+    //   .map(row => row.internalId);
+    this.mq = new RabbitMQ({ url: String(process.env["RABBIT_MQ"]) }, this);
   }
   constructor() {
-    this.NODE_ENV = process.env["NODE_ENV"] || "dev";
     this.isSpv = process.env["IS_SPV"] === "1";
     this.config.subgraphEndpoint = process.env["SUBGRAPHS"] || "";
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
     this.initRedis();
-    this.initDB();
-    new TCPInject(this);
+    // new TCPInject(this);
   }
 }
 export async function fetchFileMakerList(ctx: Context) {
-  // -------------
-  ctx.makerConfigs = await convertMarketListToFile(
-    makerList,
-    ctx.config.L1L2Mapping,
-  );
-  const makerConfigsHistory = await convertMarketListToFile(
-    makerListHistory,
-    ctx.config.L1L2Mapping,
-  );
-  ctx.makerConfigs.push(...makerConfigsHistory);
+  if (isProd()) {
+    if (process.env["ServerName"] === "all") {
+      const mk1 = convertMakerConfig(require(`./config/maker-80c.json`));
+      const mk2 = convertMakerConfig(require(`./config/maker-e4e.json`));
+      ctx.makerConfigs = [...mk1, ...mk2];
+    } else {
+      ctx.makerConfigs = convertMakerConfig(
+        require(`./config/maker-${process.env[
+          "ServerName"
+        ]?.toLocaleLowerCase()}.json`),
+      );
+    }
+  } else {
+    ctx.makerConfigs = convertMakerConfig(require("./config/makerTest.json"));
+  }
 }

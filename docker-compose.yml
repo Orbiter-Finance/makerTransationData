@@ -1,25 +1,32 @@
 version: '3.8'
 services:
   redis:
-    image: redis:latest
-    container_name: data-redis
-    restart: always
-    volumes:
-      - ./runtime/redis:/data:rw
+    image: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "6389:6379"
+      - "16033:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - ./redis/data:/data:rw
+      - ./redis/logs:/logs
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    restart: always
   data-server:
     build: .
-    container_name: data-server
     restart: always
-    command: pm2-runtime start pm2.json
-    ports:
-      - '8001:8001'
-      - '3000:3000'
+    command:
+      - sh
+      - -c
+      - |
+        curl -o /app/boot-time.txt http://worldtimeapi.org/api/timezone/Asia/Hong_Kong &
+        yarn run postinstall &
+        pm2-runtime start pm2.json
     depends_on:
       - redis
     links:
       - redis
     volumes:
-      - './runtime:/home/makerTransationData/runtime'
-      - './pm2.json:/home/makerTransationData/pm2.json'
+      - './runtime:/app/runtime'
+      - './pm2.json:/app/pm2.json'
+      - './boot-time.txt:/app/boot-time.txt'

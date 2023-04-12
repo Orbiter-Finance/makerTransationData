@@ -192,6 +192,7 @@ export async function bulkCreateTransaction(
         validMakerAddress(ctx, String(txData.to))
       ) {
         txData.status = 3;
+        txData.extra['reason'] = 'maker';
         upsertList.push(<any>txData);
         continue;
       }
@@ -741,7 +742,8 @@ export async function processUserSendMakerTx(
     }
     userTx = record;
   }
-  if (isNaN(Number(userTx.expectValue)) || userTx.expectValue == "") {
+
+  if (isNaN(Number(userTx.expectValue)) || userTx.expectValue == "" || userTx.expectValue=== null) {
     return {
       data: userTx.expectValue,
       errmsg: "User Tx expectValue zero",
@@ -860,7 +862,7 @@ export async function processUserSendMakerTx(
       inId: userTx.id,
       fromChain: userTx.chainId,
       toChain: toChainId,
-      toAmount: String(userTx.expectValue),
+      toAmount: String(userTx.expectValue || 0),
       replySender: userTx.replySender,
       replyAccount: userTx.replyAccount,
     };

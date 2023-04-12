@@ -1,7 +1,7 @@
 import { sleep } from "orbiter-chaincore/src/utils/core";
 import { chains, pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
-import { groupWatchAddressByChain } from "../utils";
+import { groupWatchAddressByChain, TranferId } from "../utils";
 import { Context } from "../context";
 
 import {
@@ -9,6 +9,7 @@ import {
   processMakerSendUserTxFromCache,
   processMakerSendUserTx,
   bulkCreateTransaction,
+  calcMakerSendAmount,
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
@@ -126,12 +127,13 @@ export class Watch {
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readCacheMakerendReMatch();
     }
-    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 1) {
+    if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
-    await this.readUserTxReMatchNotCreate();
+    // await this.redZK2();
+    // this.regenerateTransferId();
   }
   //read cache
   public async readCacheMakerendReMatch(): Promise<any> {
@@ -146,6 +148,7 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
+    await this.readUserTxReMatchNotCreate();
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(120, "second").toDate();
     const where = {
@@ -190,7 +193,7 @@ export class Watch {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
           error => {
             this.ctx.logger.error(
-              `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
+              `readMakerendReMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
               error,
             );
           },
@@ -211,9 +214,9 @@ export class Watch {
   public async readUserTxReMatchNotCreate(): Promise<any> {
     const txList: any[] = await this.ctx.models.sequelize.query(
       `select t.* from transaction as t left join maker_transaction as mt on t.id = mt.inId
-    where t.side = 0 and inId is null and status = 1 and timestamp>='2023-03-01 00:00'
+    where t.side = 0 and inId is null and status = 1 and timestamp>='${dayjs().startOf('week').format('YYYY-MM-DD HH:mm:ss')}'
     order by t.timestamp desc
-    limit 1000`,
+    limit 500`,
       {
         type: QueryTypes.SELECT,
         raw: false,
@@ -228,7 +231,7 @@ export class Watch {
         );
       });
       console.log(
-        `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+        `readUserTxReMatchNotCreate index:${index}/${txList.length},hash:${tx.hash}，result:`,
         result,
       );
       index++;
@@ -270,7 +273,7 @@ export class Watch {
           },
         );
         console.log(
-          `index:${index}/${txList.length},hash:${tx.hash}，result:`,
+          `readUserTxReMatch index:${index}/${txList.length},hash:${tx.hash}，result:`,
           result,
         );
         index++;
@@ -280,6 +283,67 @@ export class Watch {
     } finally {
       await sleep(1000 * 30);
       return await this.readMakerendReMatch();
+    }
+  }
+
+  public async regenerateTransferId(): Promise<any> {
+    const startAt = dayjs().subtract(72, "hour").startOf("d").toDate();
+    const endAt = dayjs().toDate();
+    const where = {
+      side: 0,
+      status: 1,
+      // hash: ["0x0cdaca647ff6484286d223881cc57dce7f34e14bbb7f49fa4f517fc4384a9d5a", '0x10e94a1361bd0d257eeee79127f9a28e3e7b22350cccc4fa43691372db91b553'],
+      // id:{
+      //   [Op.lte]: 19994645
+      // },
+      // chainId: 14,
+      timestamp: {
+        [Op.gte]: startAt,
+        [Op.lte]: endAt,
+      },
+    };
+    try {
+      // read
+      const txList = await this.ctx.models.Transaction.findAll({
+        raw: true,
+        order: [["timestamp", "desc"]],
+        limit: 50,
+        where,
+      });
+      console.log(
+        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+          txList.map(row => row.hash),
+        )}`,
+      );
+      for (const txData of txList) {
+        const amount = String(await calcMakerSendAmount(this.ctx.makerConfigs, txData as any));
+        txData.expectValue = amount;
+        txData.transferId = TranferId(
+          String(txData.memo),
+          txData.replySender,
+          String(txData.replyAccount),
+          String(txData.nonce),
+          String(txData.symbol),
+          txData.expectValue,
+        );
+        await this.ctx.models.Transaction.update({
+          expectValue: txData.expectValue,
+          transferId: txData.transferId
+        }, {
+          where: {
+            id: txData.id
+          }
+        })
+        await this.ctx.models.MakerTransaction.update({
+          toAmount: txData.expectValue
+        }, {
+          where: {
+            inId: txData.id
+          }
+        })
+      }
+    } catch (error) {
+      console.log("error:", error);
     }
   }
 }

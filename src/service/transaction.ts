@@ -85,11 +85,12 @@ export async function bulkCreateTransaction(
     if (row.extra?.txList && row.extra.txList.length) {
       const extTxList: any[] = row.extra.txList;
       const internalTxList: any[] = [];
-      let idx = 1;
+      let idx = 0;
       for (const extTx of extTxList) {
         const internalTx: any = JSON.parse(JSON.stringify(row));
-        internalTx.hash = `${row.hash}#${idx++}`;
+        internalTx.hash = `${row.hash}${idx ? `#${idx}` : ""}`;
         internalTx.fee = new BigNumber(row.fee).dividedBy(extTxList.length).toFixed();
+        idx++;
         delete internalTx.extra.txList;
         Object.assign(internalTx, extTx);
         internalTxList.push(internalTx);
@@ -1011,10 +1012,10 @@ export async function processMakerSendUserTx(
       transferId: makerTx.transferId,
       status: [1, 95, 96, 97],
       side: 0,
-      timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
-        [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
-      },
+      // timestamp: {
+      //   [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
+      //   [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
+      // },
     };
     if (makerTx.source == "xvm") {
       try {

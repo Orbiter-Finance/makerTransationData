@@ -20,6 +20,7 @@ src/config/chain.json
 src/config/maker.json
 src/config/chainTest.json
 src/config/makerTest.json
+src/config/makerTest-2.json
 pm2.json
 .yalc
 yalc.lock
@@ -29,3 +30,4 @@ yarn.lock
 package-lock.json
 
 chains.json
+/test/transaction.test.ts

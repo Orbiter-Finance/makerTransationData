@@ -18,6 +18,7 @@ COPY pm2.json ./
 # RUN curl -o /app/src/config/maker.json http://openapi.orbiter.finance/mainnet/public/maker.json
 # RUN curl -o /app/src/config/chainTest.json http://openapi.orbiter.finance/mainnet/public/chainTest.json
 # RUN curl -o /app/src/config/makerTest.json http://openapi.orbiter.finance/mainnet/public/makerTest.json
+# RUN curl -o /app/src/config/makerTest-2.json http://ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com:9095/public/makerTest-2.json
 
 COPY ./ .
 RUN yarn run build

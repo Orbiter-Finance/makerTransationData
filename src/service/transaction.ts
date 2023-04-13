@@ -631,7 +631,7 @@ function getMarket(
         equals(m.toChain.symbol, toTokenAddress) &&
         dayjs(timestamp).unix() >= m.times[0] &&
         dayjs(timestamp).unix() <= m.times[1] &&
-        (equals(maker, m.recipient) || equals(maker, m.sender))
+        equals(maker, m.recipient)
     );
   return ctx.makerConfigs.find(
     m =>

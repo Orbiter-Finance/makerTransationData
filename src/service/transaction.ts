@@ -82,6 +82,22 @@ export async function bulkCreateTransaction(
 ): Promise<Array<Transaction>> {
   const upsertList: Array<Transaction> = [];
   for (const row of txlist) {
+    if (row.extra?.txList && row.extra.txList.length) {
+      const extTxList: any[] = row.extra.txList;
+      const internalTxList: any[] = [];
+      let idx: number = 1;
+      for (const extTx of extTxList) {
+        const internalTx: any = JSON.parse(JSON.stringify(row));
+        internalTx.hash = `${row.hash}#${idx++}`;
+        internalTx.fee = new BigNumber(row.fee).dividedBy(extTxList.length).toFixed();
+        delete internalTx.extra.txList;
+        Object.assign(internalTx, extTx);
+        internalTxList.push(internalTx);
+      }
+
+      txlist.push(...internalTxList);
+      continue;
+    }
     try {
       if (!row || upsertList.findIndex(tx => equals(tx.hash, row.hash)) >= 0) {
         continue;

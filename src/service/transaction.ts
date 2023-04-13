@@ -85,7 +85,7 @@ export async function bulkCreateTransaction(
     if (row.extra?.txList && row.extra.txList.length) {
       const extTxList: any[] = row.extra.txList;
       const internalTxList: any[] = [];
-      let idx: number = 1;
+      let idx = 1;
       for (const extTx of extTxList) {
         const internalTx: any = JSON.parse(JSON.stringify(row));
         internalTx.hash = `${row.hash}#${idx++}`;

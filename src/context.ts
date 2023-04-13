@@ -128,6 +128,8 @@ export async function fetchFileMakerList(ctx: Context) {
       );
     }
   } else {
-    ctx.makerConfigs = convertMakerConfig(require("./config/makerTest.json"));
+    const mk1 = convertMakerConfig(require(`./config/makerTest.json`));
+    const mk2 = convertMakerConfig(require(`./config/makerTest-2.json`));
+    ctx.makerConfigs = [...mk1, ...mk2];
   }
 }

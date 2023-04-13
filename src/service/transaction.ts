@@ -269,9 +269,14 @@ export async function bulkCreateTransaction(
           txData.replySender = market.sender;
           // calc response amount
           try {
-            txData.expectValue = String(
-              await calcMakerSendAmount(ctx.makerConfigs, txData as any),
-            );
+            const calcResultAmount = getAmountToSend(
+              Number(fromChainId),
+              Number(toChainId),
+              txData.value.toString(),
+              market,
+              txData.nonce,
+            )?.tAmount || 0;
+            txData.expectValue = new BigNumber(calcResultAmount).toString();
             txData.transferId = TranferId(
               String(toChainId),
               txData.replySender,
@@ -705,20 +710,20 @@ export async function calcMakerSendAmount(
       equals(m.fromChain.symbol, trx.symbol) &&
       equals(m.fromChain.tokenAddress, trx.tokenAddress) &&
       dayjs(trx.timestamp).unix() >= m.times[0] &&
-      dayjs(trx.timestamp).unix() <= m.times[1],
+      dayjs(trx.timestamp).unix() <= m.times[1] &&
+      equals(trx.to, m.recipient)
   );
   if (!market) {
     return 0;
   }
-  return (
-    getAmountToSend(
-      Number(fromChainId),
-      Number(toChainId),
-      trx.value.toString(),
-      market,
-      trx.nonce,
-    )?.tAmount || 0
-  );
+  const result = getAmountToSend(
+    Number(fromChainId),
+    Number(toChainId),
+    trx.value.toString(),
+    market,
+    trx.nonce,
+  )?.tAmount;
+  return result || 0;
 }
 
 export async function processUserSendMakerTx(
@@ -743,7 +748,7 @@ export async function processUserSendMakerTx(
     userTx = record;
   }
 
-  if (isNaN(Number(userTx.expectValue)) || userTx.expectValue == "" || userTx.expectValue=== null) {
+  if (isNaN(Number(userTx.expectValue)) || userTx.expectValue == "" || userTx.expectValue === null) {
     return {
       data: userTx.expectValue,
       errmsg: "User Tx expectValue zero",

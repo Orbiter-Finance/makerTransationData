@@ -426,6 +426,9 @@ export function getAmountToSend(
     true,
   );
   const result = getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+  if (!result.state) {
+    console.log(result);
+  }
   if (toChainID === 3 || toChainID === 3) {
     if (result.state) {
       const amount = zksync.utils.closestPackableTransactionAmount(String(result.tAmount)).toString();

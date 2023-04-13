@@ -13,6 +13,7 @@ import {
 } from "./transaction";
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
+import { getAmountFlag } from "../utils/oldUtils";
 export class Watch {
   constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
@@ -132,7 +133,9 @@ export class Watch {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
-    // await this.redZK2();
+    // this.readMakerendReMatch();
+    // this.readUserTxReMatchNotCreate();
+    // this.regenerateTransferId()
     // this.regenerateTransferId();
   }
   //read cache
@@ -291,8 +294,9 @@ export class Watch {
     const endAt = dayjs().toDate();
     const where = {
       side: 0,
-      status: 1,
-      // hash: ["0x0cdaca647ff6484286d223881cc57dce7f34e14bbb7f49fa4f517fc4384a9d5a", '0x10e94a1361bd0d257eeee79127f9a28e3e7b22350cccc4fa43691372db91b553'],
+      status:1,
+      // expectValue:null,
+      hash:"xxx",
       // id:{
       //   [Op.lte]: 19994645
       // },
@@ -307,7 +311,7 @@ export class Watch {
       const txList = await this.ctx.models.Transaction.findAll({
         raw: true,
         order: [["timestamp", "desc"]],
-        limit: 50,
+        limit: 400,
         where,
       });
       console.log(
@@ -316,7 +320,18 @@ export class Watch {
         )}`,
       );
       for (const txData of txList) {
+        const toChainId = getAmountFlag(
+          Number(txData.chainId),
+          String(txData.value),
+        );
+        const toChain = chains.getChainInfo(Number(toChainId));
+        if (!toChain) {
+          continue;
+        }
         const amount = String(await calcMakerSendAmount(this.ctx.makerConfigs, txData as any));
+        if (!amount||Number(amount)<0) {
+          continue;
+        }
         txData.expectValue = amount;
         txData.transferId = TranferId(
           String(txData.memo),
@@ -328,7 +343,7 @@ export class Watch {
         );
         await this.ctx.models.Transaction.update({
           expectValue: txData.expectValue,
-          transferId: txData.transferId
+          transferId: txData.transferId,
         }, {
           where: {
             id: txData.id

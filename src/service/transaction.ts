@@ -191,11 +191,12 @@ export async function bulkCreateTransaction(
       };
       const saveExtra: any = {
         ebcId: "",
+        server: process.env['ServerName']
       };
       const { isToMaker, isToUser, orbiterX, intercept, isToUserCrossAddress } =
         await validateTransactionSpecifications(ctx, row);
       if (intercept) {
-        ctx.logger.info(`${txData.hash} intercept`);
+        ctx.logger.info(`${txData.hash} intercept isToMaker=${isToMaker}, isToUser=${isToUser},orbiterX=${orbiterX},isToUserCrossAddress=${isToUserCrossAddress}`);
         continue;
       }
       if (!isToUser && !isToMaker && !orbiterX && !isToUserCrossAddress) {
@@ -207,6 +208,7 @@ export async function bulkCreateTransaction(
         validMakerAddress(ctx, String(txData.to))
       ) {
         txData.status = 3;
+        txData.extra['reason'] = 'maker';
         upsertList.push(<any>txData);
         continue;
       }
@@ -265,6 +267,7 @@ export async function bulkCreateTransaction(
           String(txData.symbol),
           txData.timestamp,
           true,
+          String(txData.to)
         );
         if (!market) {
           // market not found
@@ -282,9 +285,14 @@ export async function bulkCreateTransaction(
           txData.replySender = market.sender;
           // calc response amount
           try {
-            txData.expectValue = String(
-              await calcMakerSendAmount(ctx.makerConfigs, txData as any),
-            );
+            const calcResultAmount = getAmountToSend(
+              Number(fromChainId),
+              Number(toChainId),
+              txData.value.toString(),
+              market,
+              txData.nonce,
+            )?.tAmount || 0;
+            txData.expectValue = new BigNumber(calcResultAmount).toString();
             txData.transferId = TranferId(
               String(toChainId),
               txData.replySender,
@@ -391,7 +399,7 @@ export async function bulkCreateTransaction(
   for (const txData of upsertList) {
     const t = await ctx.models.sequelize.transaction();
     try {
-      const [newData, isCreated] = await ctx.models.Transaction.findOrCreate({
+      const [dbData, isCreated] = await ctx.models.Transaction.findOrCreate({
         defaults: txData,
         attributes: ["id", "status"],
         where: {
@@ -399,11 +407,11 @@ export async function bulkCreateTransaction(
         },
         transaction: t,
       });
-      txData.id = newData.id;
+      txData.id = dbData.id;
       if (isCreated) {
-        const id = newData.id;
+        const id = dbData.id;
         //
-        if (txData.side === 0 && newData.status === 1) {
+        if (txData.side === 0 && dbData.status === 1) {
           messageToOrbiterX(ctx, txData).catch(error => {
             ctx.logger.error("messageToOrbiterX error:", error);
           });
@@ -431,14 +439,15 @@ export async function bulkCreateTransaction(
           });
         }
       } else {
-        if (newData.status != txData.status && newData.status != 99) {
-          newData.status = txData.status;
-          await newData.save({
+        if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
+          dbData.status = txData.status;
+          ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
+          await dbData.save({
             transaction: t,
           });
         }
       }
-      if (newData.status === 1) {
+      if (dbData.status === 1) {
         txSaveCache(ctx, txData).catch(error => {
           ctx.logger.error("txSaveCache error:", error);
         });
@@ -539,6 +548,8 @@ async function handleXVMTx(
       String(txData.tokenAddress),
       decodeData.toTokenAddress,
       txData.timestamp,
+      false,
+      params['recipient']
     );
     if (!market) {
       // market not found
@@ -624,7 +635,8 @@ function getMarket(
   fromTokenAddress: string,
   toTokenAddress: string,
   timestamp: any,
-  isSymbol?: boolean,
+  isSymbol: boolean,
+  maker: string
 ) {
   if (isSymbol)
     return ctx.makerConfigs.find(
@@ -634,7 +646,8 @@ function getMarket(
         equals(m.fromChain.symbol, fromTokenAddress) &&
         equals(m.toChain.symbol, toTokenAddress) &&
         dayjs(timestamp).unix() >= m.times[0] &&
-        dayjs(timestamp).unix() <= m.times[1],
+        dayjs(timestamp).unix() <= m.times[1] &&
+        equals(maker, m.recipient)
     );
   return ctx.makerConfigs.find(
     m =>
@@ -643,7 +656,8 @@ function getMarket(
       equals(m.fromChain.tokenAddress, fromTokenAddress) &&
       equals(m.toChain.tokenAddress, toTokenAddress) &&
       dayjs(timestamp).unix() >= m.times[0] &&
-      dayjs(timestamp).unix() <= m.times[1],
+      dayjs(timestamp).unix() <= m.times[1] &&
+      (equals(maker, m.recipient) || equals(maker, m.sender))
   );
 }
 
@@ -712,26 +726,27 @@ export async function calcMakerSendAmount(
       equals(m.fromChain.symbol, trx.symbol) &&
       equals(m.fromChain.tokenAddress, trx.tokenAddress) &&
       dayjs(trx.timestamp).unix() >= m.times[0] &&
-      dayjs(trx.timestamp).unix() <= m.times[1],
+      dayjs(trx.timestamp).unix() <= m.times[1] &&
+      equals(trx.to, m.recipient)
   );
   if (!market) {
     return 0;
   }
-  return (
-    getAmountToSend(
-      Number(fromChainId),
-      Number(toChainId),
-      trx.value.toString(),
-      market,
-      trx.nonce,
-    )?.tAmount || 0
-  );
+  const result = getAmountToSend(
+    Number(fromChainId),
+    Number(toChainId),
+    trx.value.toString(),
+    market,
+    trx.nonce,
+  )?.tAmount;
+  return result || 0;
 }
 
 export async function processUserSendMakerTx(
   ctx: Context,
   userTx: Transaction | string,
 ) {
+
   if (typeof userTx === "string") {
     const record = await ctx.models.Transaction.findOne({
       raw: true,
@@ -747,6 +762,13 @@ export async function processUserSendMakerTx(
       };
     }
     userTx = record;
+  }
+
+  if (isNaN(Number(userTx.expectValue)) || userTx.expectValue == "" || userTx.expectValue === null) {
+    return {
+      data: userTx.expectValue,
+      errmsg: "User Tx expectValue zero",
+    };
   }
   // const transferId = TranferId(
   //   String(userTx.memo),
@@ -861,7 +883,7 @@ export async function processUserSendMakerTx(
       inId: userTx.id,
       fromChain: userTx.chainId,
       toChain: toChainId,
-      toAmount: String(userTx.expectValue),
+      toAmount: String(userTx.expectValue || 0),
       replySender: userTx.replySender,
       replyAccount: userTx.replyAccount,
     };
@@ -1220,9 +1242,6 @@ export async function processMakerSendUserTxFromCacheByChain(
           }
           // change
           if (inId && outId && inHash && outHash) {
-            ctx.logger.info(
-              `cache match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
-            );
             const t = await ctx.models.sequelize.transaction();
             try {
               const rows = await ctx.models.MakerTransaction.update(
@@ -1238,8 +1257,15 @@ export async function processMakerSendUserTxFromCacheByChain(
                 },
               );
               if (rows[0] != 1) {
-                ctx.logger.error(
-                  `cache match update MakerTransaction fail  ${inId}-${outId}`,
+                // clear
+                await clearMatchCache(
+                  ctx,
+                  userTx.chainId,
+                  makerTx.chainId,
+                  inHash,
+                  outHash,
+                  inId,
+                  outId,
                 );
                 throw new Error(
                   `cache match update MakerTransaction fail  ${inId}-${outId}`,
@@ -1266,6 +1292,9 @@ export async function processMakerSendUserTxFromCacheByChain(
                 );
               }
               await t.commit();
+              ctx.logger.info(
+                `cache match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
+              );
               await clearMatchCache(
                 ctx,
                 userTx.chainId,

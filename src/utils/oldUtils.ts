@@ -409,7 +409,7 @@ export function getAmountToSend(
     return;
   }
   let rAmount = <any>realAmount.rAmount;
-  if (nonce > 8999) {
+  if (+nonce > 8999) {
     console.error("nonce too high, not allowed");
     return;
   }
@@ -426,6 +426,9 @@ export function getAmountToSend(
     true,
   );
   const result = getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+  if (!result.state) {
+    console.log(result);
+  }
   if (toChainID === 3 || toChainID === 3) {
     if (result.state) {
       const amount = zksync.utils.closestPackableTransactionAmount(String(result.tAmount)).toString();
@@ -444,7 +447,8 @@ export function getAmountFlag(chainId: number, amount: string): string {
   if (!rst.state) {
     return "0";
   }
-  return (Number(rst.pText) % 9000) + "";
+  const value = Number(rst.pText).toString().substring(0, 4)
+  return (+value % 9000).toString();
 }
 
 export function getFormatDate(date: number | string) {

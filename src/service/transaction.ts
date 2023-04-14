@@ -884,7 +884,7 @@ export async function processUserSendMakerTx(
       await makerSendTx.save({
         transaction: t,
       });
-      await ctx.models.Transaction.update(
+      const response = await ctx.models.Transaction.update(
         {
           status: upStatus,
         },
@@ -895,6 +895,9 @@ export async function processUserSendMakerTx(
           transaction: t,
         },
       );
+      if (response[0] != 2) {
+        throw new Error('processUserSendMakerTx update rows fail')
+      }
       await ctx.redis
         .multi()
         .hmset(`TXHASH_STATUS`, [userTx.hash, 99, makerSendTx.hash, 99])
@@ -1088,7 +1091,7 @@ export async function processMakerSendUserTx(
     await userSendTx.save({
       transaction: t,
     });
-    await ctx.models.Transaction.update(
+    const updateRes = await ctx.models.Transaction.update(
       {
         status: upStatus,
         lpId: userSendTx.lpId,
@@ -1101,6 +1104,9 @@ export async function processMakerSendUserTx(
         transaction: t,
       },
     );
+    if (updateRes[0] != 2) {
+      throw new Error('processMakerSendUserTx update rows fail');
+    }
     await models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
     });

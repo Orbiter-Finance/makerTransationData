@@ -1088,9 +1088,9 @@ export async function processMakerSendUserTx(
     }
     userSendTx.status = upStatus;
     t = await ctx.models.sequelize.transaction();
-    await userSendTx.save({
-      transaction: t,
-    });
+    // await userSendTx.save({
+    //   transaction: t,
+    // });
     const updateRes = await ctx.models.Transaction.update(
       {
         status: upStatus,
@@ -1099,7 +1099,9 @@ export async function processMakerSendUserTx(
       },
       {
         where: {
-          id: [userSendTx.id, makerTx.id],
+          id:{
+            [Op.in]:  [userSendTx.id, makerTx.id]
+          },
         },
         transaction: t,
       },

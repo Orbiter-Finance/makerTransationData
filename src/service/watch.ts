@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
 import BigNumber from "bignumber.js";
+import { isProd } from "../config/config";
 export class Watch {
   constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
@@ -104,7 +105,7 @@ export class Watch {
           ctx.logger.error(`${id} startScanChain error:`, error);
         });
       }
-      pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
+      pubSub.subscribe(`ACCEPTED_ON_L2:${isProd() ? "4" : "44"}`, async (tx: any) => {
         if (tx) {
           const txList: Transaction[] = this.convertTxList([tx]);
           try {

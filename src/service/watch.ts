@@ -155,7 +155,12 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-
+    await this.readUserTxReMatchNotCreate().catch(error=> {
+      this.ctx.logger.error('readUserTxReMatchNotCreate error', error);
+    })
+    await this.starknetNotNonceReplyMatch().catch(error=> {
+      this.ctx.logger.error('starknetNotNonceReplyMatch error', error);
+    })
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(120, "second").toDate();
     const where = {
@@ -215,8 +220,7 @@ export class Watch {
       console.log("error:", error);
       this.ctx.logger.error('readMakerendReMatch error', error);
     } finally {
-      await this.readUserTxReMatchNotCreate();
-      await this.starknetNotNonceReplyMatch();
+
       await sleep(1000 * 30);
       return await this.readMakerendReMatch();
     }
@@ -224,7 +228,7 @@ export class Watch {
   public async readUserTxReMatchNotCreate(): Promise<any> {
     const txList: any[] = await this.ctx.models.sequelize.query(
       `select t.* from transaction as t left join maker_transaction as mt on t.id = mt.inId
-    where t.side = 0 and inId is null and status = 1 and timestamp>='${dayjs().startOf('week').format('YYYY-MM-DD HH:mm:ss')}'
+    where t.side = 0 and inId is null and status = 1 and timestamp>='${dayjs().subtract(30, 'day').format('YYYY-MM-DD HH:mm:ss')}'
     order by t.timestamp desc
     limit 500`,
       {
@@ -377,6 +381,9 @@ export class Watch {
       where: {
         status: 1,
         timestamp: {
+          [Op.gte]: dayjs()
+            .subtract(24, 'hour')
+            .toDate(),
           [Op.lte]: dayjs()
             .subtract(10, 'minute')
             .toDate()

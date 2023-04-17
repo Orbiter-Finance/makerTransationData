@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
+import BigNumber from "bignumber.js";
 export class Watch {
   constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
@@ -76,8 +77,10 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
-          if (txList) {
+        pubSub.subscribe(`${id}:txlist`, async (txs: Transaction[]) => {
+          if (txs) {
+            const txList: Transaction[] = this.convertTxList(txs);
+
             try {
               await this.saveTxRawToCache(txList);
               // return await bulkCreateTransaction(ctx, txList);
@@ -103,16 +106,17 @@ export class Watch {
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
         if (tx) {
+          const txList: Transaction[] = this.convertTxList([tx]);
           try {
-            await this.saveTxRawToCache([tx]);
+            await this.saveTxRawToCache(txList);
             // return await bulkCreateTransaction(ctx, [tx]);
-            return await this.ctx.mq.producer.publish([tx], "");
+            return await this.ctx.mq.producer.publish(txList, "");
           } catch (error) {
             ctx.logger.error(
               `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
               error,
             );
-            await bulkCreateTransaction(ctx, [tx]);
+            await bulkCreateTransaction(ctx, txList);
           }
         }
       });
@@ -360,5 +364,30 @@ export class Watch {
     } catch (error) {
       console.log("error:", error);
     }
+  }
+
+  public convertTxList(txs: Transaction[]) {
+    const txList: Transaction[] = [];
+    for (const row of txs) {
+      if (row.extra?.txList && row.extra.txList.length) {
+        const extTxList: any[] = row.extra.txList;
+        const internalTxList: any[] = [];
+        let idx = 0;
+        for (const extTx of extTxList) {
+          const internalTx: any = JSON.parse(JSON.stringify(row));
+          internalTx.hash = `${row.hash}${idx ? `#${idx}` : ""}`;
+          internalTx.fee = new BigNumber(row.fee).dividedBy(extTxList.length).toFixed();
+          idx++;
+          delete internalTx.extra.txList;
+          Object.assign(internalTx, extTx);
+          internalTxList.push(internalTx);
+        }
+
+        txList.push(...internalTxList);
+      } else {
+        txList.push(row);
+      }
+    }
+    return txList;
   }
 }

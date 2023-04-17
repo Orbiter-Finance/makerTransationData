@@ -22,6 +22,7 @@ import { IMarket } from "../types";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import sequelize from "sequelize";
+import { isProd } from "../config/config";
 export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
@@ -494,8 +495,9 @@ function txSaveCache(ctx: Context, txData: Transaction) {
   });
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
+  const isPush = isProd() ? txData.source === 'xvm' : true;
   if (
-    txData.source === 'xvm' &&
+    isPush &&
     txData.status === 1 &&
     new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {

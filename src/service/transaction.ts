@@ -382,6 +382,7 @@ export async function bulkCreateTransaction(
   }
   for (const txData of upsertList) {
     const t = await ctx.models.sequelize.transaction();
+    let isPushMQ = false;
     try {
       const [dbData, isCreated] = await ctx.models.Transaction.findOrCreate({
         defaults: txData,
@@ -396,9 +397,7 @@ export async function bulkCreateTransaction(
         const id = dbData.id;
         //
         if (txData.side === 0 && dbData.status === 1) {
-          messageToOrbiterX(ctx, txData).catch(error => {
-            ctx.logger.error("messageToOrbiterX error:", error);
-          });
+          isPushMQ = true;
           const trxId = TransactionID(
             String(txData.from),
             txData.chainId,
@@ -421,6 +420,7 @@ export async function bulkCreateTransaction(
             },
             transaction: t,
           });
+
         }
       } else {
         if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
@@ -437,6 +437,12 @@ export async function bulkCreateTransaction(
         });
       }
       await t.commit();
+      // send mq
+      if (isPushMQ) {
+        messageToOrbiterX(ctx, txData).catch(error => {
+          ctx.logger.error("messageToOrbiterX error:", error);
+        });
+      }
     } catch (error) {
       t && t.rollback();
     }
@@ -1071,8 +1077,8 @@ export async function processMakerSendUserTx(
       outId: makerTx.id,
       toChain: makerTx.chainId,
       toAmount: String(makerTx.value),
-      replySender: makerTx.replySender,
-      replyAccount: makerTx.replyAccount,
+      replySender: makerTx.from,
+      replyAccount: makerTx.to,
       fromChain: userSendTx.chainId,
     };
     upsertData.transcationId = TransactionID(
@@ -1099,8 +1105,8 @@ export async function processMakerSendUserTx(
       },
       {
         where: {
-          id:{
-            [Op.in]:  [userSendTx.id, makerTx.id]
+          id: {
+            [Op.in]: [userSendTx.id, makerTx.id]
           },
         },
         transaction: t,

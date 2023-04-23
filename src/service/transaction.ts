@@ -223,17 +223,17 @@ export async function bulkCreateTransaction(
         // user send
         txData.replyAccount = txData.from;
         txData.replySender = txData.to;
-        if ([44, 4, 11, 511].includes(fromChainId)) {
+        if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
           // dydx contract send
           // starknet contract send
           txData.replyAccount = txExtra["ext"] || "";
-        } else if ([44, 4, 11, 511].includes(toChainId)) {
+        } else if ([44, 4, 11, 511].includes(toChainId) && txExtra["ext"]) {
           const ext = txExtra["ext"] || "";
           saveExtra["ext"] = ext;
           // 11,511 0x02 first
           // 4, 44 0x03 first
           txData.replyAccount = `0x${ext.substring(4)}`;
-          if ([44, 4].includes(toChainId)) {
+          if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
             txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
           }
         }
@@ -253,7 +253,7 @@ export async function bulkCreateTransaction(
           true,
           String(txData.to)
         );
-        if (!market) {
+        if (!market || isEmpty(txData.replyAccount)) {
           // market not found
           txData.status = 3;
         } else {
@@ -553,7 +553,7 @@ async function handleXVMTx(
       txData.side = 0;
       txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
-      if ([44, 4].includes(toChainId)) {
+      if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
         txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
       }
       txData.expectValue = decodeData.expectValue;

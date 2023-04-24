@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
+import sequelize from "sequelize";
 import BigNumber from "bignumber.js";
 import { isProd } from "../config/config";
 export class Watch {
@@ -131,7 +132,9 @@ export class Watch {
       ctx.logger.error("startSub error:", error);
     }
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
-      this.readCacheMakerendReMatch();
+      this.readCacheMakerendReMatch().catch(error => {
+        this.ctx.logger.error("readCacheMakerendReMatch error:", error);
+      })
     }
     if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {
@@ -142,6 +145,7 @@ export class Watch {
     // this.readUserTxReMatchNotCreate();
     // this.regenerateTransferId()
     // this.regenerateTransferId();
+    // this.starknetNotNonceReplyMatch();
   }
   //read cache
   public async readCacheMakerendReMatch(): Promise<any> {
@@ -156,7 +160,12 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    await this.readUserTxReMatchNotCreate();
+    await this.readUserTxReMatchNotCreate().catch(error=> {
+      this.ctx.logger.error('readUserTxReMatchNotCreate error', error);
+    })
+    await this.starknetNotNonceReplyMatch().catch(error=> {
+      this.ctx.logger.error('starknetNotNonceReplyMatch error', error);
+    })
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(120, "second").toDate();
     const where = {
@@ -214,7 +223,9 @@ export class Watch {
       }
     } catch (error) {
       console.log("error:", error);
+      this.ctx.logger.error('readMakerendReMatch error', error);
     } finally {
+
       await sleep(1000 * 30);
       return await this.readMakerendReMatch();
     }
@@ -222,7 +233,7 @@ export class Watch {
   public async readUserTxReMatchNotCreate(): Promise<any> {
     const txList: any[] = await this.ctx.models.sequelize.query(
       `select t.* from transaction as t left join maker_transaction as mt on t.id = mt.inId
-    where t.side = 0 and inId is null and status = 1 and timestamp>='${dayjs().startOf('week').format('YYYY-MM-DD HH:mm:ss')}'
+    where t.side = 0 and inId is null and status = 1 and timestamp>='${dayjs().subtract(30, 'day').format('YYYY-MM-DD HH:mm:ss')}'
     order by t.timestamp desc
     limit 500`,
       {
@@ -299,9 +310,9 @@ export class Watch {
     const endAt = dayjs().toDate();
     const where = {
       side: 0,
-      status:1,
+      status: 1,
       // expectValue:null,
-      hash:"xxx",
+      hash: "xxx",
       // id:{
       //   [Op.lte]: 19994645
       // },
@@ -334,7 +345,7 @@ export class Watch {
           continue;
         }
         const amount = String(await calcMakerSendAmount(this.ctx.makerConfigs, txData as any));
-        if (!amount||Number(amount)<0) {
+        if (!amount || Number(amount) < 0) {
           continue;
         }
         txData.expectValue = amount;
@@ -364,6 +375,87 @@ export class Watch {
       }
     } catch (error) {
       console.log("error:", error);
+    }
+  }
+  public async starknetNotNonceReplyMatch() {
+    const txlist = await this.ctx.models.Transaction.findAll({
+      attributes: ["id", 'chainId', 'symbol', 'timestamp', "value", 'replyAccount'],
+      raw: true,
+      limit: 500,
+      order: [["id", "asc"]],
+      where: {
+        status: 1,
+        timestamp: {
+          [Op.gte]: dayjs()
+            .subtract(24, 'hour')
+            .toDate(),
+          [Op.lte]: dayjs()
+            .subtract(10, 'minute')
+            .toDate()
+        },
+        replySender: "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
+      }
+    });
+    for (const destTx of txlist) {
+      try {
+        const sourceTx = await this.ctx.models.Transaction.findOne({
+          raw: true,
+          attributes: ["id"],
+          where: {
+            status: 1,
+            memo: destTx.chainId,
+            symbol: destTx.symbol,
+            expectValue: sequelize.literal(`SUBSTRING(expectValue, 1, LENGTH(expectValue) - 4) = '${destTx.value.substring(0, destTx.value.length - 4)}'`),
+            replyAccount: destTx.replyAccount,
+            timestamp: {
+              [Op.lte]: dayjs(destTx.timestamp)
+                .add(3, "m")
+                .toDate(),
+              [Op.gte]: dayjs(destTx.timestamp)
+                .subtract(24 * 3, 'hour')
+                .toDate(),
+            }
+          }
+        });
+        if (sourceTx) {
+          const t = await this.ctx.models.sequelize.transaction();
+          try {
+            const updateStatusRow = await this.ctx.models.Transaction.update({
+              status: 99,
+            }, {
+              where: {
+                status: 1,
+                id: [sourceTx.id, destTx.id]
+              },
+              transaction: t
+            });
+
+            if (updateStatusRow[0] != 2) {
+              throw new Error('starknetNotNonceReplyMatch update1 rows fail');
+            }
+            // change makerTrx
+            const updateMakerTrxRow = await this.ctx.models.MakerTransaction.update({
+              outId: destTx.id,
+              toAmount: destTx.value
+            }, {
+              where: {
+                inId: sourceTx.id,
+                outId: null
+              },
+              transaction: t
+            })
+            if (updateMakerTrxRow[0] != 1) {
+              throw new Error('starknetNotNonceReplyMatch update2 rows fail');
+            }
+            await t.commit();
+          } catch (error) {
+            t && await t.rollback();
+            throw error;
+          }
+        }
+      } catch (error) {
+        this.ctx.logger.error(`starknetNotNonceReplyMatch error ${destTx.id}`, error);
+      }
     }
   }
 }

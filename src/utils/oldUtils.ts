@@ -425,7 +425,7 @@ export function getAmountToSend(
     market,
     true,
   );
-  const result = getTAmountFromRAmount(toChainID, readyAmount.toString(), nonceStr);
+  const result = getTAmountFromRAmount(toChainID, readyAmount.toFixed(), nonceStr);
   if (!result.state) {
     console.log(result);
   }

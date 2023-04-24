@@ -224,17 +224,17 @@ export async function bulkCreateTransaction(
         // user send
         txData.replyAccount = txData.from;
         txData.replySender = txData.to;
-        if ([44, 4, 11, 511].includes(fromChainId)) {
+        if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
           // dydx contract send
           // starknet contract send
           txData.replyAccount = txExtra["ext"] || "";
-        } else if ([44, 4, 11, 511].includes(toChainId)) {
+        } else if ([44, 4, 11, 511].includes(toChainId) && txExtra["ext"]) {
           const ext = txExtra["ext"] || "";
           saveExtra["ext"] = ext;
           // 11,511 0x02 first
           // 4, 44 0x03 first
           txData.replyAccount = `0x${ext.substring(4)}`;
-          if ([44, 4].includes(toChainId)) {
+          if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
             txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
           }
         }
@@ -254,7 +254,7 @@ export async function bulkCreateTransaction(
           true,
           String(txData.to)
         );
-        if (!market) {
+        if (!market || isEmpty(txData.replyAccount)) {
           // market not found
           txData.status = 3;
         } else {
@@ -383,6 +383,7 @@ export async function bulkCreateTransaction(
   }
   for (const txData of upsertList) {
     const t = await ctx.models.sequelize.transaction();
+    let isPushMQ = false;
     try {
       const [dbData, isCreated] = await ctx.models.Transaction.findOrCreate({
         defaults: txData,
@@ -397,9 +398,7 @@ export async function bulkCreateTransaction(
         const id = dbData.id;
         //
         if (txData.side === 0 && dbData.status === 1) {
-          messageToOrbiterX(ctx, txData).catch(error => {
-            ctx.logger.error("messageToOrbiterX error:", error);
-          });
+          isPushMQ = true;
           const trxId = TransactionID(
             String(txData.from),
             txData.chainId,
@@ -422,6 +421,7 @@ export async function bulkCreateTransaction(
             },
             transaction: t,
           });
+
         }
       } else {
         if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
@@ -438,6 +438,12 @@ export async function bulkCreateTransaction(
         });
       }
       await t.commit();
+      // send mq
+      if (isPushMQ) {
+        messageToOrbiterX(ctx, txData).catch(error => {
+          ctx.logger.error("messageToOrbiterX error:", error);
+        });
+      }
     } catch (error) {
       t && t.rollback();
     }
@@ -549,7 +555,7 @@ async function handleXVMTx(
       txData.side = 0;
       txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
-      if ([44, 4].includes(toChainId)) {
+      if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
         txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
       }
       txData.expectValue = decodeData.expectValue;
@@ -886,7 +892,7 @@ export async function processUserSendMakerTx(
       await makerSendTx.save({
         transaction: t,
       });
-      await ctx.models.Transaction.update(
+      const response = await ctx.models.Transaction.update(
         {
           status: upStatus,
         },
@@ -897,6 +903,9 @@ export async function processUserSendMakerTx(
           transaction: t,
         },
       );
+      if (response[0] != 2) {
+        throw new Error('processUserSendMakerTx update rows fail')
+      }
       await ctx.redis
         .multi()
         .hmset(`TXHASH_STATUS`, [userTx.hash, 99, makerSendTx.hash, 99])
@@ -1070,8 +1079,8 @@ export async function processMakerSendUserTx(
       outId: makerTx.id,
       toChain: makerTx.chainId,
       toAmount: String(makerTx.value),
-      replySender: makerTx.replySender,
-      replyAccount: makerTx.replyAccount,
+      replySender: makerTx.from,
+      replyAccount: makerTx.to,
       fromChain: userSendTx.chainId,
     };
     upsertData.transcationId = TransactionID(
@@ -1087,10 +1096,10 @@ export async function processMakerSendUserTx(
     }
     userSendTx.status = upStatus;
     t = await ctx.models.sequelize.transaction();
-    await userSendTx.save({
-      transaction: t,
-    });
-    await ctx.models.Transaction.update(
+    // await userSendTx.save({
+    //   transaction: t,
+    // });
+    const updateRes = await ctx.models.Transaction.update(
       {
         status: upStatus,
         lpId: userSendTx.lpId,
@@ -1098,11 +1107,16 @@ export async function processMakerSendUserTx(
       },
       {
         where: {
-          id: [userSendTx.id, makerTx.id],
+          id: {
+            [Op.in]: [userSendTx.id, makerTx.id]
+          },
         },
         transaction: t,
       },
     );
+    if (updateRes[0] != 2) {
+      throw new Error('processMakerSendUserTx update rows fail');
+    }
     await models.MakerTransaction.upsert(<any>upsertData, {
       transaction: t,
     });

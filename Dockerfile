@@ -1,4 +1,4 @@
-FROM node:16.15
+FROM node:18.16.0
 WORKDIR /app
 
 RUN apt-get update

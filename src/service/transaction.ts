@@ -1006,10 +1006,10 @@ export async function processMakerSendUserTx(
       transferId: makerTx.transferId,
       status: [1, 95, 96, 97],
       side: 0,
-      // timestamp: {
-      //   [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
-      //   [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
-      // },
+      timestamp: {
+        [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
+        [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
+      },
     };
     if (makerTx.source == "xvm") {
       try {

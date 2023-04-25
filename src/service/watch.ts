@@ -79,10 +79,8 @@ export class Watch {
         ctx.logger.info(
           `Start Subscribe ChainId: ${id}, instanceId:${this.ctx.instanceId}, instances:${this.ctx.instanceCount}`,
         );
-        pubSub.subscribe(`${id}:txlist`, async (txs: Transaction[]) => {
-          if (txs) {
-            const txList: Transaction[] = convertTxList(txs);
-
+        pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
+          if (txList) {
             try {
               await this.saveTxRawToCache(txList);
               // return await bulkCreateTransaction(ctx, txList);
@@ -108,17 +106,16 @@ export class Watch {
       }
       pubSub.subscribe(`ACCEPTED_ON_L2:${isProd() ? "4" : "44"}`, async (tx: any) => {
         if (tx) {
-          const txList: Transaction[] = convertTxList([tx]);
           try {
-            await this.saveTxRawToCache(txList);
+            await this.saveTxRawToCache([tx]);
             // return await bulkCreateTransaction(ctx, [tx]);
-            return await this.ctx.mq.producer.publish(txList, "");
+            return await this.ctx.mq.producer.publish([tx], "");
           } catch (error) {
             ctx.logger.error(
               `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
               error,
             );
-            await bulkCreateTransaction(ctx, txList);
+            await bulkCreateTransaction(ctx, [tx]);
           }
         }
       });
@@ -458,29 +455,4 @@ export class Watch {
       }
     }
   }
-}
-
-export function convertTxList(txs: Transaction[]) {
-  const txList: Transaction[] = [];
-  for (const row of txs) {
-    if (row.extra?.txList && row.extra.txList.length) {
-      const extTxList: any[] = row.extra.txList;
-      const internalTxList: any[] = [];
-      let idx = 0;
-      for (const extTx of extTxList) {
-        const internalTx: any = JSON.parse(JSON.stringify(row));
-        internalTx.hash = `${row.hash}${idx ? `#${idx}` : ""}`;
-        internalTx.fee = new BigNumber(row.fee).dividedBy(extTxList.length).toFixed(0);
-        idx++;
-        delete internalTx.extra.txList;
-        Object.assign(internalTx, extTx);
-        internalTxList.push(internalTx);
-      }
-
-      txList.push(...internalTxList);
-    } else {
-      txList.push(row);
-    }
-  }
-  return txList;
 }

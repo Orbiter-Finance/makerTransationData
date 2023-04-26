@@ -1,0 +1,1 @@
+{"abbreviation":"HKT","client_ip":"65.75.221.158","datetime":"2023-04-25T16:46:29.406806+08:00","day_of_week":2,"day_of_year":115,"dst":false,"dst_from":null,"dst_offset":0,"dst_until":null,"raw_offset":28800,"timezone":"Asia/Hong_Kong","unixtime":1682412389,"utc_datetime":"2023-04-25T08:46:29.406806+00:00","utc_offset":"+08:00","week_number":17}

@@ -570,6 +570,9 @@ async function handleXVMTx(
     // TODO: No association created @Soul
     txData.side = 1;
     const { tradeId, op } = decodeSwapAnswerData(params.data);
+    txData.to = params.recipient;
+    txData.replyAccount = params.recipient;
+    txData.replySender = txData.from;
     // const userTx = await ctx.models.Transaction.findOne(<any>{
     //   // attributes: [
     //   //   "id",

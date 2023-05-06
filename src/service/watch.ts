@@ -372,6 +372,7 @@ export class Watch {
       console.log("error:", error);
     }
   }
+
   public async starknetNotNonceReplyMatch() {
     const txlist = await this.ctx.models.Transaction.findAll({
       attributes: ["id", 'chainId', 'symbol', 'timestamp', "value", 'replyAccount'],
@@ -452,5 +453,14 @@ export class Watch {
         this.ctx.logger.error(`starknetNotNonceReplyMatch error ${destTx.id}`, error);
       }
     }
+  }
+  public async checkZKSyncRejectTx() {
+    const txList = await this.ctx.models.Transaction.findOne({
+      attributes: ['id'],
+      where: {
+        status: 2,
+        side: 0,
+      }
+    });
   }
 }

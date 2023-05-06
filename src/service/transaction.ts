@@ -1008,8 +1008,8 @@ export async function processMakerSendUserTx(
       status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
         [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(2, "hour").toDate(),
       },
     };
     if (makerTx.source == "xvm") {

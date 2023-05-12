@@ -238,6 +238,7 @@ export async function bulkCreateTransaction(
           saveExtra["ext"] = ext;
           if (isEmpty(ext)) {
             txData.status = 3;
+            txData.replyAccount = null;
           } else {
             // 11,511 0x02 first
             // 4, 44 0x03 first

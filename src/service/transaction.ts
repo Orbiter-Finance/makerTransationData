@@ -223,24 +223,28 @@ export async function bulkCreateTransaction(
         // user send
         txData.replyAccount = txData.from;
         txData.replySender = txData.to;
-        if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
-          // dydx contract send
-          // starknet contract send
-          txData.replyAccount = txExtra["ext"] || "";
-        } else if ([44, 4, 11, 511].includes(toChainId) && txExtra["ext"]) {
-          const ext = txExtra["ext"] || "";
-          saveExtra["ext"] = ext;
-          // 11,511 0x02 first
-          // 4, 44 0x03 first
-          txData.replyAccount = `0x${ext.substring(4)}`;
-          if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
-            txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
-          }
-        }
         if ([99, 9].includes(fromChainId)) {
           const arr = txExtra.memo.split("_");
           if (arr.length > 1) {
             txData.replyAccount = arr[1];
+          }
+        } else if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
+          // dydx contract send
+          // starknet contract send
+          txData.replyAccount = txExtra["ext"] || "";
+        }
+        if ([44, 4, 11, 511].includes(toChainId)) {
+          const ext = txExtra["ext"] || "";
+          saveExtra["ext"] = ext;
+          if (isEmpty(ext)) {
+            txData.status = 3;
+          } else {
+            // 11,511 0x02 first
+            // 4, 44 0x03 first
+            txData.replyAccount = `0x${ext.substring(4)}`;
+            if ([44, 4].includes(toChainId) && !isEmpty(ext)) {
+              txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
+            }
           }
         }
         const market = getMarket(

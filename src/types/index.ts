@@ -37,6 +37,9 @@ export interface Config {
   crossAddressTransferMap: {
     [key: string]: string;
   };
+  multipleMakers: {
+    [key: string]: Array<string>;
+  },
   chainsTokens: Array<any>;
   subgraphEndpoint: string;
   chains: IChainConfig[];

@@ -386,10 +386,10 @@ export class Watch {
             .subtract(24, 'hour')
             .toDate(),
           [Op.lte]: dayjs()
-            .subtract(10, 'minute')
+            .subtract(20, 'minute')
             .toDate()
         },
-        replySender: "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
+        replySender: ['0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328','0x07b393627bd514d2aa4c83e9f0c468939df15ea3c29980cd8e7be3ec847795f0','0x0411c2a2a4dc7b4d3a33424af3ede7e2e3b66691e22632803e37e2e0de450940'],
       }
     });
     for (const destTx of txlist) {
@@ -444,6 +444,7 @@ export class Watch {
               throw new Error('starknetNotNonceReplyMatch update2 rows fail');
             }
             await t.commit();
+            this.ctx.logger.info(`NotNonceReplyMatch: ${sourceTx.id}-${destTx.id}`);
           } catch (error) {
             t && await t.rollback();
             throw error;

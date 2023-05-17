@@ -224,24 +224,39 @@ export async function bulkCreateTransaction(
         // user send
         txData.replyAccount = txData.from;
         txData.replySender = txData.to;
-        if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
-          // dydx contract send
-          // starknet contract send
-          txData.replyAccount = txExtra["ext"] || "";
-        } else if ([44, 4, 11, 511].includes(toChainId) && txExtra["ext"]) {
-          const ext = txExtra["ext"] || "";
-          saveExtra["ext"] = ext;
-          // 11,511 0x02 first
-          // 4, 44 0x03 first
-          txData.replyAccount = `0x${ext.substring(4)}`;
-          if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
-            txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
-          }
-        }
         if ([99, 9].includes(fromChainId)) {
           const arr = txExtra.memo.split("_");
           if (arr.length > 1) {
             txData.replyAccount = arr[1];
+          }
+        } else if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
+          // dydx contract send
+          // starknet contract send
+          txData.replyAccount = txExtra["ext"] || "";
+        }
+        if ([44, 4, 11, 511].includes(toChainId)) {
+          const ext = txExtra["ext"] || "";
+          saveExtra["ext"] = ext;
+          if (isEmpty(ext)) {
+            txData.status = 3;
+            txData.replyAccount = null;
+          } else {
+            // 11,511 0x02 first
+            // 4, 44 0x03 first
+            switch (String(toChainId)) {
+              case "11":
+              case "511":
+                txData.replyAccount = ext.replace("0x02", "0x");
+                break;
+              case "4":
+              case "44":
+                txData.replyAccount = ext.replace("0x03", "0x");
+                break;
+            }
+            // txData.replyAccount = `0x${ext.substring(4)}`;
+            if ([44, 4].includes(toChainId) && !isEmpty(ext)) {
+              txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
+            }
           }
         }
         const market = getMarket(
@@ -572,6 +587,9 @@ async function handleXVMTx(
     // TODO: No association created @Soul
     txData.side = 1;
     const { tradeId, op } = decodeSwapAnswerData(params.data);
+    txData.to = params.recipient;
+    txData.replyAccount = params.recipient;
+    txData.replySender = txData.from;
     // const userTx = await ctx.models.Transaction.findOne(<any>{
     //   // attributes: [
     //   //   "id",
@@ -1007,8 +1025,8 @@ export async function processMakerSendUserTx(
       status: [1, 95, 96, 97],
       side: 0,
       timestamp: {
-        [Op.lte]: dayjs(makerTx.timestamp).add(1, "hour").toDate(),
         [Op.gte]: dayjs(makerTx.timestamp).subtract(7, "day").toDate(),
+        [Op.lte]: dayjs(makerTx.timestamp).add(2, "hour").toDate(),
       },
     };
     if (makerTx.source == "xvm") {

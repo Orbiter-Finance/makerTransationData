@@ -8,6 +8,8 @@ import { chains } from "orbiter-chaincore";
 import db from "./db";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import { RabbitMQ } from "./utils/rabbitMQ";
+import { equals } from "orbiter-chaincore/src/utils/core";
+import { cloneDeep } from "lodash";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -25,19 +27,18 @@ export class Context {
     chains: [],
     chainsTokens: [],
     subgraphEndpoint: "",
+    multipleMakers: {
+      '*-14': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df']
+    },
     // Address should be in lowercase !!!
     crossAddressTransferMap: {
-      "0x80c67432656d59144ceff962e8faf8926599bcf8":
-        "0x646592183ff25a0c44f09896a384004778f831ed",
-      "0xe4edb277e41dc89ab076a1f049f4a3efa700bce8":
-        "0x646592183ff25a0c44f09896a384004778f831ed",
-      "0xd7aa9ba6caac7b0436c91396f22ca5a7f31664fc":
-        "0x646592183ff25a0c44f09896a384004778f831ed",
-      "0x41d3d33156ae7c62c094aae2995003ae63f587b3":
-        "0x646592183ff25a0c44f09896a384004778f831ed",
-      "0x095d2918b03b2e86d68551dcf11302121fb626c9":
-        "0x646592183ff25a0c44f09896a384004778f831ed",
-
+      "0x80c67432656d59144ceff962e8faf8926599bcf8": "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0xe4edb277e41dc89ab076a1f049f4a3efa700bce8": "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0xd7aa9ba6caac7b0436c91396f22ca5a7f31664fc": "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0x41d3d33156ae7c62c094aae2995003ae63f587b3": "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0x095d2918b03b2e86d68551dcf11302121fb626c9": "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0xee73323912a4e3772b74ed0ca1595a152b0ef282": "0x646592183ff25a0c44f09896a384004778f831ed",
+      "0x0a88bc5c32b684d467b43c06d9e0899efeaf59df": "0x646592183ff25a0c44f09896a384004778f831ed",
       "0x07b393627bd514d2aa4c83e9f0c468939df15ea3c29980cd8e7be3ec847795f0":
         "0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328",
       "0x064a24243f2aabae8d2148fa878276e6e6e452e3941b417f3c33b1649ea83e11":
@@ -127,6 +128,30 @@ export async function fetchFileMakerList(ctx: Context) {
         ]?.toLocaleLowerCase()}.json`),
       );
     }
+    const fixMakersConfigs = [];
+    console.log('ctx.makerConfigs lengH', ctx.makerConfigs.length);
+    for (const key in ctx.config.multipleMakers) {
+      const [fromChainId, toChainId] = key.split('-');
+      for (const fixMakerAddr of ctx.config.multipleMakers[key]) {
+        let pushMakerList = cloneDeep(ctx.makerConfigs);
+        if (fromChainId != '*')
+          pushMakerList = pushMakerList.filter(row => equals(String(row.fromChain.id), fromChainId))
+        if (toChainId != '*')
+          pushMakerList = pushMakerList.filter(row => equals(String(row.toChain.id), toChainId))
+        pushMakerList = pushMakerList.map(row => {
+          row.recipient = fixMakerAddr
+          row.sender = fixMakerAddr
+          // TAG: crossAddress
+          if (row.crossAddress) {
+
+          }
+          return row;
+        })
+        fixMakersConfigs.push(...pushMakerList);
+      }
+    }
+    ctx.makerConfigs.push(...fixMakersConfigs)
+    console.log('ctx.makerConfigs lengH', ctx.makerConfigs.length);
   } else {
     const mk1 = convertMakerConfig(require(`./config/makerTest.json`));
     const mk2 = convertMakerConfig(require(`./config/makerTest-2.json`));

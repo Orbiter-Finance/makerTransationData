@@ -1,0 +1,13 @@
+# Use the official Redis image as the base image
+FROM redis:latest
+
+# Set a working directory for the Redis configuration files
+WORKDIR /usr/local/etc/redis
+
+# Copy the Redis configuration file into the container
+COPY redis.conf .
+
+# Expose the Redis port
+EXPOSE 6379
+
+# Start Redis with the configuration file

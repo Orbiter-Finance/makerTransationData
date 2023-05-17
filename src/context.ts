@@ -28,7 +28,10 @@ export class Context {
     chainsTokens: [],
     subgraphEndpoint: "",
     multipleMakers: {
-      '*-14': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df']
+      '*-14': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df'],
+      '14-1': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df'],
+      '14-2': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df'],
+      '14-7': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df']
     },
     // Address should be in lowercase !!!
     crossAddressTransferMap: {

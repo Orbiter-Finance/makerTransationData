@@ -155,10 +155,10 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-    await this.readUserTxReMatchNotCreate().catch(error=> {
+     this.readUserTxReMatchNotCreate().catch(error=> {
       this.ctx.logger.error('readUserTxReMatchNotCreate error', error);
     })
-    await this.starknetNotNonceReplyMatch().catch(error=> {
+    this.starknetNotNonceReplyMatch().catch(error=> {
       this.ctx.logger.error('starknetNotNonceReplyMatch error', error);
     })
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
@@ -377,7 +377,7 @@ export class Watch {
     const txlist = await this.ctx.models.Transaction.findAll({
       attributes: ["id", 'chainId', 'symbol', 'timestamp', "value", 'replyAccount'],
       raw: true,
-      limit: 500,
+      limit: 100,
       order: [["id", "asc"]],
       where: {
         status: 1,

@@ -15,7 +15,6 @@ import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
 import sequelize from "sequelize";
-import BigNumber from "bignumber.js";
 import { isProd } from "../config/config";
 export class Watch {
   constructor(public readonly ctx: Context) { }

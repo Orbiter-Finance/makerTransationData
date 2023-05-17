@@ -242,7 +242,17 @@ export async function bulkCreateTransaction(
           } else {
             // 11,511 0x02 first
             // 4, 44 0x03 first
-            txData.replyAccount = `0x${ext.substring(4)}`;
+            switch (String(toChainId)) {
+              case "11":
+              case "511":
+                txData.replyAccount = ext.replace("0x02", "0x");
+                break;
+              case "4":
+              case "44":
+                txData.replyAccount = ext.replace("0x03", "0x");
+                break;
+            }
+            // txData.replyAccount = `0x${ext.substring(4)}`;
             if ([44, 4].includes(toChainId) && !isEmpty(ext)) {
               txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
             }

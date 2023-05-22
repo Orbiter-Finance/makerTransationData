@@ -132,7 +132,6 @@ export async function fetchFileMakerList(ctx: Context) {
       );
     }
     const fixMakersConfigs = [];
-    console.log('ctx.makerConfigs lengH', ctx.makerConfigs.length);
     for (const key in ctx.config.multipleMakers) {
       const [fromChainId, toChainId] = key.split('-');
       for (const fixMakerAddr of ctx.config.multipleMakers[key]) {
@@ -154,7 +153,6 @@ export async function fetchFileMakerList(ctx: Context) {
       }
     }
     ctx.makerConfigs.push(...fixMakersConfigs)
-    console.log('ctx.makerConfigs lengH', ctx.makerConfigs.length);
   } else {
     ctx.makerConfigs = convertMakerConfig(require("./config/makerTest.json"));
   }

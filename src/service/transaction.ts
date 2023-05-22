@@ -231,8 +231,9 @@ export async function bulkCreateTransaction(
         } else if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
           // dydx contract send
           // starknet contract send
-          txData.replyAccount = txExtra["ext"] || "";
+          txData.replyAccount = fix0xPadStartAddress(txExtra["ext"], 42);
         }
+        
         if ([44, 4, 11, 511].includes(toChainId)) {
           const ext = txExtra["ext"] || "";
           saveExtra["ext"] = ext;

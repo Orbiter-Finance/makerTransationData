@@ -14,6 +14,7 @@ import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
 import { TranferId, TransactionID } from "../utils";
 import {
+  getAccountAddressError,
   getAmountFlag,
   getAmountToSend,
   getFormatDate,
@@ -269,7 +270,12 @@ export async function bulkCreateTransaction(
           true,
           String(txData.to)
         );
-        if (!market || isEmpty(txData.replyAccount)) {
+
+        const error: string | null = getAccountAddressError(txData.replyAccount, toChainId);
+        if (error) {
+          ctx.logger.error(`Illegal user starknet address ${txData.replyAccount} hash:${txData.hash}, ${error}`);
+        }
+        if (!market || isEmpty(txData.replyAccount) || error) {
           // market not found
           txData.status = 3;
         } else {

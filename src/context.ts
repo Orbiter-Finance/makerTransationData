@@ -28,7 +28,10 @@ export class Context {
     chainsTokens: [],
     subgraphEndpoint: "",
     multipleMakers: {
-      '*-14': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df']
+      '*-14': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df'],
+      '14-1': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df'],
+      '14-2': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df'],
+      '14-7': ['0xee73323912a4e3772b74ed0ca1595a152b0ef282', '0x0a88bc5c32b684d467b43c06d9e0899efeaf59df']
     },
     // Address should be in lowercase !!!
     crossAddressTransferMap: {
@@ -129,7 +132,6 @@ export async function fetchFileMakerList(ctx: Context) {
       );
     }
     const fixMakersConfigs = [];
-    console.log('ctx.makerConfigs lengH', ctx.makerConfigs.length);
     for (const key in ctx.config.multipleMakers) {
       const [fromChainId, toChainId] = key.split('-');
       for (const fixMakerAddr of ctx.config.multipleMakers[key]) {
@@ -151,7 +153,6 @@ export async function fetchFileMakerList(ctx: Context) {
       }
     }
     ctx.makerConfigs.push(...fixMakersConfigs)
-    console.log('ctx.makerConfigs lengH', ctx.makerConfigs.length);
   } else {
     const mk1 = convertMakerConfig(require(`./config/makerTest.json`));
     const mk2 = convertMakerConfig(require(`./config/makerTest-2.json`));

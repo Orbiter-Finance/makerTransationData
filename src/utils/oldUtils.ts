@@ -5,6 +5,7 @@ import { IChainCfg, IMarket } from "../types";
 import moment from "moment";
 import * as zksync from 'zksync';
 import { chainConfigList } from "./maker";
+import { validateAndParseAddress } from "starknet";
 
 const MAX_BITS: any = {
   eth: 256,
@@ -466,6 +467,23 @@ function getTimeZoneString(timeZone: any) {
     }:00`;
 }
 
+function getAccountAddressError(address, chainId): string | null {
+  if (Number(chainId) == 4 || Number(chainId) == 44) {
+    try {
+      validateAndParseAddress(address);
+      return null;
+    } catch (e) {
+      return e.message;
+    }
+  } else {
+    if ((new RegExp(/^0x[a-fA-F0-9]{40}$/)).test(address)) {
+      return null;
+    } else {
+      return "Invalid evm address";
+    }
+  }
+}
+
 export {
   getTAmountFromRAmount,
   getRAmountFromTAmount,
@@ -473,4 +491,5 @@ export {
   pTextFormatZero,
   isLimitNumber,
   getToAmountFromUserAmount,
+  getAccountAddressError
 };

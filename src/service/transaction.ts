@@ -14,6 +14,7 @@ import { InferAttributes, InferCreationAttributes, Op } from "sequelize";
 import { Context } from "../context";
 import { TranferId, TransactionID } from "../utils";
 import {
+  getAccountAddressError,
   getAmountFlag,
   getAmountToSend,
   getFormatDate,
@@ -232,8 +233,9 @@ export async function bulkCreateTransaction(
         } else if ([44, 4, 11, 511].includes(fromChainId) && txExtra["ext"]) {
           // dydx contract send
           // starknet contract send
-          txData.replyAccount = txExtra["ext"] || "";
+          txData.replyAccount = fix0xPadStartAddress(txExtra["ext"], 42);
         }
+        
         if ([44, 4, 11, 511].includes(toChainId)) {
           const ext = txExtra["ext"] || "";
           saveExtra["ext"] = ext;
@@ -269,7 +271,12 @@ export async function bulkCreateTransaction(
           true,
           String(txData.to)
         );
-        if (!market || isEmpty(txData.replyAccount)) {
+
+        const error: string | null = getAccountAddressError(txData.replyAccount, toChainId);
+        if (error) {
+          ctx.logger.error(`Illegal user starknet address ${txData.replyAccount} hash:${txData.hash}, ${error}`);
+        }
+        if (!market || isEmpty(txData.replyAccount) || error) {
           // market not found
           txData.status = 3;
         } else {

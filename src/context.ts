@@ -6,13 +6,14 @@ import { Logger } from "winston";
 import { convertChainConfig, convertMakerConfig } from "./utils";
 import { chains } from "orbiter-chaincore";
 import db from "./db";
-import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
+import { WinstonX, createLogger } from "orbiter-chaincore/src/packages/winstonX";
 import { RabbitMQ } from "./utils/rabbitMQ";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { cloneDeep } from "lodash";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
+  public logstashLogger!: Logger;
   public redis!: Redis;
   public instanceId: number;
   public instanceCount: number;
@@ -60,6 +61,16 @@ export class Context {
     this.logger = WinstonX.getLogger(this.instanceId.toString(), {
       logDir: process.env.logDir,
       debug: true,
+    });
+  }
+  private initLogstash() {
+    this.logstashLogger = createLogger({
+      logDir:"./testLog",
+      logstash: {
+        port: parseInt(process.env.logstashPort),// env or config.json
+        node_name: 'maker-client',
+        host: process.env.logstashHost,
+      },
     });
   }
   private initRedis() {
@@ -114,6 +125,7 @@ export class Context {
     this.instanceId = Number(process.env.NODE_APP_INSTANCE || 0);
     this.instanceCount = Number(process.env.INSTANCES || 1);
     this.initLogger();
+    this.initLogstash();
     this.initRedis();
     // new TCPInject(this);
   }

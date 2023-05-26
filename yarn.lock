@@ -6421,10 +6421,10 @@ ora@^5.4.1:
     strip-ansi "^6.0.0"
     wcwidth "^1.0.1"
 
-orbiter-chaincore@1.4.25-6:
-  version "1.4.25-6"
-  resolved "https://registry.npmmirror.com/orbiter-chaincore/-/orbiter-chaincore-1.4.25-6.tgz#9822f5b6af0505cccd0b38be5a1861e2ac15729e"
-  integrity sha512-jtNqW8A7Bj2S0xo69YC1pqqeMTsSolZEYDxiNvGbq9VBgPaRyCy5a+USUFmV7c92btHsHJQC0AYsclPLzHZwmw==
+orbiter-chaincore@1.4.25-8:
+  version "1.4.25-8"
+  resolved "https://registry.npmmirror.com/orbiter-chaincore/-/orbiter-chaincore-1.4.25-8.tgz#a1e4230104267805fd6e85938fc784d34d7a00e2"
+  integrity sha512-xDKgOfB/TNAb394fY+t1fw7aRZciay0woVHeOro1rmkJvP2amAmWWdQXrTE8SDxkWl6UR+vzLsdDUpTfFHLj/Q==
   dependencies:
     "@alch/alchemy-web3" "^1.4.6"
     "@dydxprotocol/v3-client" "^1.9.1"

@@ -1,5 +1,6 @@
 import { Context } from "./../context";
 import * as amqp from "amqplib";
+import { logRecord } from "./logger";
 
 interface IRabbitMQConfig {
   url: string;
@@ -50,13 +51,15 @@ export class RabbitMQ {
           this.ctx.logger.info(`RabbitMQ connected to ${this.config.url}`);
           this.connection = connection;
           this.connection.on("error", error => {
-            this.ctx.logger.error(
+            logRecord(
+              this.ctx,
               `RabbitMQ connection error: ${error.message}`,
+              false,
             );
             this.reconnect();
           });
           this.connection.on("close", () => {
-            this.ctx.logger.error(`RabbitMQ connection closed`);
+            logRecord(this.ctx, `RabbitMQ connection closed`, false);
             this.reconnect();
           });
           this.channel = await this.createChannel();
@@ -67,14 +70,16 @@ export class RabbitMQ {
           //   this.channel = await this.createChannel();
           // });
           this.channel.on("error", async err => {
-            this.ctx.logger.error(`channel error`, err);
+            logRecord(this.ctx, `channel error`, err);
             this.channel = await this.createChannel();
           });
           resolve(this.connection);
         })
         .catch(error => {
-          this.ctx.logger.error(
+          logRecord(
+            this.ctx,
             `Failed to connect to RabbitMQ: ${error.message}`,
+            false
           );
           this.reconnect();
           reject(error);
@@ -92,8 +97,10 @@ export class RabbitMQ {
           resolve(channel);
         })
         .catch(error => {
-          this.ctx.logger.error(
+          logRecord(
+            this.ctx,
             `Failed to create RabbitMQ channel: ${error.message}`,
+            false,
           );
           this.reconnect();
           reject(error);

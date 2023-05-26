@@ -23,6 +23,8 @@ import { IMarket } from "../types";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import sequelize from "sequelize";
+import { logRecord } from "../utils/logger";
+import { log } from "console";
 export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
@@ -93,10 +95,8 @@ export async function bulkCreateTransaction(
       // ctx.logger.info(`processSubTx:${tx.hash}`);
       const chainConfig = chains.getChainInfo(String(row.chainId));
       if (!chainConfig) {
-        ctx.logger.error(
-          `getChainByInternalId chainId ${row.chainId} not found(${row.hash})`,
-          row,
-        );
+        logRecord(ctx, `getChainByInternalId chainId ${row.chainId} not found(${row.hash})`,
+        row,);
         continue;
       }
       const toToken = chains.getTokenByChain(
@@ -104,17 +104,15 @@ export async function bulkCreateTransaction(
         String(row.tokenAddress),
       );
       if (!toToken) {
-        ctx.logger.error(
-          ` Token Not Found  ${row.chainId} ${row.hash} ${row.tokenAddress}`,
-        );
+        logRecord(ctx, ` Token Not Found  ${row.chainId} ${row.hash} ${row.tokenAddress}`, false)
         continue;
       }
       const value: string = new BigNumber(String(row.value)).toFixed();
       if (value.length >= 32) {
-        ctx.logger.error(
-          `Amount format error ${row.chainId} ${row.hash} ${getFormatDate(
-            row.timestamp,
-          )}, value = ${value}`,
+        logRecord(ctx, `Amount format error ${row.chainId} ${row.hash} ${getFormatDate(
+          row.timestamp,
+        )}, value = ${value}`,
+        false,
         );
         continue;
       }
@@ -181,11 +179,12 @@ export async function bulkCreateTransaction(
       const { isToMaker, isToUser, orbiterX, intercept, isToUserCrossAddress } =
         await validateTransactionSpecifications(ctx, row);
       if (intercept) {
-        ctx.logger.info(`${txData.hash} intercept isToMaker=${isToMaker}, isToUser=${isToUser},orbiterX=${orbiterX},isToUserCrossAddress=${isToUserCrossAddress}`);
+        logRecord(ctx, `${txData.hash} intercept isToMaker=${isToMaker}, isToUser=${isToUser},orbiterX=${orbiterX},isToUserCrossAddress=${isToUserCrossAddress}`, true)
+        // ctx.logger.info();
         continue;
       }
       if (!isToUser && !isToMaker && !orbiterX && !isToUserCrossAddress) {
-        ctx.logger.info(`MakerTx ${txData.hash} Not Find Maker Address!`);
+        logRecord(ctx, `MakerTx ${txData.hash} Not Find Maker Address!`, true);
         continue;
       }
       if (
@@ -201,7 +200,7 @@ export async function bulkCreateTransaction(
         try {
           await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);
         } catch (error) {
-          ctx.logger.error("handle xvm error", error);
+          logRecord(ctx,"handle xvm error", error);
         }
       } else if (isToUser || isToUserCrossAddress) {
         txData.side = 1;
@@ -273,7 +272,7 @@ export async function bulkCreateTransaction(
 
         const error: string | null = getAccountAddressError(txData.replyAccount, toChainId);
         if (error) {
-          ctx.logger.error(`Illegal user starknet address ${txData.replyAccount} hash:${txData.hash}, ${error}`);
+          logRecord(ctx, `Illegal user starknet address ${txData.replyAccount} hash:${txData.hash}, ${error}`, false);
         }
         if (!market || isEmpty(txData.replyAccount) || error) {
           // market not found
@@ -308,10 +307,11 @@ export async function bulkCreateTransaction(
               txData.expectValue,
             );
           } catch (error) {
-            ctx.logger.error(
+            logRecord(
+              ctx, 
               "bulkCreateTransaction calcMakerSendAmount error:",
               error,
-            );
+              );
           }
         }
       }
@@ -396,7 +396,7 @@ export async function bulkCreateTransaction(
       );
       upsertList.push(<any>txData);
     } catch (error) {
-      ctx.logger.error("for handle tx error:", error);
+      logRecord(ctx, "for handle tx error:", error);
     }
   }
   if (upsertList.length <= 0) {
@@ -447,7 +447,11 @@ export async function bulkCreateTransaction(
       } else {
         if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
           dbData.status = txData.status;
-          ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
+          logRecord(
+            ctx, 
+            `${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`,
+            true,  
+          )
           await dbData.save({
             transaction: t,
           });
@@ -455,14 +459,14 @@ export async function bulkCreateTransaction(
       }
       if (dbData.status === 1) {
         txSaveCache(ctx, txData).catch(error => {
-          ctx.logger.error("txSaveCache error:", error);
+          logRecord(ctx, "txSaveCache error:", error);
         });
       }
       await t.commit();
       // send mq
       if (isPushMQ) {
         messageToOrbiterX(ctx, txData).catch(error => {
-          ctx.logger.error("messageToOrbiterX error:", error);
+          logRecord(ctx,"messageToOrbiterX error:", error);
         });
       }
     } catch (error) {
@@ -531,7 +535,7 @@ async function messageToOrbiterX(ctx: Context, txData: Transaction) {
     await ctx.mq
       .publishMakerWaitTransferMessage(txData, String(txData.memo))
       .catch(error => {
-        ctx.logger.error(`publish MakerWaitTransferMessage error:`, error);
+        logRecord(ctx, `publish MakerWaitTransferMessage error:`, error);
       }).then(() => {
         ctx.logger.info(`publish MakerWaitTransferMessage success:${txData.hash}`);
       })
@@ -566,7 +570,7 @@ async function handleXVMTx(
     if (!market) {
       // market not found
       txData.status = 3;
-      ctx.logger.error("Market not found", txData.hash);
+      logRecord(ctx, `Market not found ${txData.hash}`, false);
     } else {
       txData.lpId = market.id || null;
       txData.makerId = market.makerId || null;
@@ -811,7 +815,7 @@ export async function processUserSendMakerTx(
     }
     const relInOut = (<any>userTx)["maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
-      ctx.logger.error(`UserTx %s Already matched`, userTx.hash);
+      logRecord(ctx, `UserTx ${userTx.hash} Already matched`, false);
       try {
         await ctx.redis
           .multi()
@@ -820,9 +824,9 @@ export async function processUserSendMakerTx(
           .hdel(`UserPendingTx:${userTx.memo}`, userTx.transferId)
           .exec();
       } catch (error) {
-        ctx.logger.error(
-          `UserTx %s Already matched Change Redis error`,
-          userTx.hash,
+        logRecord(
+          ctx,
+          `UserTx ${userTx.hash} Already matched Change Redis error`,
           error,
         );
       }
@@ -944,7 +948,7 @@ export async function processUserSendMakerTx(
     if (t) {
       await t.rollback();
     }
-    ctx.logger.error("processUserSendMakerTx error", error);
+    logRecord(ctx, "processUserSendMakerTx error", error);
   }
 }
 
@@ -1002,7 +1006,7 @@ export async function processMakerSendUserTx(
     }
     const relInOut = (<any>makerTx)["out_maker_transaction"];
     if (relInOut && relInOut.inId && relInOut.outId) {
-      ctx.logger.error(`MakerTx %s Already matched`, relInOut.hash);
+      logRecord(ctx, `MakerTx ${relInOut.hash} Already matched`, false);
       // clear
       await clearMatchCache(
         ctx,
@@ -1174,7 +1178,7 @@ export async function processMakerSendUserTx(
     if (t) {
       await t.rollback();
     }
-    ctx.logger.error("processMakerSendUserTx error", error);
+    logRecord(ctx, "processMakerSendUserTx error", error);
     return {
       errmsg: error,
     };
@@ -1242,7 +1246,7 @@ export async function processMakerSendUserTxFromCacheByChain(
             },
           });
           if (!findUserTx?.id) {
-            ctx.logger.error(`cache match success not find user tx ${inHash}`);
+            logRecord(ctx, `cache match success not find user tx ${inHash}`, false);
             return;
           }
           if (findUserTx.status === 99) {
@@ -1258,8 +1262,10 @@ export async function processMakerSendUserTxFromCacheByChain(
             return;
           }
           if (findUserTx?.id != userTx.id) {
-            ctx.logger.error(
+            logRecord(
+              ctx,
               `cache match success not find user tx Inconsistent id ${findUserTx.id}!=${inId}`,
+              false
             );
             return;
           }
@@ -1329,7 +1335,7 @@ export async function processMakerSendUserTxFromCacheByChain(
               );
             } catch (error) {
               await t.rollback();
-              ctx.logger.error("Memory matching exception", error);
+              logRecord(ctx, "Memory matching exception", error);
             }
           }
         } else {
@@ -1337,7 +1343,8 @@ export async function processMakerSendUserTxFromCacheByChain(
         }
       }
     } catch (error) {
-      ctx.logger.error(
+      logRecord(
+        ctx,
         `chain:${chain}, hash:${hash}, processMakerSendUserTxFromCache error`,
         error,
       );
@@ -1383,7 +1390,7 @@ export async function clearMatchCache(
     .hmset(`TXHASH_STATUS`, TXHASH_STATUS)
     .hmset(`TXID_STATUS`, TXID_STATUS);
   await redisT.exec().catch(error => {
-    ctx.logger.error("clearMatchCache erorr", error);
+    logRecord(ctx, "clearMatchCache erorr", error);
   });
 }
 export async function processMakerSendUserTxFromCache(ctx: Context) {
@@ -1391,7 +1398,8 @@ export async function processMakerSendUserTxFromCache(ctx: Context) {
   chainList.forEach(chain => {
     processMakerSendUserTxFromCacheByChain(ctx, chain.internalId).catch(
       error => {
-        ctx.logger.error(
+        logRecord(
+          ctx,
           `chain:${chain}, processMakerSendUserTxFromCache for error`,
           error,
         );

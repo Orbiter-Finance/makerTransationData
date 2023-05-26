@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
 import sequelize from "sequelize";
+import { logRecord } from "../utils/logger";
 export class Watch {
   constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
@@ -38,12 +39,12 @@ export class Watch {
               )
               .exec();
           } catch (error) {
-            this.ctx.logger.error(`pubSub.subscribe error`, error);
+            logRecord(this.ctx, `pubSub.subscribe error`, error);
           }
         });
       }
     } catch (error) {
-      this.ctx.logger.error("saveTxRawToCache error", error);
+      logRecord(this.ctx, "saveTxRawToCache error", error);
     }
   }
   public async start() {
@@ -53,7 +54,7 @@ export class Watch {
         await bulkCreateTransaction(ctx, JSON.parse(message));
         return true;
       } catch (error) {
-        this.ctx.logger.error(`Consumption transaction list failed`, error);
+        logRecord(this.ctx, `Consumption transaction list failed`, error);
         return false;
       }
     });
@@ -85,12 +86,14 @@ export class Watch {
               return await this.ctx.mq.producer.publish(txList, "");
             } catch (error) {
               await bulkCreateTransaction(ctx, txList).catch(error => {
-                ctx.logger.error(
+                logRecord(
+                  ctx,
                   `pubSub.subscribe  processSubTxList error:bulkCreateTransaction error`,
                   error,
                 );
               });
-              ctx.logger.error(
+              logRecord(
+                ctx,
                 `pubSub.subscribe  processSubTxList error:`,
                 error,
               );
@@ -99,7 +102,7 @@ export class Watch {
           return true;
         });
         scanChain.startScanChain(id, chainGroup[id]).catch(error => {
-          ctx.logger.error(`${id} startScanChain error:`, error);
+          logRecord(ctx, `${id} startScanChain error:`, error);
         });
       }
       pubSub.subscribe("ACCEPTED_ON_L2:4", async (tx: any) => {
@@ -109,7 +112,8 @@ export class Watch {
             // return await bulkCreateTransaction(ctx, [tx]);
             return await this.ctx.mq.producer.publish([tx], "");
           } catch (error) {
-            ctx.logger.error(
+            logRecord(
+              ctx,
               `${tx.hash} processSubTxList ACCEPTED_ON_L2 error:`,
               error,
             );
@@ -119,21 +123,21 @@ export class Watch {
       });
       process.on("SIGINT", () => {
         scanChain.pause().catch(error => {
-          ctx.logger.error("chaincore pause error:", error);
+          logRecord(ctx, "chaincore pause error:", error);
         });
         process.exit(0);
       });
     } catch (error: any) {
-      ctx.logger.error("startSub error:", error);
+      logRecord(ctx, "startSub error:", error);
     }
     if (process.env["CACHE_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readCacheMakerendReMatch().catch(error => {
-        this.ctx.logger.error("readCacheMakerendReMatch error:", error);
+        logRecord(this.ctx,"readCacheMakerendReMatch error:", error);
       })
     }
     if (process.env["DB_MATCH"] === "1" && this.ctx.instanceId === 0) {
       this.readMakerendReMatch().catch(error => {
-        this.ctx.logger.error("readMakerendReMatch error:", error);
+        logRecord(this.ctx, "readMakerendReMatch error:", error);
       });
     }
     // this.readMakerendReMatch();
@@ -145,7 +149,8 @@ export class Watch {
   //read cache
   public async readCacheMakerendReMatch(): Promise<any> {
     await processMakerSendUserTxFromCache(this.ctx).catch(error => {
-      this.ctx.logger.error(
+      logRecord(
+        this.ctx,
         "setInterval processMakerSendUserTxFromCache error:",
         error,
       );
@@ -156,10 +161,10 @@ export class Watch {
   // read db
   public async readMakerendReMatch(): Promise<any> {
      this.readUserTxReMatchNotCreate().catch(error=> {
-      this.ctx.logger.error('readUserTxReMatchNotCreate error', error);
+      logRecord(this.ctx, 'readUserTxReMatchNotCreate error', error);
     })
     this.starknetNotNonceReplyMatch().catch(error=> {
-      this.ctx.logger.error('starknetNotNonceReplyMatch error', error);
+      logRecord(this.ctx, 'starknetNotNonceReplyMatch error', error);
     })
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
     const endAt = dayjs().subtract(120, "second").toDate();
@@ -204,7 +209,8 @@ export class Watch {
       for (const tx of txList) {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
           error => {
-            this.ctx.logger.error(
+            logRecord(
+              this.ctx,
               `readMakerendReMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
               error,
             );
@@ -218,7 +224,7 @@ export class Watch {
       }
     } catch (error) {
       console.log("error:", error);
-      this.ctx.logger.error('readMakerendReMatch error', error);
+      logRecord(this.ctx, 'readMakerendReMatch error', error);
     } finally {
 
       await sleep(1000 * 30);
@@ -239,7 +245,8 @@ export class Watch {
     let index = 0;
     for (const tx of txList) {
       const result = await processUserSendMakerTx(this.ctx, tx).catch(error => {
-        this.ctx.logger.error(
+        logRecord(
+          this.ctx,
           `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
           error,
         );
@@ -280,7 +287,8 @@ export class Watch {
       for (const tx of txList) {
         const result = await processUserSendMakerTx(this.ctx, tx).catch(
           error => {
-            this.ctx.logger.error(
+            logRecord(
+              this.ctx,
               `readDBMatch process total:${txList.length}, id:${tx.id},hash:${tx.hash}`,
               error,
             );
@@ -451,7 +459,7 @@ export class Watch {
           }
         }
       } catch (error) {
-        this.ctx.logger.error(`starknetNotNonceReplyMatch error ${destTx.id}`, error);
+        logRecord(this.ctx, `starknetNotNonceReplyMatch error ${destTx.id}`, error);
       }
     }
   }

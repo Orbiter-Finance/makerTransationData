@@ -417,6 +417,7 @@ export async function bulkCreateTransaction(
       });
       txData.id = dbData.id;
       if (isCreated) {
+        ctx.logger.info(`${txData.hash} isCreated`);
         const id = dbData.id;
         //
         if (txData.side === 0 && dbData.status === 1) {
@@ -447,8 +448,8 @@ export async function bulkCreateTransaction(
         }
       } else {
         if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
+          ctx.logger.info(`${txData.hash} change status origin status:${txData.status} nowStatus:${dbData.status}`);
           dbData.status = txData.status;
-          ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
           await dbData.save({
             transaction: t,
           });

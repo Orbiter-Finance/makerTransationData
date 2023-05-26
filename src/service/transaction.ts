@@ -25,6 +25,7 @@ import { ethers } from "ethers";
 import sequelize from "sequelize";
 import { logRecord } from "../utils/logger";
 import { log } from "console";
+import { isProd } from "../config/config";
 export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
@@ -527,7 +528,7 @@ function txSaveCache(ctx: Context, txData: Transaction) {
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
   if (
-    txData.source === 'xvm' &&
+    (!isProd() || txData.source === 'xvm') &&
     txData.status === 1 &&
     new Date(txData.timestamp).valueOf() > ctx.startTime
   ) {

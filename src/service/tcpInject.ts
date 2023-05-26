@@ -3,6 +3,7 @@ import net from "net";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { sleep } from "../utils";
 import { chains } from "orbiter-chaincore";
+import { logRecord } from "../utils/logger";
 export class TCPInject {
   public client: net.Socket;
   constructor(public readonly ctx: Context) {
@@ -26,9 +27,7 @@ export class TCPInject {
           .getAllChains()
           .find(row => equals(row.internalId, body.data.key));
         if (!chain) {
-          return ctx.logger.error(
-            `Inject Key Not Find Chain Config ${body.data.key}`,
-          );
+          return logRecord(ctx, `Inject Key Not Find Chain Config ${body.data.key}`, false);
         }
         chain.api.key = body.data.value;
       }
@@ -38,14 +37,14 @@ export class TCPInject {
     // });
     this.client.on("error", error => {
       if ((Date.now() / 1000) * 10 === 0) {
-        ctx.logger.error("sub error:", error);
+        logRecord(ctx, "sub error:", false, error);
       }
       sleep(1000 * 10)
         .then(() => {
           // subscribeInject(ctx);
         })
         .catch(error => {
-          ctx.logger.error("sleep error:", error);
+          logRecord(ctx, "sleep error:", error);
         });
     });
   }

@@ -1,4 +1,5 @@
 import * as winstonX from "orbiter-chaincore/src/packages/winstonX";
+import { Context } from "../context";
 import path from "path";
 export class LoggerService {
   static services: { [key: string]: any } = {};
@@ -39,5 +40,15 @@ export class LoggerService {
     opts?: winstonX.WinstonXOptions,
   ): winstonX.LoggerType {
     return LoggerService.services[key] || LoggerService.createLogger(key, opts);
+  }
+}
+
+export function logRecord(ctx: Context, msg: any, info: boolean, err?: Error) {
+  if(info) {
+    ctx.logger.info(msg,err)
+    ctx.logstashLogger.info(msg, err)
+  } else {
+    ctx.logger.error(msg,err)
+    ctx.logstashLogger.error(msg, err)
   }
 }

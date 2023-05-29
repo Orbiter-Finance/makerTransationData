@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { Watch } from "./src/service/watch";
 import { Context } from "./src/context";
-import { logRecord } from "./src/utils/logger";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 dayjs.extend(utc);
@@ -17,16 +16,14 @@ export class Application {
 }
 const app = new Application();
 app.bootstrap().catch(error => {
-  logRecord(app.ctx, "start app error",false, error)
+  app.ctx.logger.error("start app error", error);
 });
 process.on("uncaughtException", (err: Error) => {
-  logRecord(app.ctx, "Global Uncaught exception:",false, err);
+  app.ctx.logger.error("Global Uncaught exception:", err);
 });
 process.on("unhandledRejection", (err: Error) => {
-  logRecord(
-    app.ctx,
+  app.ctx.logger.error(
     "There are failed functions where promise is not captured：",
-    false,
     err,
-    );
+  );
 });

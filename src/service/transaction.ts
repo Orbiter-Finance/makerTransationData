@@ -234,7 +234,7 @@ export async function bulkCreateTransaction(
           // starknet contract send
           txData.replyAccount = fix0xPadStartAddress(txExtra["ext"], 42);
         }
-        
+
         if ([44, 4, 11, 511].includes(toChainId)) {
           const ext = txExtra["ext"] || "";
           saveExtra["ext"] = ext;
@@ -259,6 +259,12 @@ export async function bulkCreateTransaction(
               txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
             }
           }
+        }
+        if (Number(txData.nonce) > 8999 && txData.source!='xvm') {
+          txData.status = 3;
+          txData.extra['reason'] = 'nonce too high, not allowed';
+          upsertList.push(<any>txData);
+          continue;
         }
         const market = getMarket(
           ctx,

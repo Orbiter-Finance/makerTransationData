@@ -449,9 +449,6 @@ export function getAmountFlag(chainId: number, amount: string): string {
     return "0";
   }
   const value = Number(rst.pText).toString().substring(0, 4)
-  if (+value < 9000) {
-    return "0";
-  }
   return (+value % 9000).toString();
 }
 

@@ -188,13 +188,14 @@ export async function bulkCreateTransaction(
         ctx.logger.info(`MakerTx ${txData.hash} Not Find Maker Address!`);
         continue;
       }
+      const pText = Number(value).toString().substr(value.length - 4, 4);
       if (
         (validMakerAddress(ctx, String(txData.from)) &&
         validMakerAddress(ctx, String(txData.to))) ||
-        (isToMaker && !Number(memo))
+        (isToMaker && Number(pText) < 9000)
       ) {
         txData.status = 3;
-        txData.extra["reason"] = isToMaker && !Number(memo) ? "memo" : "maker";
+        txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";
         upsertList.push(<any>txData);
         continue;
       }

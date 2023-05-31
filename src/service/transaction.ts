@@ -189,11 +189,12 @@ export async function bulkCreateTransaction(
         continue;
       }
       if (
-        validMakerAddress(ctx, String(txData.from)) &&
-        validMakerAddress(ctx, String(txData.to))
+        (validMakerAddress(ctx, String(txData.from)) &&
+        validMakerAddress(ctx, String(txData.to))) ||
+        (isToMaker && !Number(memo))
       ) {
         txData.status = 3;
-        txData.extra['reason'] = 'maker';
+        txData.extra["reason"] = isToMaker && !Number(memo) ? "memo" : "maker";
         upsertList.push(<any>txData);
         continue;
       }

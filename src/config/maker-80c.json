@@ -3194,7 +3194,7 @@
     "14-6": {
         "ETH-ETH": {
             "gasFee": 1,
-            "tradingFee": 0.0006,
+            "tradingFee": 0.0009,
             "makerAddress": "0x80C67432656d59144cEFf962E8fAF8926599bCF8",
             "sender": "0x80C67432656d59144cEFf962E8fAF8926599bCF8",
             "maxPrice": 3,

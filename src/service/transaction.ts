@@ -18,6 +18,7 @@ import {
   getAmountFlag,
   getAmountToSend,
   getFormatDate,
+  getPTextFromTAmount,
 } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import RLP from "rlp";
@@ -123,10 +124,13 @@ export async function bulkCreateTransaction(
         Number(chainConfig.internalId),
         String(row.value),
       );
+      const rst = getPTextFromTAmount(Number(chainConfig.internalId), String(row.value));
+      let pText = rst.state ? Number(rst.pText).toString().substring(0, 4) : "0";
       const txExtra = row.extra || {};
       if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
         const arr = txExtra.memo.split("_");
         memo = String(+arr[0] % 9000);
+        pText = String(+arr[0] % 9000);
       } else if (
         ["11", "511"].includes(chainConfig.internalId) &&
         txExtra["type"] === "TRANSFER_OUT"
@@ -190,11 +194,13 @@ export async function bulkCreateTransaction(
         continue;
       }
       if (
-        validMakerAddress(ctx, String(txData.from)) &&
-        validMakerAddress(ctx, String(txData.to))
+        (validMakerAddress(ctx, String(txData.from)) &&
+        validMakerAddress(ctx, String(txData.to)))
+        // TODO
+        // || (isToMaker && Number(pText) < 9000)
       ) {
         txData.status = 3;
-        txData.extra['reason'] = 'maker';
+        txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";
         upsertList.push(<any>txData);
         continue;
       }
@@ -261,6 +267,12 @@ export async function bulkCreateTransaction(
             }
           }
         }
+        if (Number(txData.nonce) > 8999 && txData.source!='xvm') {
+          txData.status = 3;
+          txData.extra['reason'] = 'nonce too high, not allowed';
+          upsertList.push(<any>txData);
+          continue;
+        }
         const market = getMarket(
           ctx,
           fromChainId,
@@ -318,9 +330,7 @@ export async function bulkCreateTransaction(
       }
 
       if (
-        [3, 33, 8, 88, 12, 512, 9, 99].includes(Number(txData.chainId)) &&
-        txData.status === TransactionStatus.PENDING
-      ) {
+        [3, 33, 8, 88, 12, 512, 9, 99].includes(Number(txData.chainId)) && txData.status === TransactionStatus.PENDING) {
         txData.status = TransactionStatus.COMPLETE;
       }
       // valid cache status
@@ -446,9 +456,9 @@ export async function bulkCreateTransaction(
 
         }
       } else {
-        if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
-          dbData.status = txData.status;
+        if ([0, 2, 3].includes(Number(dbData.status)) && !equals(dbData.status,txData.status)) {
           ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
+          dbData.status = txData.status;
           await dbData.save({
             transaction: t,
           });

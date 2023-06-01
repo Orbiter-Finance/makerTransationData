@@ -196,8 +196,7 @@ export async function bulkCreateTransaction(
       if (
         (validMakerAddress(ctx, String(txData.from)) &&
         validMakerAddress(ctx, String(txData.to)))
-        // TODO
-        // || (isToMaker && Number(pText) < 9000)
+        || (isToMaker && Number(pText) < 9000)
       ) {
         txData.status = 3;
         txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";

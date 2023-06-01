@@ -30,4 +30,3 @@ yarn.lock
 package-lock.json
 
 chains.json
-/test/transaction.test.ts

@@ -36,17 +36,17 @@ const ctx: Context = new Context();
 // },
 const dataMap = {
   "0x80C67432656d59144cEFf962E8fAF8926599bCF8": [
-    // // eth - ar
-    // {
-    //   fromChain: {
-    //     id: 1,
-    //     hash: "0xa21739557aadc3756079a3161a959ee84151224ae46f6aa61492450af3805e83",
-    //   },
-    //   toChain: {
-    //     id: 2,
-    //     hash: "0xd525aa9fc2716f0d5e85516f6023b820bcca083baf0f8bbe19562c8b9ad99f6e",
-    //   },
-    // },
+    // eth - ar
+    {
+      fromChain: {
+        id: 1,
+        hash: "0xa21739557aadc3756079a3161a959ee84151224ae46f6aa61492450af3805e83",
+      },
+      toChain: {
+        id: 2,
+        hash: "0xd525aa9fc2716f0d5e85516f6023b820bcca083baf0f8bbe19562c8b9ad99f6e",
+      },
+    },
     // {
     //   fromChain: {
     //     id: 2,
@@ -218,13 +218,14 @@ async function main() {
       hashList.push(dt.toChain.hash);
     }
   }
-  const deleteCount: number = await ctx.models.Transaction.destroy({
-    where: {
-      hash: hashList,
-    },
-  });
-  await ctx.redis.del("TXHASH_STATUS");
-  console.log(`delete data count ${deleteCount}`);
+  // TODO local
+  // const deleteCount: number = await ctx.models.Transaction.destroy({
+  //   where: {
+  //     hash: hashList,
+  //   },
+  // });
+  // await ctx.redis.del("TXHASH_STATUS");
+  // console.log(`delete data count ${deleteCount}`);
 
   const handleTx = async (tx) => {
     // await ctx.mq.producer.publish([tx], "");

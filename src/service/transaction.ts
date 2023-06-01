@@ -123,10 +123,13 @@ export async function bulkCreateTransaction(
         Number(chainConfig.internalId),
         String(row.value),
       );
+      const rst = getPTextFromTAmount(Number(chainConfig.internalId), String(row.value));
+      let pText = rst.state ? Number(rst.pText).toString().substring(0, 4) : "0";
       const txExtra = row.extra || {};
       if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
         const arr = txExtra.memo.split("_");
         memo = String(+arr[0] % 9000);
+        pText = String(+arr[0] % 9000);
       } else if (
         ["11", "511"].includes(chainConfig.internalId) &&
         txExtra["type"] === "TRANSFER_OUT"
@@ -189,8 +192,6 @@ export async function bulkCreateTransaction(
         ctx.logger.info(`MakerTx ${txData.hash} Not Find Maker Address!`);
         continue;
       }
-      const rst = getPTextFromTAmount(Number(chainConfig.internalId), String(row.value));
-      const pText = rst.state ? Number(rst.pText).toString().substring(0, 4) : "0";
       if (
         (validMakerAddress(ctx, String(txData.from)) &&
         validMakerAddress(ctx, String(txData.to))) ||

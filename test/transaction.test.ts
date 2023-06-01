@@ -1,280 +1,289 @@
-import { abi, core } from "orbiter-chaincore/src/utils";
-import Web3 from "web3";
-import { getChainInfo } from "../src/utils/oldUtils";
-import BigNumber from "bignumber.js";
-import {
-  decodeInputContractTransferResponse,
-  HashOrBlockNumber,
-  ITransaction,
-  TransactionStatus,
-} from "orbiter-chaincore/src/types";
-import { isEmpty } from "orbiter-chaincore/src/utils/core";
+import "dotenv/config";
 import { Context } from "../src/context";
-import { processSubTxList } from "../src/service/transaction";
-import { IChainCfg } from "../src/types";
+import {
+  bulkCreateTransaction,
+} from "../src/service/transaction";
+import { ChainFactory } from "orbiter-chaincore/src/watch/chainFactory";
+import { Watch } from "../src/service/watch";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-
+import { StarknetWatch } from "orbiter-chaincore/src/watch/starknet.watch";
+import { convertMakerConfig, sleep } from "../src/utils";
 dayjs.extend(utc);
+const ctx: Context = new Context();
 
-// const chainId = "5";
-// const hash = "0x7ea5555bb72a353dfaff46111887a62fa117bb7a1208f883ba74913789d53d87";
-const chainId = "514";
-const hash =
-  "0x7417cb4dd658ff766157ad4e69b7f397ddce1f51379a5c86a6fa1883fe1c161a";
+// loopring need api key, zkspace、dydx、boba have no tx
+// // imx - loopring
+// {
+//   fromChain: {
+//     id: 8,
+//     hash: "222484137",
+//   },
+//   toChain: {
+//     id: 9,
+//     hash: "0x22a6a125ae2a5d3e705d0e1c0ee984e9ba773628c70789fed298f253409acdef"
+//   },
+// },
+// {
+//   fromChain: {
+//     id: 9,
+//     hash: "0x05434e5087536c9f8d758d056683255b32f135884fd770a835caf4e62acce63c"
+//   },
+//   toChain: {
+//     id: 8,
+//     hash: "222485583"
+//   },
+// },
+const dataMap = {
+  "0x80C67432656d59144cEFf962E8fAF8926599bCF8": [
+    // // eth - ar
+    // {
+    //   fromChain: {
+    //     id: 1,
+    //     hash: "0xa21739557aadc3756079a3161a959ee84151224ae46f6aa61492450af3805e83",
+    //   },
+    //   toChain: {
+    //     id: 2,
+    //     hash: "0xd525aa9fc2716f0d5e85516f6023b820bcca083baf0f8bbe19562c8b9ad99f6e",
+    //   },
+    // },
+    // {
+    //   fromChain: {
+    //     id: 2,
+    //     hash: "0xaa51ea671de011151cc2e99b77405c70afd6e3e099eb067bab8de339b84fcb09",
+    //   },
+    //   toChain: {
+    //     id: 1,
+    //     hash: "0xed7284eb1c6e876af4530c2d71d23767fe6bdc1df95f99af3e6fcf585b19a768",
+    //   },
+    // },
+    //
+    // // zk - zk era
+    // {
+    //   fromChain: {
+    //     id: 3,
+    //     hash: "0x56a41241f72fe3ceb9599e6099c254e9af3dd68ef236b78a5a74a1e550117b53",
+    //   },
+    //   toChain: {
+    //     id: 14,
+    //     hash: "0xef541e611418cbf58f5d4441ac6c0d97dbfd1d7716a1cbb1d5125f12cb081ba5",
+    //   },
+    // },
+    // {
+    //   fromChain: {
+    //     id: 14,
+    //     hash: "0x5d6d93d1be827049fab7f6258106657c2e618d1ce5aefa13041485affe427f3c",
+    //   },
+    //   toChain: {
+    //     id: 3,
+    //     hash: "0x9a4492949fe791ea1fae675c3a1a1a812e637f354f06bfcfc085d6a345c00110",
+    //   },
+    // },
+    //
+    // // starknet - op
+    // {
+    //   fromChain: {
+    //     id: 7,
+    //     hash: "0x60535d71dab34579527abcf979bc5569aa0d3a42576c315848d3e3638c69fbcf",
+    //   },
+    //   toChain: {
+    //     id: 4,
+    //     hash: "0x05dcf73ecb2f32c483849347b1c4c66b24b5608eaa62d15a63fe6d05001b3241",
+    //     blockNumber: 68499,
+    //   },
+    // },
+    // {
+    //   fromChain: {
+    //     id: 4,
+    //     hash: "0x06208278cc0ddbbb0a47703a0dbae28f2b97c2697d9ea5427469be29b53e1299",
+    //     blockNumber: 68528,
+    //   },
+    //   toChain: {
+    //     id: 7,
+    //     hash: "0x87e9fa9140927d68e3882cfdb3c1f743dc0cab0920e95f6e9b77b2de56148807",
+    //   },
+    // },
+    //
+    // // polygon - polygon zkevm
+    // {
+    //   fromChain: {
+    //     id: 6,
+    //     hash: "0x900e0e17526231de6ec814371fe4a937a7247d42ac5b8412e3410762a7ebf9de",
+    //   },
+    //   toChain: {
+    //     id: 17,
+    //     hash: "0x68f20d58172be1cf627052c915e240dd3ceb8fcb674d8c3f65cc078412972c45"
+    //   },
+    // },
+    // {
+    //   fromChain: {
+    //     id: 17,
+    //     hash: "0x1df6f27d16bce1a7efc8613af334255279402e0463295967154572158f478221"
+    //   },
+    //   toChain: {
+    //     id: 6,
+    //     hash: "0xcaa652408541bd4abcc45dc43cfdb4ec272983eba0c6de1059634898e44c3139"
+    //   },
+    // },
+    //
+    // // imx - bnb
+    // {
+    //   fromChain: {
+    //     id: 8,
+    //     hash: "222580712",
+    //   },
+    //   toChain: {
+    //     id: 15,
+    //     hash: "0x7dfb44d639cdeac3b3ef72296729560aafa964eafe91c5eedb5105eb3a9e7a4f"
+    //   },
+    // },
+    // {
+    //   fromChain: {
+    //     id: 15,
+    //     hash: "0x769e32ebf1ded27c7575ef850387d0bb2e6800a7d786eebad01b6b862bf53f7f"
+    //   },
+    //   toChain: {
+    //     id: 8,
+    //     hash: "222479081"
+    //   },
+    // },
+    //
+    // // ethereum - nova
+    // {
+    //   fromChain: {
+    //     id: 1,
+    //     hash: "0x0aa96de047eaa91b0d8fb8d98b34906d6ed6c80ef25ab9b8821d9a1c08c5c080",
+    //   },
+    //   toChain: {
+    //     id: 16,
+    //     hash: "0x0ab6a8f13b9ff485e0a2db961aff3d3a6abbce610c30af20b7a86a4c565c9ca8"
+    //   },
+    // },
+    // {
+    //   fromChain: {
+    //     id: 16,
+    //     hash: "0x26d01907b573a090b5142e5f9576b265d7e6d897ef9ff207096689368f4ac9aa"
+    //   },
+    //   toChain: {
+    //     id: 1,
+    //     hash: "0x7ee0fa94336e6703962e4a575167b13bac649f4f7c60aab1a9b4d5c07726e1aa"
+    //   },
+    // },
+  ],
 
-let chainConfig: IChainCfg;
-let web3: any;
+  // ERC20
+  "0xd7Aa9ba6cAAC7b0436c91396f22ca5a7F31664fC":[
+    {
+      fromChain: {
+        id: 6,
+        hash: "0x9c0a29491ef283eb83316c10394e267953cf833fa0634e506c1cd2b5ce9ce88a",
+      },
+      toChain: {
+        id: 2,
+        hash: "0x2efe7b6a95b3dc0e774a1c8657fae0480436cf9befe328e4a7606acb7f06920e",
+      },
+    }
+  ],
 
-describe("Transaction test", function () {
-  it("Get chaincore tx", async function () {
-    // ...
+  // OrbiterX
+  "0x1C84DAA159cf68667A54bEb412CDB8B2c193fb32":[
+    {
+      fromChain: {
+        id: 2,
+        hash: "0xc230ebdbe0c8de483eee1199b13e1325d784fb241d0f97cf075fb859e314c324",
+      },
+      toChain: {
+        id: 6,
+        hash: "0xb513b3b59c19f005db3f941ff2eeae97dcacab5c0c9db72407c19ad76dc2c6a6",
+      },
+    }
+  ]
+};
+async function main() {
+  await ctx.init();
+  ctx.makerConfigs = convertMakerConfig(require(`./maker-80c.json`));
+  for (const chain of ctx.config.chains) {
+    chain.watch = chain.watch.filter(item => item !== "alchemy-api");
+  }
+  console.log(`support chainId ${ctx.config.chains.map(item => item.internalId)}`);
+  console.log("init ctx success");
+  const watch = new Watch(ctx);
+
+  const hashList: string[] = [];
+  for (const makerAddress in dataMap) {
+    const list: { id, fromChain, toChain }[] = dataMap[makerAddress];
+    list.map(item => item.fromChain.hash);
+    for (const dt of list) {
+      hashList.push(dt.fromChain.hash);
+      hashList.push(dt.toChain.hash);
+    }
+  }
+  const deleteCount: number = await ctx.models.Transaction.destroy({
+    where: {
+      hash: hashList,
+    },
   });
-  it("Submit tx", async function () {
-    // Ensure consistent configuration
-    const ctx: Context = new Context();
-    await ctx.init();
-    chainConfig = <IChainCfg>getChainInfo(chainId);
-    const rpc = chainConfig?.rpc[0];
-    web3 = new Web3(rpc);
-    console.log(rpc);
+  await ctx.redis.del("TXHASH_STATUS");
+  console.log(`delete data count ${deleteCount}`);
 
-    const tx: ITransaction | null = await imitateChainCoreTx(hash);
-    const value = tx?.value?.toString();
-    console.log("value ===>>", value);
-    if (!tx) {
+  const handleTx = async (tx) => {
+    // await ctx.mq.producer.publish([tx], "");
+    return await bulkCreateTransaction(ctx, [tx]);
+  };
+
+  const insertDB = async (id, hash, makerAddress, blockNumber?) => {
+    if (+id === 4 || +id === 44) {
+      const chainWatch = <StarknetWatch>ChainFactory.createWatchChainByIntranetId(id + "");
+      chainWatch.addWatchAddress(makerAddress);
+      const txMap = await chainWatch.replayByBlockSequencerProvider(blockNumber);
+      const txList = txMap.get(makerAddress);
+      const tx = txList.find(item => item.hash.toLowerCase() === hash.toLowerCase());
+      if (!tx) {
+        console.error(`can't find starknet tx ${hash}`);
+      }
+      await handleTx(tx);
       return;
     }
-    const saveList: any[] = await processSubTxList(ctx, [tx]);
-    console.log(
-      saveList,
-      "---------------------------- exec end ----------------------------",
-    );
+    const chainWatch = ChainFactory.createWatchChainByIntranetId(id + "");
+    const tx = await chainWatch.chain.getTransactionByHash(hash);
+    await handleTx(tx);
+  };
+
+  for (const makerAddress in dataMap) {
+    const dataList: { id, fromChain, toChain }[] = dataMap[makerAddress];
+    for (const data of dataList) {
+      await insertDB(data.fromChain.id, data.fromChain.hash, ctx.makerConfigs.find(item => +item.fromChain.id === +data.fromChain.id).recipient, data.fromChain.blockNumber);
+      await insertDB(data.toChain.id, data.toChain.hash, ctx.makerConfigs.find(item => +item.toChain.id === +data.toChain.id).sender, data.toChain.blockNumber);
+      console.log(`${data.fromChain.id}-${data.toChain.id} complete`);
+    }
+  }
+
+  await sleep(2000);
+  // match  TODO delete return await this.readMakerendReMatch();
+  await watch.readMakerendReMatch();
+  const txList = await ctx.models.Transaction.findAll({
+    raw: true,
+    attributes: ["hash", "chainId", "symbol", "source", "side", "status"],
+    order: [["timestamp", "desc"]],
+    where: {
+      hash: hashList,
+    },
   });
-  it("Clear Cache", async function () {
-    const ctx: Context = new Context();
-    await ctx.init();
-    ctx.redis.del(`subTx_${hash}_1`);
-    console.log(
-      "---------------------------- exec end ----------------------------",
-    );
+  for (const hash of hashList) {
+    if (!txList.find(item => item.hash.toLowerCase() === hash.toLowerCase())) {
+      console.error(`can't find ${hash}`);
+    }
+  }
+  console.log("==================================================");
+  for (const tx of txList) {
+    console.log(tx.hash, `chainId: ${tx.chainId}`, tx.symbol, tx.source, tx.side ? "toUser" : "toMaker", tx.status);
+  }
+  console.log("==================================================");
+}
+
+
+describe("Transaction test", function() {
+  it("match test", async function() {
+    await main();
   });
 });
-
-async function imitateChainCoreTx(hash: string) {
-  // const count: number = await web3.eth.getBlockNumber();
-  // console.log("blockNumber", count);
-  let trx: any = await web3.eth.getTransaction(hash);
-  const { nonce, value, gasPrice, input, ...extra } = trx;
-  let trxReceipt = await web3.eth.getTransactionReceipt(hash);
-  if (!trxReceipt) {
-    console.error(`[${chainConfig.name}] Get trxReceipt Not found`);
-    return null;
-  }
-  const { to, from, blockHash, blockNumber, gasUsed, transactionIndex } =
-    trxReceipt;
-  if (!core.equals(trxReceipt.transactionHash, hash)) {
-    let web3Trx: any;
-    if (chainConfig.rpc.length > 1) {
-      const web3 = new Web3(chainConfig.rpc[1]);
-      web3Trx = await web3.eth.getTransactionReceipt(hash);
-    }
-    console.error(
-      `[${chainConfig.name}] Hash Inconsistent data ${trxReceipt.transactionHash}!=${hash}:`,
-      { receipt: trxReceipt, trx: trx, web3Trx: web3Trx },
-    );
-    trxReceipt = web3Trx;
-    return null;
-  }
-  const xvmList = chainConfig?.xvmList || [];
-  const isXVM = !!xvmList.find(item => item.toLowerCase() === to.toLowerCase());
-  // status
-  const block = await web3.eth.getBlock(Number(blockNumber), false);
-  const confirmations = await getConfirmations(Number(blockNumber));
-  const txData: ITransaction = {
-    chainId: chainConfig.chainId,
-    hash,
-    from,
-    to: "",
-    value: new BigNumber(value),
-    nonce,
-    blockHash: String(blockHash),
-    blockNumber: Number(blockNumber),
-    transactionIndex: Number(transactionIndex),
-    gas: Number(gasUsed),
-    gasPrice: Number(gasPrice),
-    fee: new BigNumber(gasUsed).multipliedBy(gasPrice).toString(),
-    feeToken: chainConfig.nativeCurrency.symbol,
-    input,
-    symbol: "",
-    tokenAddress: "",
-    status: TransactionStatus.Fail,
-    timestamp: Number(block.timestamp || 0),
-    confirmations,
-    extra,
-    receipt: trxReceipt,
-    source: isXVM ? "xvm" : "rpc",
-  };
-  if (trxReceipt.status) {
-    txData.status = TransactionStatus.COMPLETE;
-  }
-  // valid main token or contract token
-  if (!core.isEmpty(to)) {
-    const code = await web3.eth.getCode(to);
-    if (code === "0x") {
-      txData.to = to;
-      txData.tokenAddress = chainConfig.nativeCurrency.address;
-      txData.symbol = chainConfig.nativeCurrency.symbol;
-    } else {
-      // contract
-      if (!isEmpty(txData.input) && txData.input) {
-        if (isXVM) {
-          txData.to = trx.to;
-          await decodeInputXVMContractTransfer(txData);
-          txData.value = new BigNumber(txData?.extra?.xvm?.params?.value || 0);
-        } else {
-          txData.tokenAddress = to;
-          txData.to = "";
-          const inputData = await decodeInputContractTransfer(txData.input, to);
-          // transferData
-          if (inputData && inputData.transferData) {
-            const { tokenAddress, recipient, amount, ...inputExtra } =
-              inputData.transferData;
-            txData.tokenAddress = tokenAddress || txData.tokenAddress;
-            txData.to = recipient || txData.to;
-            txData.value = amount.gt(0) ? amount : txData.value;
-            Object.assign(txData.extra, inputExtra);
-          }
-        }
-      }
-      txData.symbol = await getTokenSymbol(String(txData.tokenAddress));
-    }
-  }
-  return txData;
-}
-
-async function decodeInputXVMContractTransfer(
-  txData: ITransaction,
-): Promise<any> {
-  // const callFuncNameSign = input.substring(0, 10);
-  // const xvmNameSigns = ["0x471824f7", "0x230f308b", "0x56409ad7"];
-  // if (!xvmNameSigns.includes(callFuncNameSign)) return;
-  const decodeInputData = abi.decodeMethod(String(txData.input), "XVM");
-  const result: any = {
-    name: decodeInputData.name,
-    params: {},
-  };
-  if (!decodeInputData || !decodeInputData.params) {
-    return result;
-  }
-  decodeInputData.params.forEach((el: any) => {
-    const filedName = el.name.replace("_", "");
-    result.params[filedName] = el.value;
-  });
-  txData.extra["xvm"] = result;
-  txData.tokenAddress = result.params.token;
-  if (result.name === "multicall") {
-    const txList: ITransaction[] = [];
-    for (const input of result.params.data) {
-      const txDataTmp: ITransaction = JSON.parse(JSON.stringify(txData));
-      txDataTmp.input = input;
-      await decodeInputXVMContractTransfer(txDataTmp);
-      txList.push(txDataTmp);
-    }
-    txData.extra["txList"] = txList;
-  }
-  return result;
-}
-
-async function decodeInputContractTransfer(
-  input: string,
-  contractAddress: string,
-): Promise<decodeInputContractTransferResponse> {
-  const callFuncNameSign = input.substring(0, 10);
-  const forwardNameSigns = ["0x29723511", "0x46f506ad"];
-  const decodeInputData = abi.decodeMethod(
-    String(input),
-    forwardNameSigns.includes(callFuncNameSign) ? "Forward" : "ERC20",
-  );
-  const result: any = {
-    name: "",
-    transferData: {
-      recipient: "",
-      // sender: '',
-      amount: new BigNumber(0),
-      tokenAddress: "",
-      ext: "",
-    },
-    data: {},
-  };
-  if (!decodeInputData || !decodeInputData.params) {
-    return result;
-  }
-  result.name = decodeInputData.name;
-  decodeInputData.params.forEach((el: any) => {
-    const filedName = el.name.replace("_", "");
-    result.data[filedName] = el.value;
-    result[filedName] = el;
-  });
-  if (forwardNameSigns.includes(callFuncNameSign)) {
-    // Forward Contract
-    switch (callFuncNameSign) {
-      case "0x29723511": // transfer
-        result.transferData.recipient = result.data["to"];
-        result.transferData.ext = result.data["ext"];
-        result.transferData.tokenAddress = chainConfig.nativeCurrency.address;
-        break;
-      case "0x46f506ad": // transfer erc20
-        result.transferData.recipient = result.data["to"];
-        result.transferData.ext = result.data["ext"];
-        result.transferData.tokenAddress = result.data["token"];
-        result.transferData.amount = new BigNumber(result.data["amount"]);
-        break;
-    }
-  } else {
-    // Standard ERC20 Transfer
-    result.transferData.recipient = result.data["recipient"];
-    result.transferData.amount = new BigNumber(result.data["amount"]);
-    result.transferData.tokenAddress = contractAddress;
-  }
-  // delete result.data;
-  return result;
-}
-
-async function getConfirmations(
-  hashOrHeight: HashOrBlockNumber,
-): Promise<number> {
-  const latestHeight = await web3.eth.getBlockNumber();
-  if (typeof hashOrHeight === "string") {
-    const { blockNumber } = await web3.eth.getTransaction(hashOrHeight);
-    if (blockNumber) {
-      return calcConfirmations(blockNumber, latestHeight);
-    }
-    return 0;
-  } else {
-    return calcConfirmations(Number(hashOrHeight), latestHeight);
-  }
-}
-
-async function calcConfirmations(
-  targetHeight: number,
-  latestHeight: number,
-): Promise<number> {
-  return Number(latestHeight) - Number(targetHeight) + 1;
-}
-
-async function getTokenSymbol(tokenAddress: string): Promise<string> {
-  if (!tokenAddress) {
-    return "";
-  }
-  if (core.equals(tokenAddress, chainConfig.nativeCurrency.address)) {
-    return chainConfig.nativeCurrency.symbol;
-  }
-  const token = await chainConfig.tokens.find(token =>
-    core.equals(token.address, tokenAddress),
-  );
-  if (token) {
-    return token.symbol;
-  }
-  return "";
-}

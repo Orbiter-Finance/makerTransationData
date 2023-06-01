@@ -18,6 +18,7 @@ import {
   getAmountFlag,
   getAmountToSend,
   getFormatDate,
+  getPTextFromTAmount,
 } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import RLP from "rlp";
@@ -188,12 +189,15 @@ export async function bulkCreateTransaction(
         ctx.logger.info(`MakerTx ${txData.hash} Not Find Maker Address!`);
         continue;
       }
+      const rst = getPTextFromTAmount(Number(chainConfig.internalId), String(row.value));
+      const pText = rst.state ? Number(rst.pText).toString().substring(0, 4) : "0";
       if (
-        validMakerAddress(ctx, String(txData.from)) &&
-        validMakerAddress(ctx, String(txData.to))
+        (validMakerAddress(ctx, String(txData.from)) &&
+        validMakerAddress(ctx, String(txData.to))) ||
+        (isToMaker && Number(pText) < 9000)
       ) {
         txData.status = 3;
-        txData.extra["reason"] =  "maker";
+        txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";
         upsertList.push(<any>txData);
         continue;
       }

@@ -551,12 +551,8 @@
           "address": "0x0000000000000000000000000000000000000000"
       },
       "rpc": [
-          "https://bsc-dataseed1.binance.org",
-          "https://bsc-dataseed2.ninicoin.io",
-          "https://bsc.rpc.blxrbdn.com",
-          "https://bsc-dataseed4.ninicoin.io",
-          "https://rpc-bsc.bnb48.club",
-          "https://bsc-dataseed4.binance.org"
+          "https://1rpc.io/bnb",
+          "https://bscrpc.com"
       ],
       "watch": [
           "api",

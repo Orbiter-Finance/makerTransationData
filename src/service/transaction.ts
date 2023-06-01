@@ -129,7 +129,7 @@ export async function bulkCreateTransaction(
       if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
         const arr = txExtra.memo.split("_");
         memo = String(+arr[0] % 9000);
-        pText = String(+arr[0] % 9000);
+        pText = String(+arr[0]);
       } else if (
         ["11", "511"].includes(chainConfig.internalId) &&
         txExtra["type"] === "TRANSFER_OUT"

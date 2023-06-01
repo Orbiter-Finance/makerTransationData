@@ -323,9 +323,7 @@ export async function bulkCreateTransaction(
       }
 
       if (
-        [3, 33, 8, 88, 12, 512, 9, 99].includes(Number(txData.chainId)) &&
-        txData.status === TransactionStatus.PENDING
-      ) {
+        [3, 33, 8, 88, 12, 512, 9, 99].includes(Number(txData.chainId)) && txData.status === TransactionStatus.PENDING) {
         txData.status = TransactionStatus.COMPLETE;
       }
       // valid cache status
@@ -451,9 +449,9 @@ export async function bulkCreateTransaction(
 
         }
       } else {
-        if ([0, 2, 3].includes(dbData.status) && dbData.status != txData.status) {
-          dbData.status = txData.status;
+        if ([0, 2, 3].includes(Number(dbData.status)) && !equals(dbData.status,txData.status)) {
           ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
+          dbData.status = txData.status;
           await dbData.save({
             transaction: t,
           });

@@ -18,6 +18,7 @@ import {
   getAmountFlag,
   getAmountToSend,
   getFormatDate,
+  getPTextFromTAmount,
 } from "../utils/oldUtils";
 import { IMarket } from "../types";
 import RLP from "rlp";
@@ -122,10 +123,13 @@ export async function bulkCreateTransaction(
         Number(chainConfig.internalId),
         String(row.value),
       );
+      const rst = getPTextFromTAmount(Number(chainConfig.internalId), String(row.value));
+      let pText = rst.state ? Number(rst.pText).toString().substring(0, 4) : "0";
       const txExtra = row.extra || {};
       if (["9", "99"].includes(chainConfig.internalId) && txExtra) {
         const arr = txExtra.memo.split("_");
         memo = String(+arr[0] % 9000);
+        pText = String(+arr[0]);
       } else if (
         ["11", "511"].includes(chainConfig.internalId) &&
         txExtra["type"] === "TRANSFER_OUT"
@@ -189,11 +193,13 @@ export async function bulkCreateTransaction(
         continue;
       }
       if (
-        validMakerAddress(ctx, String(txData.from)) &&
-        validMakerAddress(ctx, String(txData.to))
+        (validMakerAddress(ctx, String(txData.from)) &&
+        validMakerAddress(ctx, String(txData.to)))
+        // TODO
+        // || (isToMaker && Number(pText) < 9000)
       ) {
         txData.status = 3;
-        txData.extra["reason"] =  "maker";
+        txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";
         upsertList.push(<any>txData);
         continue;
       }

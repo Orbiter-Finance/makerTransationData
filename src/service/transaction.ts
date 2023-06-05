@@ -922,9 +922,7 @@ export async function processUserSendMakerTx(
       makerSendTx.status = upStatus;
       makerSendTx.lpId = userTx.lpId;
       makerSendTx.makerId = userTx.makerId;
-      await makerSendTx.save({
-        transaction: t,
-      });
+  
       const response = await ctx.models.Transaction.update(
         {
           status: upStatus,
@@ -939,6 +937,9 @@ export async function processUserSendMakerTx(
       if (response[0] != 2) {
         throw new Error('processUserSendMakerTx update rows fail')
       }
+      await makerSendTx.save({
+        transaction: t,
+      });
       await ctx.redis
         .multi()
         .hmset(`TXHASH_STATUS`, [userTx.hash, 99, makerSendTx.hash, 99])

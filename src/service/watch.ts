@@ -381,6 +381,7 @@ export class Watch {
       order: [["id", "asc"]],
       where: {
         status: 1,
+        side:1,
         timestamp: {
           [Op.gte]: dayjs()
             .subtract(24, 'hour')
@@ -399,6 +400,7 @@ export class Watch {
           attributes: ["id"],
           where: {
             status: 1,
+            side:0,
             memo: destTx.chainId,
             symbol: destTx.symbol,
             expectValue: sequelize.literal(`SUBSTRING(expectValue, 1, LENGTH(expectValue) - 4) = '${destTx.value.substring(0, destTx.value.length - 4)}'`),

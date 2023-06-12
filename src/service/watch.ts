@@ -1,4 +1,4 @@
-import { sleep } from "orbiter-chaincore/src/utils/core";
+import { isEmpty, sleep } from "orbiter-chaincore/src/utils/core";
 import { chains, pubSub, ScanChainMain } from "orbiter-chaincore";
 import { Transaction } from "orbiter-chaincore/src/types";
 import { groupWatchAddressByChain, TranferId } from "../utils";
@@ -493,22 +493,26 @@ export class Watch {
         const provider = createAlchemyWeb3(config.rpc[0]);
         const receipt: any = await provider.eth.getTransactionReceipt(tx.hash)
         const fee = tx.fee;
+        let newFee = '';
         if (tx.chainId === 7) {
           const l1Fee = new BigNumber(Number(receipt["l1GasUsed"]) *
             Number(receipt["l1GasPrice"]) *
             Number(receipt["l1FeeScalar"]))
           const fee = l1Fee.plus(receipt['effectiveGasPrice'] * receipt['gasUsed']);
-          tx.fee = fee.toFixed(0);
-          tx.source = 'etherscan-1'
+          newFee = fee.toFixed(0);
           tx.save();
         } else if (tx.chainId == 2 || tx.chainId == 16) {
-          tx.fee = new BigNumber(
+          newFee = new BigNumber(
             Number(receipt["gasUsed"]) * Number(receipt["effectiveGasPrice"]),
           ).toFixed();
-          tx.source = 'etherscan-1'
-          tx.save();
         }
-        this.ctx.logger.info(`fix tx fee  Hash:${tx.hash}, Fee:${fee}/${tx.fee}`);
+        if (!isEmpty(newFee) && newFee!='NaN') {
+          tx.source = 'etherscan-1'
+          tx.fee = newFee;
+          tx.save();
+          this.ctx.logger.info(`fix tx fee  Hash:${tx.hash}, Fee:${fee}/${tx.fee}`);
+        }
+        
       }
 
     }

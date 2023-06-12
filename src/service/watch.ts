@@ -139,9 +139,9 @@ export class Watch {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
-    setInterval(() => {
-      this.fixFeeTx();
-    }, 1000 * 60 * 5)
+    // setInterval(() => {
+    await this.fixFeeTx();
+    // }, 1000 * 60 * 5)
     // this.readMakerendReMatch();
     // this.readUserTxReMatchNotCreate();
     // this.regenerateTransferId()
@@ -475,7 +475,7 @@ export class Watch {
 
   public async fixFeeTx() {
     const txList = await this.ctx.models.Transaction.findAll({
-      attributes: ['id', 'hash', 'chainId', 'fee'],
+      attributes: ['id', 'hash', 'chainId', 'gasPrice', 'fee'],
       where: {
         chainId: [2, 16, 7],
         side: 1,
@@ -497,22 +497,22 @@ export class Watch {
         if (tx.chainId === 7) {
           const l1Fee = new BigNumber(Number(receipt["l1GasUsed"]) *
             Number(receipt["l1GasPrice"]) *
-            Number(receipt["l1FeeScalar"]))
-          const fee = l1Fee.plus(receipt['effectiveGasPrice'] * receipt['gasUsed']);
+            Number(receipt["l1FeeScalar"]));
+          const fee = l1Fee.plus(Number(tx.gasPrice) * Number(receipt['gasUsed']));
           newFee = fee.toFixed(0);
           tx.save();
         } else if (tx.chainId == 2 || tx.chainId == 16) {
           newFee = new BigNumber(
             Number(receipt["gasUsed"]) * Number(receipt["effectiveGasPrice"]),
-          ).toFixed();
+          ).toFixed(0);
         }
-        if (!isEmpty(newFee) && newFee!='NaN') {
+        if (!isEmpty(newFee) && newFee != 'NaN') {
           tx.source = 'etherscan-1'
           tx.fee = newFee;
           tx.save();
-          this.ctx.logger.info(`fix tx fee  Hash:${tx.hash}, Fee:${fee}/${tx.fee}`);
+          this.ctx.logger.info(`fix tx fee ${tx.chainId}  Hash:${tx.hash}, Fee:${fee}/${tx.fee}`);
         }
-        
+
       }
 
     }

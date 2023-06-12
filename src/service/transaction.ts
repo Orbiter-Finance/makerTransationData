@@ -194,7 +194,7 @@ export async function bulkCreateTransaction(
       }
       if (
         (validMakerAddress(ctx, String(txData.from)) &&
-        validMakerAddress(ctx, String(txData.to)))
+          validMakerAddress(ctx, String(txData.to)))
         // TODO
         // || (isToMaker && Number(pText) < 9000)
       ) {
@@ -266,7 +266,7 @@ export async function bulkCreateTransaction(
             }
           }
         }
-        if (Number(txData.nonce) > 8999 && txData.source!='xvm') {
+        if (Number(txData.nonce) > 8999 && txData.source != 'xvm') {
           txData.status = 3;
           txData.extra['reason'] = 'nonce too high, not allowed';
           upsertList.push(<any>txData);
@@ -455,12 +455,20 @@ export async function bulkCreateTransaction(
 
         }
       } else {
-        if ([0, 2, 3].includes(Number(dbData.status)) && !equals(dbData.status,txData.status)) {
+        if ([0, 2, 3].includes(Number(dbData.status)) && !equals(dbData.status, txData.status)) {
           ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
           dbData.status = txData.status;
           await dbData.save({
             transaction: t,
           });
+        } else {
+          if ([2, 7, 16].includes(txData.chainId) && txData.source == 'rpc') {
+            dbData.fee = txData.fee;
+            dbData.source = txData.source;
+            await dbData.save({
+              transaction: t,
+            });
+          }
         }
       }
       if (dbData.status === 1) {
@@ -923,7 +931,7 @@ export async function processUserSendMakerTx(
       makerSendTx.status = upStatus;
       makerSendTx.lpId = userTx.lpId;
       makerSendTx.makerId = userTx.makerId;
-  
+
       const response = await ctx.models.Transaction.update(
         {
           status: upStatus,

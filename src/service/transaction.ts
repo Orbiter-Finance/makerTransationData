@@ -583,6 +583,7 @@ async function handleXVMTx(
       saveExtra["ebcId"] = market.ebcId;
       saveExtra.toSymbol = market.toChain.symbol;
       txData.side = 0;
+      txData.to = market.recipient;
       txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
       if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {

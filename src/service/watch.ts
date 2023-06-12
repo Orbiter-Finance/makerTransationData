@@ -15,8 +15,7 @@ import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
 import sequelize from "sequelize";
-import { providers } from "ethers";
-import { AlchemyWeb3, createAlchemyWeb3 } from "@alch/alchemy-web3";
+import { createAlchemyWeb3 } from "@alch/alchemy-web3";
 import BigNumber from "bignumber.js";
 
 export class Watch {

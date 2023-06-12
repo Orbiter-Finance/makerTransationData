@@ -15,6 +15,10 @@ import dayjs from "dayjs";
 import { Op, Order, QueryTypes } from "sequelize";
 import { getAmountFlag } from "../utils/oldUtils";
 import sequelize from "sequelize";
+import { providers } from "ethers";
+import { AlchemyWeb3, createAlchemyWeb3 } from "@alch/alchemy-web3";
+import BigNumber from "bignumber.js";
+
 export class Watch {
   constructor(public readonly ctx: Context) { }
   public async saveTxRawToCache(txList: Transaction[]) {
@@ -136,6 +140,9 @@ export class Watch {
         this.ctx.logger.error("readMakerendReMatch error:", error);
       });
     }
+    setInterval(() => {
+      this.fixFeeTx();
+    }, 1000 * 60 * 5)
     // this.readMakerendReMatch();
     // this.readUserTxReMatchNotCreate();
     // this.regenerateTransferId()
@@ -155,10 +162,10 @@ export class Watch {
   }
   // read db
   public async readMakerendReMatch(): Promise<any> {
-     this.readUserTxReMatchNotCreate().catch(error=> {
+    this.readUserTxReMatchNotCreate().catch(error => {
       this.ctx.logger.error('readUserTxReMatchNotCreate error', error);
     })
-    this.starknetNotNonceReplyMatch().catch(error=> {
+    this.starknetNotNonceReplyMatch().catch(error => {
       this.ctx.logger.error('starknetNotNonceReplyMatch error', error);
     })
     const startAt = dayjs().subtract(24, "hour").startOf("d").toDate();
@@ -381,7 +388,7 @@ export class Watch {
       order: [["id", "asc"]],
       where: {
         status: 1,
-        side:1,
+        side: 1,
         timestamp: {
           [Op.gte]: dayjs()
             .subtract(24, 'hour')
@@ -390,7 +397,7 @@ export class Watch {
             .subtract(20, 'minute')
             .toDate()
         },
-        replySender: ['0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328','0x07b393627bd514d2aa4c83e9f0c468939df15ea3c29980cd8e7be3ec847795f0','0x0411c2a2a4dc7b4d3a33424af3ede7e2e3b66691e22632803e37e2e0de450940'],
+        replySender: ['0x06e18dd81378fd5240704204bccc546f6dfad3d08c4a3a44347bd274659ff328', '0x07b393627bd514d2aa4c83e9f0c468939df15ea3c29980cd8e7be3ec847795f0', '0x0411c2a2a4dc7b4d3a33424af3ede7e2e3b66691e22632803e37e2e0de450940'],
       }
     });
     for (const destTx of txlist) {
@@ -400,7 +407,7 @@ export class Watch {
           attributes: ["id"],
           where: {
             status: 1,
-            side:0,
+            side: 0,
             memo: destTx.chainId,
             symbol: destTx.symbol,
             expectValue: sequelize.literal(`SUBSTRING(expectValue, 1, LENGTH(expectValue) - 4) = '${destTx.value.substring(0, destTx.value.length - 4)}'`),
@@ -465,5 +472,46 @@ export class Watch {
         side: 0,
       }
     });
+  }
+
+  public async fixFeeTx() {
+    const txList = await this.ctx.models.Transaction.findAll({
+      attributes: ['id', 'hash', 'chainId', 'fee'],
+      where: {
+        chainId: [2, 16, 7],
+        side: 1,
+        status: 99,
+        source: "etherscan",
+        timestamp: {
+          [Op.gte]: "2023-03-01 10:27:57"
+        }
+      },
+      limit: 500
+    });
+    for (const tx of txList) {
+      const config = chains.getChainInfo(Number(tx.chainId));
+      if (config) {
+        const provider = createAlchemyWeb3(config.rpc[0]);
+        const receipt: any = await provider.eth.getTransactionReceipt(tx.hash)
+        const fee = tx.fee;
+        if (tx.chainId === 7) {
+          const l1Fee = new BigNumber(Number(receipt["l1GasUsed"]) *
+            Number(receipt["l1GasPrice"]) *
+            Number(receipt["l1FeeScalar"]))
+          const fee = l1Fee.plus(receipt['effectiveGasPrice'] * receipt['gasUsed']);
+          tx.fee = fee.toFixed(0);
+          tx.source = 'etherscan-1'
+          tx.save();
+        } else if (tx.chainId == 2) {
+          tx.fee = new BigNumber(
+            Number(receipt["gasUsed"]) * Number(receipt["effectiveGasPrice"]),
+          ).toFixed();
+          tx.source = 'etherscan-1'
+          tx.save();
+        }
+        this.ctx.logger.info(`fix tx fee  Hash:${tx.hash}, Fee:${fee}/${tx.fee}`);
+      }
+
+    }
   }
 }

@@ -501,7 +501,7 @@ export class Watch {
           tx.fee = fee.toFixed(0);
           tx.source = 'etherscan-1'
           tx.save();
-        } else if (tx.chainId == 2) {
+        } else if (tx.chainId == 2 || tx.chainId == 16) {
           tx.fee = new BigNumber(
             Number(receipt["gasUsed"]) * Number(receipt["effectiveGasPrice"]),
           ).toFixed();

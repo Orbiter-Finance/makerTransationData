@@ -1388,21 +1388,22 @@ export async function clearMatchCache(
   if (toChainId && transferId) {
     redisT.hdel(`UserPendingTx:${toChainId}`, transferId);
   }
-  const TXHASH_STATUS = [];
-  if (inHash) TXHASH_STATUS.push(inHash, 99);
+  if (inHash) {
+    redisT.hset('TXID_STATUS', [inHash, 99])
+  };
   if (outHash) {
-    TXHASH_STATUS.push(outHash, 99);
+    redisT.hset('TXID_STATUS', [outHash, 99])
     if (toChainId) {
       redisT.zrem(`MakerPendingTx:${toChainId}`, outHash);
     }
   }
-  const TXID_STATUS = [];
-  if (inId) TXID_STATUS.push(inId, 99);
-  if (outId) TXID_STATUS.push(outId, 99);
-  redisT
-    .hmset(`TXHASH_STATUS`, TXHASH_STATUS)
-    .hmset(`TXID_STATUS`, TXID_STATUS);
-  await redisT.exec().catch(error => {
+  if (inId) {
+    redisT.hset('TXID_STATUS', [inId, 99])
+  };
+  if (outId) {
+    redisT.hset('TXID_STATUS', [outId, 99])
+  };
+  redisT.exec().catch(error => {
     ctx.logger.error("clearMatchCache erorr", error);
   });
 }

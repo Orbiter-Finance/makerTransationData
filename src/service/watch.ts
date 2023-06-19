@@ -83,7 +83,12 @@ export class Watch {
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           if (txList) {
             try {
-              await this.saveTxRawToCache(txList);
+              this.saveTxRawToCache(txList).catch(error=> {
+                ctx.logger.error(
+                  `saveTxRawToCache error`,
+                  error,
+                );
+              })
               // return await bulkCreateTransaction(ctx, txList);
               return await this.ctx.mq.producer.publish(txList, "");
             } catch (error) {

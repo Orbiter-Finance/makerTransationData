@@ -16,16 +16,20 @@
       "script": "index.js",
       "cwd": "./dist/",
       "env": {
-        "RUNTIME_DIR": "/home/makerTransationData",
-        "MYSQL_DB_HOST": "xxxxx",
-        "MYSQL_DB_NAME": "orbiter",
-        "MYSQL_DB_USERNAME": "orbiter",
-        "MYSQL_DB_PASSWORD": "xxxxx",
+        "logDir":"/app/runtime",
+        "MYSQL_DB_HOST": "xxxxxxxxxx",
+        "MYSQL_DB_NAME": "xxx",
+        "MYSQL_DB_USERNAME": "xxxx",
+        "MYSQL_DB_PASSWORD": "xxxxxx",
         "NODE_ENV": "production",
+        "ServerName":"all",
         "INSTANCES": 4,
         "REDIS_HOST": "redis",
-        "REDIS_PORT": 6379
-
+        "REDIS_PORT": 6379,
+        "REDIS_PASS":"xxxxx!",
+        "CACHE_MATCH":"1",
+        "DB_MATCH":"1",
+        "RABBIT_MQ" :"amqp://xxx:xxxx@xxxxxx:2238/xxxxxx"
       }
     }
   ]

@@ -79,7 +79,7 @@ function updateChain(ctx: Context, config: any) {
             ctx.logger.info(msg);
           });
         }
-        ctx.config.chains = chains.getAllChains();
+        refreshConfig(ctx);
         ctx.logger.info(`update chain config success`);
     } else {
         ctx.logger.error(`update chain config fail`);
@@ -94,15 +94,20 @@ function updateTradingPairs(ctx: Context, makerAddress: string, config: any) {
           });
         }
         allMaker[makerAddress] = config;
-        const makerConfigs = [];
-        for (const makerAddress in allMaker) {
-          makerConfigs.push(...convertMakerConfig(allMaker[makerAddress], makerAddress));
-        }
-        ctx.makerConfigs = JSON.parse(JSON.stringify(makerConfigs));
+        refreshConfig(ctx);
         ctx.logger.info(`update ${makerAddress} trading pairs success`);
     } else {
         ctx.logger.error(`update maker config fail`);
     }
+}
+
+function refreshConfig(ctx: Context) {
+  ctx.config.chains = chains.getAllChains();
+  const makerConfigs = [];
+  for (const makerAddress in allMaker) {
+    makerConfigs.push(...convertMakerConfig(allMaker[makerAddress], makerAddress));
+  }
+  ctx.makerConfigs = JSON.parse(JSON.stringify(makerConfigs));
 }
 
 function compare(obj1: any, obj2: any, cb: Function, superKey?: string) {

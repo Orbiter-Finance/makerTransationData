@@ -96,7 +96,7 @@ function updateTradingPairs(ctx: Context, makerAddress: string, config: any) {
         allMaker[makerAddress] = config;
         const makerConfigs = [];
         for (const makerAddress in allMaker) {
-          makerConfigs.push(...convertMakerConfig(allMaker[makerAddress]));
+          makerConfigs.push(...convertMakerConfig(allMaker[makerAddress], makerAddress));
         }
         ctx.makerConfigs = JSON.parse(JSON.stringify(makerConfigs));
         ctx.logger.info(`update ${makerAddress} trading pairs success`);

@@ -109,8 +109,8 @@ export function convertMakerConfig(makerMap: IMakerCfg): IMarket[] {
   return JSON.parse(JSON.stringify(configs));
 }
 
-export function convertChainConfig(env_prefix: string): IChainCfg[] {
-  chainConfigList = <any>chain;
+export function convertChainConfig(env_prefix: string, chainList?: any[]): IChainCfg[] {
+  chainConfigList = <any[]>(chainList ? chainList : chain);
   for (const chain of chainConfigList) {
     chain.rpc = chain.rpc || [];
     const apiKey =

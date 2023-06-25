@@ -2886,6 +2886,13 @@ concat-map@0.0.1:
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
   integrity sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==
 
+consul@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.npmmirror.com/consul/-/consul-1.2.0.tgz#9c1357da0e0780c05a29d97f5d66ca445052d800"
+  integrity sha512-xWMEDRszShfzKI7XQKq12gr3359VUHUFOrAC2ETNpNe8PFO6AUnY0sbscB7JW5WhUEfuveDcI5ScYqM//20bow==
+  dependencies:
+    papi "^1.1.0"
+
 content-disposition@0.5.4, content-disposition@~0.5.2:
   version "0.5.4"
   resolved "https://registry.yarnpkg.com/content-disposition/-/content-disposition-0.5.4.tgz#8b82b4efac82512a02bb0b1dcec9d2c5e8eb5bfe"
@@ -6421,10 +6428,10 @@ ora@^5.4.1:
     strip-ansi "^6.0.0"
     wcwidth "^1.0.1"
 
-orbiter-chaincore@1.4.25-8:
-  version "1.4.25-8"
-  resolved "https://registry.npmmirror.com/orbiter-chaincore/-/orbiter-chaincore-1.4.25-8.tgz#a1e4230104267805fd6e85938fc784d34d7a00e2"
-  integrity sha512-xDKgOfB/TNAb394fY+t1fw7aRZciay0woVHeOro1rmkJvP2amAmWWdQXrTE8SDxkWl6UR+vzLsdDUpTfFHLj/Q==
+orbiter-chaincore@1.5.3:
+  version "1.5.3"
+  resolved "https://registry.npmmirror.com/orbiter-chaincore/-/orbiter-chaincore-1.5.3.tgz#4d278b6c7e0e5eed49997bc4eec76fc91bba63fd"
+  integrity sha512-OmzXRv91S1/4ZFlB0rmhks9L+sq15o7sqojFJQ5XvZVx88Td2obsf5aLbPsTeVdpHLUEDDtkrh2mMRnB1CKxgw==
   dependencies:
     "@alch/alchemy-web3" "^1.4.6"
     "@dydxprotocol/v3-client" "^1.9.1"
@@ -6511,6 +6518,11 @@ pako@^2.0.4:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/pako/-/pako-2.1.0.tgz#266cc37f98c7d883545d11335c00fbd4062c9a86"
   integrity sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==
+
+papi@^1.1.0:
+  version "1.1.2"
+  resolved "https://registry.npmmirror.com/papi/-/papi-1.1.2.tgz#5b1d7686834bec489f1f823103c5e8554f2b984f"
+  integrity sha512-cwM6pPpfAYgPe3EQi23SmB5J5s4XFS9lou9z63I5BbnMGmFaR8LAKvKboW7n1IUAKj76OtnyK0YU16JjnZrqVg==
 
 parent-module@^1.0.0:
   version "1.0.1"

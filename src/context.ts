@@ -10,6 +10,7 @@ import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import { RabbitMQ } from "./utils/rabbitMQ";
 import { equals } from "orbiter-chaincore/src/utils/core";
 import { cloneDeep } from "lodash";
+import { watchConsulConfig } from "./utils/consul";
 export class Context {
   public models = initModels(db);
   public logger!: Logger;
@@ -109,9 +110,10 @@ export class Context {
     });
   }
   async init() {
-    await this.initChainConfigs();
-    // Update LP regularly
-    await fetchFileMakerList(this);
+    await watchConsulConfig(this)
+    // await this.initChainConfigs();
+    // // Update LP regularly
+    // await fetchFileMakerList(this);
     // const chainList = chains.getAllChains();
     // const chainsIds = chainList
     //   .filter(

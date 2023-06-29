@@ -16,7 +16,7 @@ export class LoggerService {
       {
         logDir,
         label: key,
-        debug: true,
+        debug: false,
         // logstash: {
         //     port: process.env["logstash.port"],
         //     level: "info",

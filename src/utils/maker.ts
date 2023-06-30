@@ -48,9 +48,7 @@ export function groupWatchAddressByChain(
   return chain;
 }
 
-export function convertMakerConfig(makerMap: IMakerCfg, makerAddress?: string): IMarket[] {
-  // const makerMap: IMakerCfg = <any>maker;
-  const chainList: IChainCfg[] = <any>chain;
+export function convertMakerConfig(chainList: IChainCfg[], makerMap: IMakerCfg, makerAddress: string): IMarket[] {
   const configs: IMarket[] = [];
   for (const chainIdPair in makerMap) {
     if (!makerMap.hasOwnProperty(chainIdPair)) continue;

@@ -105,7 +105,7 @@ function refreshConfig(ctx: Context) {
   ctx.config.chains = chains.getAllChains();
   const makerConfigs = [];
   for (const makerAddress in allMaker) {
-    makerConfigs.push(...convertMakerConfig(allMaker[makerAddress], makerAddress));
+    makerConfigs.push(...convertMakerConfig(ctx.config.chains, allMaker[makerAddress], makerAddress));
   }
   ctx.makerConfigs = JSON.parse(JSON.stringify(makerConfigs));
 }

@@ -3,7 +3,7 @@ import Redis from "ioredis";
 import { initModels } from "./models";
 import { Config, IMarket } from "./types";
 import { Logger } from "winston";
-import { convertChainConfig, convertMakerConfig } from "./utils";
+import { convertChainConfig } from "./utils";
 import { chains } from "orbiter-chaincore";
 import db from "./db";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
@@ -130,46 +130,5 @@ export class Context {
     this.initLogger();
     this.initRedis();
     // new TCPInject(this);
-  }
-}
-export async function fetchFileMakerList(ctx: Context) {
-  if (isProd()) {
-    if (process.env["ServerName"] === "all") {
-      const mk1 = convertMakerConfig(require(`./config/maker-80c.json`));
-      const mk2 = convertMakerConfig(require(`./config/maker-e4e.json`));
-      ctx.makerConfigs = [...mk1, ...mk2];
-    } else {
-      ctx.makerConfigs = convertMakerConfig(
-        require(`./config/maker-${process.env[
-          "ServerName"
-        ]?.toLocaleLowerCase()}.json`),
-      );
-    }
-    const fixMakersConfigs = [];
-    for (const key in ctx.config.multipleMakers) {
-      const [fromChainId, toChainId] = key.split('-');
-      for (const fixMakerAddr of ctx.config.multipleMakers[key]) {
-        let pushMakerList = cloneDeep(ctx.makerConfigs);
-        if (fromChainId != '*')
-          pushMakerList = pushMakerList.filter(row => equals(String(row.fromChain.id), fromChainId))
-        if (toChainId != '*')
-          pushMakerList = pushMakerList.filter(row => equals(String(row.toChain.id), toChainId))
-        pushMakerList = pushMakerList.map(row => {
-          row.recipient = fixMakerAddr
-          row.sender = fixMakerAddr
-          // TAG: crossAddress
-          if (row.crossAddress) {
-
-          }
-          return row;
-        })
-        fixMakersConfigs.push(...pushMakerList);
-      }
-    }
-    ctx.makerConfigs.push(...fixMakersConfigs)
-  } else {
-    const mk1 = convertMakerConfig(require(`./config/makerTest.json`));
-    const mk2 = convertMakerConfig(require(`./config/makerTest-2.json`));
-    ctx.makerConfigs = [...mk1, ...mk2];
   }
 }

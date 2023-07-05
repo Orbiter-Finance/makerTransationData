@@ -91,6 +91,9 @@ export async function bulkCreateTransaction(
       if (isEmpty(row.symbol)) {
         continue;
       }
+      if (row.source === 'm-sign') {
+        row.status = TransactionStatus.COMPLETE;
+      }
       // ctx.logger.info(`processSubTx:${tx.hash}`);
       const chainConfig = chains.getChainInfo(String(row.chainId));
       if (!chainConfig) {

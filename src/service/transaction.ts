@@ -227,6 +227,7 @@ export async function bulkCreateTransaction(
         );
         saveExtra.toSymbol = txData.symbol;
       } else if (isToMaker) {
+  
         txData.side = 0;
         const fromChainId = Number(txData.chainId);
         const toChainId = Number(txData.memo);
@@ -268,6 +269,12 @@ export async function bulkCreateTransaction(
               txData.replyAccount = fix0xPadStartAddress(txData.replyAccount, 66);
             }
           }
+        }
+        if (Number(pText) < 9000) {
+          txData.status = 3;
+          txData.extra['reason'] = 'memo error';
+          upsertList.push(<any>txData);
+          continue;
         }
         if (Number(txData.nonce) > 8999 && txData.source != 'xvm') {
           txData.status = 3;

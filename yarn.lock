@@ -2888,7 +2888,7 @@ concat-map@0.0.1:
 
 consul@^1.2.0:
   version "1.2.0"
-  resolved "https://registry.npmmirror.com/consul/-/consul-1.2.0.tgz#9c1357da0e0780c05a29d97f5d66ca445052d800"
+  resolved "https://registry.npmjs.org/consul/-/consul-1.2.0.tgz#9c1357da0e0780c05a29d97f5d66ca445052d800"
   integrity sha512-xWMEDRszShfzKI7XQKq12gr3359VUHUFOrAC2ETNpNe8PFO6AUnY0sbscB7JW5WhUEfuveDcI5ScYqM//20bow==
   dependencies:
     papi "^1.1.0"
@@ -6428,10 +6428,10 @@ ora@^5.4.1:
     strip-ansi "^6.0.0"
     wcwidth "^1.0.1"
 
-orbiter-chaincore@1.5.3:
-  version "1.5.3"
-  resolved "https://registry.npmmirror.com/orbiter-chaincore/-/orbiter-chaincore-1.5.3.tgz#4d278b6c7e0e5eed49997bc4eec76fc91bba63fd"
-  integrity sha512-OmzXRv91S1/4ZFlB0rmhks9L+sq15o7sqojFJQ5XvZVx88Td2obsf5aLbPsTeVdpHLUEDDtkrh2mMRnB1CKxgw==
+orbiter-chaincore@1.5.8-2:
+  version "1.5.8-2"
+  resolved "https://registry.npmjs.org/orbiter-chaincore/-/orbiter-chaincore-1.5.8-2.tgz#864dc070bf0f6080c5dd89d03a3e6125463de04c"
+  integrity sha512-75u6zZmOniu3yg6ygKmFOidZjmC0uzHki7VGfklrIMB2i2S7Q8R5twaht0PeD0PtL3IPXMa2HromT9LiAfY2QA==
   dependencies:
     "@alch/alchemy-web3" "^1.4.6"
     "@dydxprotocol/v3-client" "^1.9.1"
@@ -6521,7 +6521,7 @@ pako@^2.0.4:
 
 papi@^1.1.0:
   version "1.1.2"
-  resolved "https://registry.npmmirror.com/papi/-/papi-1.1.2.tgz#5b1d7686834bec489f1f823103c5e8554f2b984f"
+  resolved "https://registry.npmjs.org/papi/-/papi-1.1.2.tgz#5b1d7686834bec489f1f823103c5e8554f2b984f"
   integrity sha512-cwM6pPpfAYgPe3EQi23SmB5J5s4XFS9lou9z63I5BbnMGmFaR8LAKvKboW7n1IUAKj76OtnyK0YU16JjnZrqVg==
 
 parent-module@^1.0.0:

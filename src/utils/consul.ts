@@ -37,7 +37,7 @@ export async function watchConsulConfig(ctx: Context) {
 }
 
 async function watchMakerConfig(ctx: Context, key: string) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
         const watcher = consul.watch({ method: consul.kv.get, options: { key } });
         watcher.on("change", (data: any) => {
             if (!data?.Key) {

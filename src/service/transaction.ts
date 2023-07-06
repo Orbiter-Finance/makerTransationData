@@ -24,7 +24,6 @@ import { IMarket } from "../types";
 import RLP from "rlp";
 import { ethers } from "ethers";
 import sequelize from "sequelize";
-import { isProd } from "../config/config";
 export async function validateTransactionSpecifications(
   ctx: Context,
   tx: ITransaction,
@@ -91,6 +90,9 @@ export async function bulkCreateTransaction(
       }
       if (isEmpty(row.symbol)) {
         continue;
+      }
+      if (row.source === 'm-sign') {
+        row.status = TransactionStatus.COMPLETE;
       }
       // ctx.logger.info(`processSubTx:${tx.hash}`);
       const chainConfig = chains.getChainInfo(String(row.chainId));
@@ -195,7 +197,7 @@ export async function bulkCreateTransaction(
       }
       if (
         (validMakerAddress(ctx, String(txData.from)) &&
-        validMakerAddress(ctx, String(txData.to)))
+          validMakerAddress(ctx, String(txData.to)))
         || (isToMaker && Number(pText) < 9000)
       ) {
         txData.status = 3;
@@ -224,6 +226,7 @@ export async function bulkCreateTransaction(
         );
         saveExtra.toSymbol = txData.symbol;
       } else if (isToMaker) {
+  
         txData.side = 0;
         const fromChainId = Number(txData.chainId);
         const toChainId = Number(txData.memo);
@@ -266,7 +269,7 @@ export async function bulkCreateTransaction(
             }
           }
         }
-        if (Number(txData.nonce) > 8999 && txData.source!='xvm') {
+        if (Number(txData.nonce) > 8999 && txData.source != 'xvm') {
           txData.status = 3;
           txData.extra['reason'] = 'nonce too high, not allowed';
           upsertList.push(<any>txData);
@@ -455,12 +458,20 @@ export async function bulkCreateTransaction(
 
         }
       } else {
-        if ([0, 2, 3].includes(Number(dbData.status)) && !equals(dbData.status,txData.status)) {
+        if ([0, 2, 3].includes(Number(dbData.status)) && !equals(dbData.status, txData.status)) {
           ctx.logger.info(`${txData.hash} change status origin status:${dbData.status} nowStatus:${txData.status}`);
           dbData.status = txData.status;
           await dbData.save({
             transaction: t,
           });
+        } else {
+          if ([2, 7, 16].includes(txData.chainId) && txData.source == 'rpc') {
+            dbData.fee = txData.fee;
+            dbData.source = txData.source;
+            await dbData.save({
+              transaction: t,
+            });
+          }
         }
       }
       if (dbData.status === 1) {
@@ -532,16 +543,6 @@ function txSaveCache(ctx: Context, txData: Transaction) {
   });
 }
 async function messageToOrbiterX(ctx: Context, txData: Transaction) {
-  if (!isProd()) {
-    await ctx.mq
-      .publishMakerWaitTransferMessage(txData, String(txData.memo))
-      .catch(error => {
-        ctx.logger.error(`publish MakerWaitTransferMessage error:`, error);
-      }).then(() => {
-        ctx.logger.info(`publish MakerWaitTransferMessage success:${txData.hash}`);
-      })
-    return;
-  }
   if (
     txData.source === 'xvm' &&
     txData.status === 1 &&
@@ -593,6 +594,7 @@ async function handleXVMTx(
       saveExtra["ebcId"] = market.ebcId;
       saveExtra.toSymbol = market.toChain.symbol;
       txData.side = 0;
+      txData.to = market.recipient;
       txData.replySender = market.sender;
       txData.replyAccount = decodeData.toWalletAddress;
       if ([44, 4].includes(toChainId) && !isEmpty(txData.replyAccount)) {
@@ -932,9 +934,7 @@ export async function processUserSendMakerTx(
       makerSendTx.status = upStatus;
       makerSendTx.lpId = userTx.lpId;
       makerSendTx.makerId = userTx.makerId;
-      await makerSendTx.save({
-        transaction: t,
-      });
+
       const response = await ctx.models.Transaction.update(
         {
           status: upStatus,
@@ -949,6 +949,9 @@ export async function processUserSendMakerTx(
       if (response[0] != 2) {
         throw new Error('processUserSendMakerTx update rows fail')
       }
+      await makerSendTx.save({
+        transaction: t,
+      });
       await ctx.redis
         .multi()
         .hmset(`TXHASH_STATUS`, [userTx.hash, 99, makerSendTx.hash, 99])
@@ -1388,21 +1391,22 @@ export async function clearMatchCache(
   if (toChainId && transferId) {
     redisT.hdel(`UserPendingTx:${toChainId}`, transferId);
   }
-  const TXHASH_STATUS = [];
-  if (inHash) TXHASH_STATUS.push(inHash, 99);
+  if (inHash) {
+    redisT.hset('TXID_STATUS', [inHash, 99])
+  };
   if (outHash) {
-    TXHASH_STATUS.push(outHash, 99);
+    redisT.hset('TXID_STATUS', [outHash, 99])
     if (toChainId) {
       redisT.zrem(`MakerPendingTx:${toChainId}`, outHash);
     }
   }
-  const TXID_STATUS = [];
-  if (inId) TXID_STATUS.push(inId, 99);
-  if (outId) TXID_STATUS.push(outId, 99);
-  redisT
-    .hmset(`TXHASH_STATUS`, TXHASH_STATUS)
-    .hmset(`TXID_STATUS`, TXID_STATUS);
-  await redisT.exec().catch(error => {
+  if (inId) {
+    redisT.hset('TXID_STATUS', [inId, 99])
+  };
+  if (outId) {
+    redisT.hset('TXID_STATUS', [outId, 99])
+  };
+  redisT.exec().catch(error => {
     ctx.logger.error("clearMatchCache erorr", error);
   });
 }

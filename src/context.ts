@@ -1,4 +1,3 @@
-import { isProd } from "./config/config";
 import Redis from "ioredis";
 import { initModels } from "./models";
 import { Config, IMarket } from "./types";
@@ -8,8 +7,6 @@ import { chains } from "orbiter-chaincore";
 import db from "./db";
 import { WinstonX } from "orbiter-chaincore/src/packages/winstonX";
 import { RabbitMQ } from "./utils/rabbitMQ";
-import { equals } from "orbiter-chaincore/src/utils/core";
-import { cloneDeep } from "lodash";
 import { watchConsulConfig } from "./utils/consul";
 export class Context {
   public models = initModels(db);

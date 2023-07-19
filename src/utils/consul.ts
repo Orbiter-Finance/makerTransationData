@@ -21,18 +21,55 @@ export const consul = process.env["CONSUL_HOST"]
     : null;
 
 export async function watchConsulConfig(ctx: Context) {
+  const consulServerName = `TD-${process.env["ServerName"] || "ALL"}`;
+  await consul.agent.check.register({
+    name: consulServerName,
+    ttl: "60s",
+    notes: consulServerName,
+  });
+
+  async function checkConsul() {
+    try {
+      consul.agent.check.pass(consulServerName);
+    } catch (e) {
+      ctx.logger.error(`consul agent check pass error ${e.message}`);
+    }
+  }
+
+  await checkConsul();
     console.log("======== consul config init begin ========");
     const keys = [
         ...(await consul.kv.keys("common")),
     ];
+    const keyMap = {};
     for (const key of keys) {
         try {
-            await watchMakerConfig(ctx, key);
+          keyMap[key] = await watchMakerConfig(ctx, key);
         } catch (e) {
-            // TODO TG
           ctx.logger.error(e);
         }
     }
+    setInterval(async () => {
+    try {
+      await checkConsul();
+      const currentKeys = [...(await consul.kv.keys("common"))];
+      for (const key of currentKeys) {
+        if (!keyMap[key]) {
+          ctx.logger.info(`add consul config ${key}`);
+          keyMap[key] = await watchMakerConfig(ctx, key);
+        }
+      }
+      for (const key in keyMap) {
+        if (!currentKeys.find(item => item === key)) {
+          ctx.logger.info(`delete consul config ${key}`);
+          keyMap[key].end();
+          delete keyMap[key];
+        }
+      }
+    } catch (e) {
+      ctx.logger.error("watch new config error", e);
+    }
+  }, 30000);
     console.log("======== consul config init end ========");
 }
 
@@ -42,7 +79,7 @@ async function watchMakerConfig(ctx: Context, key: string) {
         watcher.on("change", (data: any) => {
             if (!data?.Key) {
                 ctx.logger.error(`Consul can't find key ${key}`, data);
-                return;
+                resolve(watcher);
             }
             console.log(`Configuration updated: ${data.Key}`);
             if (data.Value) {
@@ -54,18 +91,15 @@ async function watchMakerConfig(ctx: Context, key: string) {
                     if (key.indexOf("common/trading-pairs") !== -1) {
                         updateTradingPairs(ctx, key.split("common/trading-pairs/")[1], config);
                     }
-                    resolve(config);
                 } catch (e) {
                     ctx.logger.error(`Consul watch refresh config error: ${e.message} dataValue: ${data.Value}`);
-                    resolve(null);
                 }
-            } else {
-                resolve(null);
             }
+          resolve(watcher);
         });
         watcher.on("error", (err: Error) => {
             ctx.logger.error(`Consul watch ${key} error: `, err);
-            resolve(null);
+            resolve(watcher);
         });
     });
 }

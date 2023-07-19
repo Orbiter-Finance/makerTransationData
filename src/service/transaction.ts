@@ -1071,7 +1071,7 @@ export async function processMakerSendUserTx(
       }
     } else {
       if (
-        Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from)
+        Object.values(ctx.config.crossAddressTransferMap).includes(makerTx.from.toLocaleLowerCase())
       ) {
         const crossAddressTransferMap = ctx.config.crossAddressTransferMap;
         const ids = [makerTx.transferId];

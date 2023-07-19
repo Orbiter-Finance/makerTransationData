@@ -22,11 +22,11 @@ export const consul = process.env["CONSUL_HOST"]
 
 export async function watchConsulConfig(ctx: Context) {
   const consulServerName = `TD-${process.env["ServerName"] || "ALL"}`;
-  await consul.agent.check.register({
-    name: consulServerName,
-    ttl: "60s",
-    notes: consulServerName,
-  });
+  // await consul.agent.check.register({
+  //   name: consulServerName,
+  //   ttl: "60s",
+  //   notes: consulServerName,
+  // });
 
   async function checkConsul() {
     try {

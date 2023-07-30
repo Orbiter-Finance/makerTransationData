@@ -83,7 +83,7 @@ export class Watch {
         pubSub.subscribe(`${id}:txlist`, async (txList: Transaction[]) => {
           if (txList) {
             try {
-              this.saveTxRawToCache(txList).catch(error=> {
+              this.saveTxRawToCache(txList).catch(error => {
                 ctx.logger.error(
                   `saveTxRawToCache error`,
                   error,
@@ -482,9 +482,9 @@ export class Watch {
   public async fixFeeTx() {
     const txList = await this.ctx.models.Transaction.findAll({
       attributes: ['id', 'hash', 'chainId', 'gasPrice', 'fee'],
-      order:[['id', 'desc']],
+      order: [['id', 'desc']],
       where: {
-        chainId: [7],
+        chainId: [7,21],
         side: 1,
         status: 99,
         source: "etherscan",
@@ -501,18 +501,22 @@ export class Watch {
         const receipt: any = await provider.eth.getTransactionReceipt(tx.hash)
         const fee = tx.fee;
         let newFee = '';
-        if (tx.chainId === 7) {
+        const chainId = +tx.chainId;
+        if ([7, 77].includes(chainId)) {
           const l1Fee = new BigNumber(Number(receipt["l1GasUsed"]) *
             Number(receipt["l1GasPrice"]) *
             Number(receipt["l1FeeScalar"]));
           const fee = l1Fee.plus(Number(tx.gasPrice) * Number(receipt['gasUsed']));
           newFee = fee.toFixed(0);
-        } else if (tx.chainId == 2 || tx.chainId == 16) {
+        } else if ([2, 22, 16, 516].includes(chainId)) {
           newFee = new BigNumber(
             Number(receipt["gasUsed"]) * Number(receipt["effectiveGasPrice"]),
           ).toFixed(0);
+        } else if ([21, 521].includes(chainId)) {
+          const fee = new BigNumber(receipt['l1Fee']).plus(tx.fee);
+          tx.fee = fee.toString();
         }
-        if (!isEmpty(newFee) && newFee != 'NaN' && newFee !=fee) {
+        if (!isEmpty(newFee) && newFee != 'NaN' && newFee != fee) {
           tx.source = 'etherscan-1'
           tx.fee = newFee;
           tx.save();

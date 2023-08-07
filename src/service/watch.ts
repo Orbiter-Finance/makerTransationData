@@ -527,4 +527,52 @@ export class Watch {
 
     }
   }
+  public async fixFeeBase() {
+    const txList = await this.ctx.models.Transaction.findAll({
+      attributes: ['id', 'hash', 'chainId', 'gasPrice', 'fee'],
+      order:[['id', 'desc']],
+      where: {
+        chainId: [21],
+        side: 1,
+        hash:{
+          [Op.like]: '%#%'
+        },
+        status: 99,
+        blockNumber: {
+          [Op.lte]: 2179876
+        },
+        source: 'rpc'
+      },
+    });
+    let result = {
+
+    }
+    let nums = {
+
+    }
+    for (const tx of txList) {
+      const [hash, index] = tx.hash.split('#');
+      if (!tx[hash]) {
+        const provider = createAlchemyWeb3("https://base.blockpi.network/v1/rpc/public");
+        const receipt: any = await provider.eth.getTransactionReceipt(hash)
+        tx[hash] = receipt;
+        nums[hash] = txList.filter(tx=> tx.hash.includes(hash)).length;
+      }
+      let newFee = '';
+      if (tx[hash]) {
+        const receipt = tx[hash];
+        const total = nums[hash];
+        const l1Fee = new BigNumber(receipt['l1Fee']);
+        const fee = l1Fee.plus(Number(tx.gasPrice) * Number(receipt['gasUsed'])).div(total);
+        newFee = fee.toFixed(0)
+      }
+      if (!isEmpty(newFee) && newFee != 'NaN' && newFee != tx.fee) {
+        tx.source = 'etherscan-1'
+        this.ctx.logger.info(`fix tx fee ${tx.chainId}  Hash:${tx.hash}, Fee:${tx.fee}/${newFee}`);
+        tx.fee = newFee;
+        tx.save();
+      }
+
+    }
+  }
 }

@@ -512,7 +512,7 @@ export class Watch {
           newFee = new BigNumber(
             Number(receipt["gasUsed"]) * Number(receipt["effectiveGasPrice"]),
           ).toFixed(0);
-        } else if ([21, 521].includes(chainId)) {
+        } else if ([21, 521, 30, 530].includes(chainId)) {
           const fee = new BigNumber(receipt['l1Fee']).plus(tx.fee);
           tx.fee = fee.toString();
         }

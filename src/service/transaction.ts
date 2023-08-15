@@ -293,6 +293,7 @@ export async function bulkCreateTransaction(
         if (!market || isEmpty(txData.replyAccount) || error) {
           // market not found
           txData.status = 3;
+          txData.extra['reason'] = `maker not found ${fromChainId}-${toChainId}-${txData.to}`;
         } else {
           // valid timestamp
           txData.lpId = market.id || null;

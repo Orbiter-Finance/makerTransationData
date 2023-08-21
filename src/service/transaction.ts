@@ -195,16 +195,19 @@ export async function bulkCreateTransaction(
         ctx.logger.info(`MakerTx ${txData.hash} Not Find Maker Address!`);
         continue;
       }
-      if (
-        (validMakerAddress(ctx, String(txData.from)) &&
-          validMakerAddress(ctx, String(txData.to)))
-        || (isToMaker && Number(pText) < 9000)
-      ) {
-        txData.status = 3;
-        txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";
-        upsertList.push(<any>txData);
-        continue;
+      if (!orbiterX) {
+        if (
+          (validMakerAddress(ctx, String(txData.from)) &&
+            validMakerAddress(ctx, String(txData.to)))
+          || (isToMaker && Number(pText) < 9000)
+        ) {
+          txData.status = 3;
+          txData.extra["reason"] = isToMaker && Number(pText) < 9000 ? "memo" : "maker";
+          upsertList.push(<any>txData);
+          continue;
+        }
       }
+      
       if (orbiterX) {
         try {
           await handleXVMTx(ctx, txData, txExtra, saveExtra, upsertList);

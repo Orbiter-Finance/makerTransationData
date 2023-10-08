@@ -544,10 +544,10 @@ export class Watch {
         source: 'rpc'
       },
     });
-    let result = {
+    const result = {
 
     }
-    let nums = {
+    const nums = {
 
     }
     for (const tx of txList) {

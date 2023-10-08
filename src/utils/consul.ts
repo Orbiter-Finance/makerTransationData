@@ -21,22 +21,22 @@ export const consul = process.env["CONSUL_HOST"]
     : null;
 
 export async function watchConsulConfig(ctx: Context) {
-  const consulServerName = `TD-${process.env["ServerName"] || "ALL"}`;
+  // const consulServerName = `TD-${process.env["ServerName"] || "ALL"}`;
   // await consul.agent.check.register({
   //   name: consulServerName,
   //   ttl: "60s",
   //   notes: consulServerName,
   // });
 
-  async function checkConsul() {
-    try {
-      consul.agent.check.pass(consulServerName);
-    } catch (e) {
-      ctx.logger.error(`consul agent check pass error ${e.message}`);
-    }
-  }
+  // async function checkConsul() {
+  //   // try {
+  //   //   consul.agent.check.pass(consulServerName);
+  //   // } catch (e) {
+  //   //   ctx.logger.error(`consul agent check pass error ${e.message}`);
+  //   // }
+  // }
 
-  await checkConsul();
+  // await checkConsul();
     console.log("======== consul config init begin ========");
     const keys = [
         ...(await consul.kv.keys("common")),
@@ -51,7 +51,7 @@ export async function watchConsulConfig(ctx: Context) {
     }
     setInterval(async () => {
     try {
-      await checkConsul();
+      // await checkConsul();
       const currentKeys = [...(await consul.kv.keys("common"))];
       for (const key of currentKeys) {
         if (!keyMap[key]) {

@@ -263,9 +263,9 @@ export async function bulkCreateTransaction(
                 break;
               case "4":
               case "44":
-                if (ext.length !== 68) {
-                  txData.status = 6;
-                }
+                // if (ext.length !== 68) {
+                //   txData.status = 6;
+                // }
                 txData.replyAccount = ext.replace("0x03", "0x");
                 break;
             }

@@ -133,7 +133,7 @@ function getToAmountFromUserAmount(
   let gasFee = toAmount_tradingFee
     .multipliedBy(new BigNumber(market.gasFee))
     .dividedBy(new BigNumber(1000));
-  let digit = market.fromChain.decimals === 18 ? 5 : 2;
+  let digit = market.toChain.decimals === 18 ? 5 : 2;
   // accessLogger.info('digit =', digit)
   let gasFee_fix = gasFee.decimalPlaces(digit, BigNumber.ROUND_UP);
   // accessLogger.info('gasFee_fix =', gasFee_fix.toString())
@@ -144,7 +144,7 @@ function getToAmountFromUserAmount(
   }
   if (isWei) {
     return toAmount_fee.multipliedBy(
-      new BigNumber(10 ** market.fromChain.decimals),
+      new BigNumber(10 ** market.toChain.decimals),
     );
   } else {
     return toAmount_fee;

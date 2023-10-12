@@ -94,7 +94,9 @@ export async function bulkCreateTransaction(
       if (row.source === 'm-sign') {
         row.status = TransactionStatus.COMPLETE;
       }
-      // ctx.logger.info(`processSubTx:${tx.hash}`);
+      if (row.chainId === 'SN_MAIN') {
+        ctx.logger.info(`starknet tx ${JSON.stringify(row)}`);
+      }
       const chainConfig = chains.getChainInfo(String(row.chainId));
       if (!chainConfig) {
         ctx.logger.error(
@@ -1155,8 +1157,6 @@ export async function processMakerSendUserTx(
     const updateRes = await ctx.models.Transaction.update(
       {
         status: upStatus,
-        lpId: userSendTx.lpId,
-        makerId: userSendTx.makerId,
       },
       {
         where: {
@@ -1181,7 +1181,7 @@ export async function processMakerSendUserTx(
       const outHash = makerTx.hash;
       const inHash = userSendTx.hash;
       ctx.logger.info(
-        `db match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
+        `db match success inID:${userSendTx.id}, outID:${makerTx.id}, inHash:${inHash}, outHash:${outHash}, ${upStatus} - ${updateRes[0]}`,
       );
       await clearMatchCache(
         ctx,
@@ -1345,9 +1345,9 @@ export async function processMakerSendUserTxFromCacheByChain(
                 );
               }
               await t.commit();
-              ctx.logger.info(
-                `cache match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
-              );
+              // ctx.logger.info(
+              //   `cache match success inID:${inId}, outID:${outId}, inHash:${inHash}, outHash:${outHash}`,
+              // );
               await clearMatchCache(
                 ctx,
                 userTx.chainId,

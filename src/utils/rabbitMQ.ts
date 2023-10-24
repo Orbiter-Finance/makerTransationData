@@ -243,13 +243,13 @@ class Consumer {
         this.exchangeName,
         this.routingKey,
       );
-      console.log(`Waiting for messages from RabbitMQ...`);
+      // console.log(`Waiting for messages from RabbitMQ...`);
       this.channel.prefetch(1, false);
       this.channel.consume(
         this.queueName,
         (message: amqp.ConsumeMessage | null) => {
           if (message !== null) {
-            console.log(`Received message from RabbitMQ `);
+            // console.log(`Received message from RabbitMQ `);
             callback(message.content.toString()).then(result => {
               if (result === true) {
                 this.channel.ack(message);
@@ -289,7 +289,7 @@ class Producer {
         routingKey,
         Buffer.from(message),
       );
-      console.log(`Sent message to RabbitMQ`);
+      // console.log(`Sent message to RabbitMQ`);
     } catch (error) {
       console.error(
         `Failed to send message to RabbitMQ: ${(error as Error).message}`,

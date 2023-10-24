@@ -206,11 +206,11 @@ export class Watch {
         limit: 500,
         where,
       });
-      console.log(
-        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
-          txList.map(row => row.hash),
-        )}`,
-      );
+      // console.log(
+      //   `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+      //     txList.map(row => row.hash),
+      //   )}`,
+      // );
       let index = 0;
       for (const tx of txList) {
         const result = await processMakerSendUserTx(this.ctx, tx).catch(
@@ -221,10 +221,10 @@ export class Watch {
             );
           },
         );
-        console.log(
-          `readMakerendReMatch index:${index}/${txList.length},hash:${tx.hash}，result:`,
-          result,
-        );
+        // console.log(
+        //   `readMakerendReMatch index:${index}/${txList.length},hash:${tx.hash}，result:`,
+        //   result,
+        // );
         index++;
       }
     } catch (error) {
@@ -255,10 +255,10 @@ export class Watch {
           error,
         );
       });
-      console.log(
-        `readUserTxReMatchNotCreate index:${index}/${txList.length},hash:${tx.hash}，result:`,
-        result,
-      );
+      // console.log(
+      //   `readUserTxReMatchNotCreate index:${index}/${txList.length},hash:${tx.hash}，result:`,
+      //   result,
+      // );
       index++;
     }
   }
@@ -282,11 +282,11 @@ export class Watch {
         limit: 600,
         where,
       });
-      console.log(
-        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
-          txList.map(row => row.hash),
-        )}`,
-      );
+      // console.log(
+      //   `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+      //     txList.map(row => row.hash),
+      //   )}`,
+      // );
       let index = 0;
       for (const tx of txList) {
         const result = await processUserSendMakerTx(this.ctx, tx).catch(
@@ -297,10 +297,10 @@ export class Watch {
             );
           },
         );
-        console.log(
-          `readUserTxReMatch index:${index}/${txList.length},hash:${tx.hash}，result:`,
-          result,
-        );
+        // console.log(
+        //   `readUserTxReMatch index:${index}/${txList.length},hash:${tx.hash}，result:`,
+        //   result,
+        // );
         index++;
       }
     } catch (error) {
@@ -336,11 +336,11 @@ export class Watch {
         limit: 400,
         where,
       });
-      console.log(
-        `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
-          txList.map(row => row.hash),
-        )}`,
-      );
+      // console.log(
+      //   `exec match:${startAt} - ${endAt}, txlist:${JSON.stringify(
+      //     txList.map(row => row.hash),
+      //   )}`,
+      // );
       for (const txData of txList) {
         const toChainId = getAmountFlag(
           Number(txData.chainId),

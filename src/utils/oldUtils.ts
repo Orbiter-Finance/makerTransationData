@@ -428,7 +428,7 @@ export function getAmountToSend(
   );
   const result = getTAmountFromRAmount(toChainID, readyAmount.toFixed(), nonceStr);
   if (!result.state) {
-    console.log(result);
+    console.error(result);
   }
   if (toChainID === 3 || toChainID === 3) {
     if (result.state) {

@@ -48,7 +48,7 @@ export function groupWatchAddressByChain(
   return chain;
 }
 
-export function convertMakerConfig(chainList: IChainCfg[], makerMap: IMakerCfg, makerAddress: string): IMarket[] {
+export function convertMakerConfig(chainList: IChainCfg[], makerMap: IMakerCfg, fileName: string): IMarket[] {
   const configs: IMarket[] = [];
   for (const chainIdPair in makerMap) {
     if (!makerMap.hasOwnProperty(chainIdPair)) continue;
@@ -74,7 +74,7 @@ export function convertMakerConfig(chainList: IChainCfg[], makerMap: IMakerCfg, 
         makerId: "",
         ebcId: "",
         slippage: makerData.slippage || 0,
-        recipient: makerAddress.toLowerCase(),
+        recipient: makerData.makerAddress ? makerData.makerAddress.toLowerCase() : fileName.toLowerCase(),
         sender: makerData.sender.toLowerCase(),
         tradingFee: makerData.tradingFee,
         gasFee: makerData.gasFee,

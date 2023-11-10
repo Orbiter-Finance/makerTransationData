@@ -88,9 +88,12 @@ async function watchMakerConfig(ctx: Context, key: string) {
                     if (key === "common/chain.json") {
                         updateChain(ctx, config);
                     }
-                    if (key.indexOf("common/trading-pairs") !== -1) {
-                        updateTradingPairs(ctx, key.split("common/trading-pairs/")[1], config);
-                    }
+                    // if (key.indexOf("common/trading-pairs") !== -1) {
+                    //     updateTradingPairs(ctx, key.split("common/trading-pairs/")[1], config);
+                    // }
+                    if (key.indexOf("common/rules") !== -1) {
+                      updateTradingPairs(ctx, key.split("common/rules/")[1], config);
+                  }
                 } catch (e) {
                     ctx.logger.error(`Consul watch refresh config error: ${e.message} dataValue: ${data.Value}`);
                 }

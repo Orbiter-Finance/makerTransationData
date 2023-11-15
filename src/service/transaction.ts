@@ -367,6 +367,16 @@ export async function bulkCreateTransaction(
       if (tx) {
         // status:0=PENDING,1=COMPLETE,2=REJECT,3=MatchFailed,4=refund,5=timers not match,99= MatchSuccess,98=makerDelayTransfer
         if (tx.status === 99) {
+          await ctx.models.Transaction.update(
+            {
+              fee: txData.fee,
+            },
+            {
+              where: {
+                id: tx.id,
+              },
+            },
+          );
           // save
           if (tx.side === 0) {
             const mtxTx = await ctx.models.MakerTransaction.findOne({

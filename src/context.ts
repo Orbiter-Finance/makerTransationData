@@ -115,7 +115,9 @@ export class Context {
     //     row => Number(row.internalId) % this.instanceCount === this.instanceId,
     //   )
     //   .map(row => row.internalId);
-    this.mq = new RabbitMQ({ url: String(process.env["RABBIT_MQ"]) }, this);
+    if (process.env["RABBIT_MQ"]){
+      this.mq = new RabbitMQ({ url: String(process.env["RABBIT_MQ"]) }, this);
+    }
   }
   constructor() {
     this.isSpv = process.env["IS_SPV"] === "1";

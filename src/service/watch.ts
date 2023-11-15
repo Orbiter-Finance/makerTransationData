@@ -51,15 +51,17 @@ export class Watch {
   }
   public async start() {
     const ctx = this.ctx;
-    this.ctx.mq.consumer.consume(async message => {
-      try {
-        await bulkCreateTransaction(ctx, JSON.parse(message));
-        return true;
-      } catch (error) {
-        this.ctx.logger.error(`Consumption transaction list failed`, error);
-        return false;
-      }
-    });
+    if (this.ctx.mq) {
+      this.ctx.mq.consumer.consume(async message => {
+        try {
+          await bulkCreateTransaction(ctx, JSON.parse(message));
+          return true;
+        } catch (error) {
+          this.ctx.logger.error(`Consumption transaction list failed`, error);
+          return false;
+        }
+      });
+    }
 
     try {
       const chainGroup = groupWatchAddressByChain(ctx, ctx.makerConfigs);
@@ -89,8 +91,11 @@ export class Watch {
                   error,
                 );
               })
-              // return await bulkCreateTransaction(ctx, txList);
+              if (this.ctx.mq) {
               return await this.ctx.mq.producer.publish(txList, "");
+              } else {
+              return await bulkCreateTransaction(ctx, txList);
+              }
             } catch (error) {
               await bulkCreateTransaction(ctx, txList).catch(error => {
                 ctx.logger.error(

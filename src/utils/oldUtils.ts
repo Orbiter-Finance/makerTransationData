@@ -183,8 +183,6 @@ function getTAmountFromRAmount(
     };
   }
   if (isLimitNumber(chain) && amountLength > validDigit) {
-    console.log(amount, '==amount');
-    console.log('========',amountLength, '==', validDigit, '==pText', pText )
     const tAmount =
       amount.toString().slice(0, validDigit - pText.length) +
       pText +
